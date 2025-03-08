@@ -1,36 +1,45 @@
-"use client"; // Mark this component as a Client Component
-
-import React from 'react';
+import React, { useState, ChangeEvent } from 'react';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import styles from './InputField.module.scss';
 
 interface InputFieldProps {
-  type?: string;
-  placeholder?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  disabled?: boolean;
-  error?: string;
+  type: string;
+  placeholder: string;
+  name: string; // Add the name prop
+  value?: string; // Optional prop for controlled input
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void; // Optional prop for controlled input
 }
 
-const InputField: React.FC<InputFieldProps> = ({
-  type = 'text',
-  placeholder,
-  value,
-  onChange,
-  disabled = false,
-  error,
-}) => {
+const InputField: React.FC<InputFieldProps> = ({ type, placeholder, name, value, onChange }) => {
+  const [inputValue, setInputValue] = useState<string>(value || '');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    if (onChange) {
+      onChange(e); // Propagate the change to the parent component
+    }
+  };
+
+  const handleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <div>
+    <div className={styles.inputField}>
       <input
-        type={type}
+        type={type === 'password' ? (showPassword ? 'text' : 'password') : type}
+        value={inputValue}
+        onChange={handleInputChange}
         placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className={`${styles.inputField} ${error ? styles.error : ''}`}
+        name={name} // Pass the name prop to the input element
+        className={styles.input}
       />
-      {error && <p className={styles.errorMessage}>{error}</p>}
+      {type === 'password' && (
+        <span onClick={handleShowPassword} className={styles.eyeIcon}>
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </span>
+      )}
     </div>
   );
 };

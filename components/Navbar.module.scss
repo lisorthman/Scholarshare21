@@ -1,43 +1,75 @@
-.navbar {
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+.navBar {
+  display: flex;
+  height: 100px;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #fff;
+
+  .logo {
+    font-size: 2rem;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-weight: bold;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
-    background-color: #333;
-    color: #fff;
-  
-    h1 {
-      margin: 0;
-      font-size: 24px;
-    }
-  
-    .link {
-      color: #fff;
-      text-decoration: none;
-      margin-right: 15px;
-  
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  
-    .input {
-      padding: 5px;
-      border-radius: 5px;
-      border: none;
-      margin-right: 10px;
-    }
-  
-    .button {
-      padding: 5px 10px;
-      border-radius: 5px;
-      border: none;
-      background-color: #0070f3;
-      color: #fff;
-      cursor: pointer;
-  
-      &:hover {
-        background-color: adjust-color(#0070f3, $lightness: -10%);
+    margin-left: 5%;
+  }
+
+  .navLinks {
+    list-style: none;
+    font-family: 'Space Grotesk', sans-serif; /* Apply Space Grotesk */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 100px; /* Adjust spacing between links */
+
+    li {
+      a {
+        text-decoration: none;
+        color: #333;
+        font-weight: bold;
+        font-size: 1rem; /* Adjust font size */
+        transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+        padding: 10px 15px;
+
+        &:hover {
+          color: #0070f3;
+          background-color: #ddd; /* Grey box on hover */
+          border-radius: 5px;
+        }
       }
     }
   }
+
+  .searchBar {
+    display: flex;
+    align-items: center;
+    border: 2px solid #000;
+    padding: 0.5rem 1rem;
+    border-radius: 15px;
+    background: #f9f9f9;
+    width: 210px;
+    position: relative;
+
+    .searchIcon {
+      width: 20px; /* Adjust size */
+      height: 20px;
+      fill: #555; /* Set color */
+      margin-right: 10px;
+    }
+
+    .searchInput {
+      border: none;
+      background: transparent;
+      width: 100%;
+      outline: none;
+      font-size: 1rem;
+      font-family: 'Space Grotesk', sans-serif; /* Apply font */
+      letter-spacing: 0.25em; /* 25% spacing */
+    }
+
+  }
+}

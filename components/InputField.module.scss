@@ -1,34 +1,31 @@
 .inputField {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px solid #C4C4C4;
+  font-size: 16px;
+  font-family: Arial, sans-serif;
+  background-color: transparent;
+  outline: none;
   
-    &:focus {
-      outline: none;
-      border-color: #0070f3;
-      box-shadow: 0 0 5px rgba(0, 112, 243, 0.5);
-    }
-  
-    &:disabled {
-      background-color: #f5f5f5;
-      cursor: not-allowed;
-    }
-  
-    &.error {
-      border-color: #ff4d4f;
-  
-      &:focus {
-        border-color: #ff4d4f;
-        box-shadow: 0 0 5px rgba(255, 77, 79, 0.5);
-      }
-    }
-  }
-  
-  .errorMessage {
-    color: #ff4d4f;
-    font-size: 14px;
-    margin-top: 5px;
-  }
+}
+
+.input::placeholder {
+  color: #5C5C5C;
+
+}
+
+.eyeIcon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  color: #5C5C5C;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
