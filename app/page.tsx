@@ -46,7 +46,7 @@ const HomePage: React.FC = () => {
 
   // Function to handle Get Started button click
   const handleGetStartedClick = () => {
-    router.push('/signup'); // Redirect to the login page
+    router.push('/signup'); // Redirect to the signup page
   };
 
   return (
@@ -277,6 +277,35 @@ const HomePage: React.FC = () => {
               &gt;
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Small Box Below Slideshow */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '1200px', // Match the max-width of the slideshow
+          margin: '20 auto', // Center the box
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: '#F5F5F5', // Ash color to match the slideshow
+            borderRadius: '5px', // Curved edges
+            padding: '5px', // Inner padding
+            width: 'fit-content', // Adjust width to fit content
+          }}
+        >
+          <h2
+            style={{
+              fontSize: '2.25rem', // Adjust font size
+              fontWeight: '600', // Semi-bold
+              color: '#000', // Black text
+              margin: 0, // Remove default margin
+            }}
+          >
+            Features
+          </h2>
         </div>
       </div>
 
