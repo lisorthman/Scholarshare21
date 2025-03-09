@@ -72,7 +72,7 @@ const AboutPage: React.FC = () => {
               style={{
                 display: 'flex',
                 justifyContent: 'center', // Center the image horizontally
-                marginBottom: '2.5rem', // Adjustable margin (40px)
+                marginBottom: '4.5rem', // Adjustable margin (40px)
               }}
             >
               <img
