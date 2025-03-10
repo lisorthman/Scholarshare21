@@ -49,6 +49,47 @@ const HomePage: React.FC = () => {
     router.push('/signup'); // Redirect to the signup page
   };
 
+  // Data for the six boxes
+  const boxes = [
+    {
+      color: '#9E8F8F', // color
+      heading: 'Free Access to ', // Heading text
+      subheading: 'research paper', // Subheading text
+      image: '/21532509_6432092 1.png', // Replace with your image path
+    },
+    {
+      color: '#E0D8C3', // color
+      heading: 'Advanced search',
+      subheading: 'Functionality',
+      image: '/Vector.png', // Replace with your image path
+    },
+    {
+      color: '#F3F3F3', // color
+      heading: 'Can add papers ',
+      subheading: 'to library',
+      image: '/Untitled-1 1.png', // Replace with your image path
+    },
+    {
+      color: '#F3F3F3', // color
+      heading: 'Profile analytics',
+      subheading: 'for Users',
+      extraSubheading: 'Publishers', // Extra subheading for the 4th box
+      image: '/Vector1.png', // Replace with your image path
+    },
+    {
+      color: '#E0D8C3', // color
+      heading: 'Rate &',
+      subheading: 'Review',
+      image: '/jj_design-removebg-preview 1.png', // Replace with your image path
+    },
+    {
+      color: '#9E8F8F', // color
+      heading: 'Feature platform',
+      subheading: 'for Researchers',
+      image: '/529567-removebg-preview.png', // Replace with your image path
+    },
+  ];
+
   return (
     <div
       style={{
@@ -151,7 +192,7 @@ const HomePage: React.FC = () => {
                   style={{
                     fontSize: 'clamp(2rem, 5vw, 3rem)', // Responsive font size
                     fontWeight: '550',
-                    marginBottom: '20px', // Spacing below the heading
+                    marginBottom: '10px', // Reduced spacing below the heading
                     lineHeight: '1.2',
                   }}
                 >
@@ -280,7 +321,7 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Small Box Below Slideshow */}
+      {/* Features Heading */}
       <div
         style={{
           width: '100%',
@@ -295,7 +336,7 @@ const HomePage: React.FC = () => {
             borderRadius: '5px', // Curved edges
             padding: '5px', // Inner padding
             width: 'fit-content', // Adjust width to fit content
-            maxHeight:'50px'
+            maxHeight: '50px',
           }}
         >
           <h2
@@ -309,6 +350,171 @@ const HomePage: React.FC = () => {
             Features
           </h2>
         </div>
+      </div>
+
+      {/* Six Boxes Below Features Heading */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '1100px', // Match the max-width of the slideshow
+          margin: '0 auto', // Center the box
+          padding: '20px', // Add padding for spacing
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)', // 2 columns
+          gridTemplateRows: 'repeat(3, 1fr)', // 3 rows
+          gap: '20px', // Space between boxes
+        }}
+      >
+        {boxes.map((box, index) => (
+  <div
+    key={index}
+    style={{
+      backgroundColor: box.color, // Dynamic color for each box
+      borderRadius: '20px', // Curved edges
+      padding: '20px', // Inner padding
+      display: 'flex',
+      alignItems: 'center', // Center items vertically
+      justifyContent: 'space-between', // Space between text and image
+      height: '250px', // Adjust height of the box
+      width: '100%', // Adjust width of the box
+      position: 'relative', // For positioning text container
+      border: '2px solid #000', // Add a border to the box
+      borderBottomWidth: '6px', // Make the bottom border thicker
+    }}
+  >
+    {/* Text Content (Left Side) */}
+    <div
+      style={{
+        flex: '1', // Take up remaining space
+        display: 'flex',
+        flexDirection: 'column', // Stack heading and subheading vertically
+        gap: '0', // Reduced space between heading and subheading
+        marginTop: '-100px', // Move text slightly to the top
+        marginLeft: '10px', // Move text slightly to the left
+      }}
+    >
+      {/* Heading in a White Box */}
+      <div
+        style={{
+          backgroundColor:
+            index === 2 || index === 3
+              ? 'rgba(99, 65, 65, 0.14)' // Change opacity for 4th and 5th boxes
+              : 'rgba(255, 255, 255, 0.8)', // Default opacity
+          borderRadius: '5px', // Curved edges
+          padding: '2px', // Inner padding
+          width: 'fit-content', // Adjust width to fit content
+        }}
+      >
+        <h3
+          style={{
+            fontSize: '1.5rem', // Adjust font size
+            fontWeight: '600', // Bold
+            margin: 0, // Remove default margin
+          }}
+        >
+          {box.heading}
+        </h3>
+      </div>
+
+      {/* Subheading in a White Box */}
+      <div
+        style={{
+          backgroundColor:
+            index === 2 || index === 3
+              ? 'rgba(99, 65, 65, 0.14)' // Change opacity for 4th and 5th boxes
+              : 'rgba(255, 255, 255, 0.8)', // Default opacity
+          borderRadius: '5px', // Curved edges
+          padding: '2px', // Inner padding
+          width: 'fit-content', // Adjust width to fit content
+        }}
+      >
+        <h3
+          style={{
+            fontSize: '1.5rem', // Adjust font size
+            fontWeight: '600', // Semi-bold
+            margin: 0, // Remove default margin
+          }}
+        >
+          {box.subheading}
+        </h3>
+      </div>
+
+      {/* Extra Subheading for 5th Box */}
+      {index === 3 && (
+        <div
+          style={{
+            backgroundColor: 'rgba(99, 65, 65, 0.14)', // Change opacity for 5th box
+            borderRadius: '5px', // Curved edges
+            padding: '2px', // Inner padding
+            width: 'fit-content', // Adjust width to fit content
+          }}
+        >
+          <h3
+            style={{
+              fontSize: '1.5rem', // Adjust font size
+              fontWeight: '600', // Semi-bold
+              margin: 0, // Remove default margin
+            }}
+          >
+            {box.extraSubheading}
+          </h3>
+        </div>
+      )}
+    </div>
+
+    {/* Image (Right Side) */}
+    <div
+      style={{
+        width: '50%', // Adjust width
+        display: 'flex',
+        justifyContent: 'center', // Center the image
+        alignItems: 'center', // Center the image vertically
+      }}
+    >
+      <img
+        src={box.image} // Dynamic image path
+        alt="Feature Illustration"
+        style={{
+          width: '100%', // Responsive width
+          maxWidth: '190px', // Maximum width for the image
+          height: 'auto', // Maintain aspect ratio
+        }}
+      />
+    </div>
+
+    {/* Learn More Logo and Text (Bottom) */}
+    <div
+      style={{
+        position: 'absolute', // Position absolutely at the bottom
+        bottom: '20px', // Move to the bottom
+        left: '20px', // Align with the text
+        display: 'flex',
+        alignItems: 'center', // Center items vertically
+        gap: '10px', // Space between logo and text
+      }}
+    >
+      {/* Learn More Logo */}
+      <img
+        src="/learnmore.png" // Path to the Learn More logo
+        alt="Learn More"
+        style={{
+          width: '25px', // Adjust logo size
+          height: '25px', // Adjust logo size
+        }}
+      />
+      {/* Learn More Text */}
+      <span
+        style={{
+          fontSize: '1.2rem', // Adjust font size
+          fontWeight: '500', // Semi-bold
+          color: '#000', // Black text
+        }}
+      >
+        Learn More
+      </span>
+    </div>
+  </div>
+))}
       </div>
 
       {/* Rest of the Homepage Content */}
