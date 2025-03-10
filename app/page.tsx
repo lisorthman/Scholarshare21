@@ -91,14 +91,14 @@ const HomePage: React.FC = () => {
               position: 'absolute',
               top: '-30px', // Position above the main box
               left: '0px', // Align with the main box
-              backgroundColor: '#F5F5F5', // Ash color to match the main box
+              backgroundColor: '#E0D8C3',
               borderRadius: '20px 20px 0 0', // Curved edges at the top
               padding: '10px 50px', // Padding for the dots
               display: 'flex',
               gap: '10px', // Space between dots
               zIndex: 1, // Ensure it's above the main box
               width: '150px', // Adjust width of the small box
-              height: '40px', // Adjust height of the small box
+              height: '30px', // Adjust height of the small box
             }}
           >
             {slides.map((_, index) => (
@@ -108,7 +108,7 @@ const HomePage: React.FC = () => {
                   width: '10px',
                   height: '10px',
                   borderRadius: '50%', // Circular dots
-                  backgroundColor: currentSlide === index ? '#000' : '#CCC', // Black for active, gray for inactive
+                  backgroundColor: currentSlide === index ? '#563434' : '#9E8F8F', // Black for active, gray for inactive
                   transition: 'background-color 0.3s ease', // Smooth transition
                 }}
               />
@@ -284,22 +284,24 @@ const HomePage: React.FC = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '1200px', // Match the max-width of the slideshow
-          margin: '20 auto', // Center the box
+          maxWidth: '1240px', // Match the max-width of the slideshow
+          margin: '0 auto', // Center the box
+          padding: '20px', // Add padding for spacing
         }}
       >
         <div
           style={{
-            backgroundColor: '#F5F5F5', // Ash color to match the slideshow
+            backgroundColor: '#E5E28C', // Ash color to match the slideshow
             borderRadius: '5px', // Curved edges
             padding: '5px', // Inner padding
             width: 'fit-content', // Adjust width to fit content
+            maxHeight:'50px'
           }}
         >
           <h2
             style={{
-              fontSize: '2.25rem', // Adjust font size
-              fontWeight: '600', // Semi-bold
+              fontSize: '2rem', // Adjust font size
+              fontWeight: '450', // Semi-bold
               color: '#000', // Black text
               margin: 0, // Remove default margin
             }}
