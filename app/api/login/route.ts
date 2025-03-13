@@ -12,29 +12,34 @@ export async function POST(request: Request) {
   }
 
   // Connect to MongoDB
-  const client = await MongoClient.connect(process.env.MONGODB_URI!);
-  const db = client.db();
-  const usersCollection = db.collection('users');
+  try {
+    const client = await MongoClient.connect(process.env.MONGODB_URI!);
+    const db = client.db();
+    const usersCollection = db.collection('users');
 
-  // Find user by email and role
-  const user = await usersCollection.findOne({ email, role });
-  if (!user) {
+    // Find user by email and role
+    const user = await usersCollection.findOne({ email, role });
+    if (!user) {
+      client.close();
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      client.close();
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET!, {
+      expiresIn: '1h',
+    });
+
     client.close();
-    return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
+    return NextResponse.json({ message: 'Login successful!', token }, { status: 200 });
+  } catch (error) {
+    console.error('Error:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
-
-  // Verify password
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    client.close();
-    return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
-  }
-
-  // Generate JWT token
-  const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET!, {
-    expiresIn: '1h',
-  });
-
-  client.close();
-  return NextResponse.json({ message: 'Login successful!', token }, { status: 200 });
 }

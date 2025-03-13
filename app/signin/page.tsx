@@ -14,16 +14,33 @@ const SigninPage = () => {
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedRole || !email || !password) {
-      setError('All fields are required');
-      return;
+  
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          role: selectedRole,
+        }),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        alert('Login Successful!');
+        localStorage.setItem('token', data.token); // Store token in local storage
+        router.push('/dashboard'); // Redirect to dashboard
+      } else {
+        setError(data.message || 'Login failed');
+      }
+    } catch (error) {
+      setError('An error occurred. Please try again.');
     }
-
-    setError('');
-    alert('Login Successful!');
-    router.push('/dashboard'); // Redirect to dashboard or another page after login
   };
 
   const handleRoleChange = (e: ChangeEvent<HTMLSelectElement>) => {

@@ -24,33 +24,34 @@ const SignupPage = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (
-      !formData.name ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword ||
-      !formData.phoneNumber ||
-      !formData.role
-    ) {
-      setError('All fields are required');
-      return;
+  
+    try {
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          password: formData.password,
+          role: formData.role,
+        }),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        alert('Registration Successful!');
+        router.push('/dashboard'); // Redirect to dashboard
+      } else {
+        setError(data.message || 'Registration failed');
+      }
+    } catch (error) {
+      setError('An error occurred. Please try again.');
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (!/^[0-9]{10}$/.test(formData.phoneNumber)) {
-      setError('Invalid phone number');
-      return;
-    }
-
-    setError('');
-    alert('Registration Successful!');
-    router.push('/dashboard'); // Redirect to dashboard or another page after registration
   };
 
   return (
@@ -259,5 +260,7 @@ const SignupPage = () => {
     </div>
   );
 };
+
+
 
 export default SignupPage;
