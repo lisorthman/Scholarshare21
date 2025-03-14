@@ -1,4 +1,3 @@
-// app/signin/page.tsx
 'use client';
 
 import React, { useState, ChangeEvent, FormEvent } from 'react';
@@ -16,7 +15,7 @@ const SigninPage = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  
+
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
@@ -29,12 +28,23 @@ const SigninPage = () => {
           role: selectedRole,
         }),
       });
-  
+
       const data = await response.json();
       if (response.ok) {
         alert('Login Successful!');
         localStorage.setItem('token', data.token); // Store token in local storage
-        router.push('/dashboard'); // Redirect to dashboard
+
+        // Fetch user data after login
+        await fetchUserData();
+
+        // Redirect based on role
+        if (selectedRole === 'user') {
+          router.push('/user-dashboard');
+        } else if (selectedRole === 'admin') {
+          router.push('/admin-dashboard');
+        } else if (selectedRole === 'researcher') {
+          router.push('/researcher-dashboard');
+        }
       } else {
         setError(data.message || 'Login failed');
       }
@@ -45,6 +55,33 @@ const SigninPage = () => {
 
   const handleRoleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedRole(e.target.value);
+  };
+
+  const fetchUserData = async () => {
+    const token = localStorage.getItem('token'); // Get the token from localStorage
+
+    if (!token) {
+      console.error('No token found');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/user', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`, // Include the token in the header
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('User data:', data);
+      } else {
+        console.error('Failed to fetch user data');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
   };
 
   return (

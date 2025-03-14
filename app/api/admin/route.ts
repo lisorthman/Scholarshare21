@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import { authenticate } from '../middleware';
 
-export async function GET(request: Request) {
-  // Connect to MongoDB
-  const client = await MongoClient.connect(process.env.MONGODB_URI!);
-  const db = client.db();
-  const usersCollection = db.collection('users');
+export async function GET(req: Request) {
+  // Only allow users with the 'admin' role
+  const authResult = await authenticate(req, ['admin']);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
 
-  // Fetch admin-specific data (example: fetch all users)
-  const users = await usersCollection.find({}).toArray();
-
-  client.close();
-  return NextResponse.json({ users }, { status: 200 });
+  // If the admin is authorized, proceed with the logic
+  return NextResponse.json({ message: 'Admin route accessed successfully' }, { status: 200 });
 }
