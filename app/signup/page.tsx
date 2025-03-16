@@ -1,4 +1,3 @@
-// app/signup/page.tsx
 'use client';
 
 import React, { useState, ChangeEvent, FormEvent } from 'react';
@@ -26,7 +25,13 @@ const SignupPage = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  
+
+    // Check if passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     try {
       const response = await fetch('/api/signup', {
         method: 'POST',
@@ -41,11 +46,16 @@ const SignupPage = () => {
           role: formData.role,
         }),
       });
-  
+
       const data = await response.json();
       if (response.ok) {
-        alert('Registration Successful!');
-        router.push('/dashboard'); // Redirect to dashboard
+        alert('Registration Successful! Check your email for the verification code.');
+        
+        // Store the user's email in localStorage
+        localStorage.setItem('email', formData.email);
+
+        // Redirect to the verification page
+        router.push('/verify');
       } else {
         setError(data.message || 'Registration failed');
       }
@@ -260,7 +270,5 @@ const SignupPage = () => {
     </div>
   );
 };
-
-
 
 export default SignupPage;
