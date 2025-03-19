@@ -58,26 +58,30 @@ const SigninPage = () => {
   };
 
   const fetchUserData = async () => {
-    const token = localStorage.getItem('token'); // Get the token from localStorage
-
-    if (!token) {
-      console.error('No token found');
-      return;
-    }
-
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+
+      console.log('Fetching user data with token:', token); // Debugging log
+
       const response = await fetch('/api/user', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`, // Include the token in the header
+          Authorization: `Bearer ${token}`,
         },
       });
 
+      console.log('API response status:', response.status); // Debugging log
+
       if (response.ok) {
         const data = await response.json();
-        console.log('User data:', data);
+        console.log('User data:', data); // Debugging log
       } else {
-        console.error('Failed to fetch user data');
+        const errorData = await response.json();
+        console.error('Failed to fetch user data:', errorData); // Debugging log
       }
     } catch (error) {
       console.error('Error fetching user data:', error);

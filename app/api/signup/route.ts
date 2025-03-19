@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
+import jwt from 'jsonwebtoken'; // Import jsonwebtoken
 
 // Create a Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -41,15 +42,22 @@ export async function POST(request: Request) {
     const verificationCodeExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
 
     // Insert new user with verification code
-    await usersCollection.insertOne({
+    const result = await usersCollection.insertOne({
       name,
       email,
       password: hashedPassword,
-      role, // Store the selected role
+      role,
       verificationCode,
       verificationCodeExpiry,
       isVerified: false, // User is not verified yet
     });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: result.insertedId, name, email, role }, // Include name, email, and role in the token payload
+      process.env.JWT_SECRET!, // Use your JWT secret from environment variables
+      { expiresIn: '1h' } // Token expires in 1 hour
+    );
 
     // Send verification code via email
     const mailOptions = {
@@ -64,9 +72,9 @@ export async function POST(request: Request) {
 
     client.close();
 
-    // Return success response
+    // Return success response with token
     return NextResponse.json(
-      { message: 'User created! Verification code sent.' },
+      { message: 'User created! Verification code sent.', token }, // Include the token in the response
       { status: 201 }
     );
   } catch (error) {
