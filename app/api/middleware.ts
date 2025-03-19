@@ -1,8 +1,7 @@
-// app/api/middleware.ts
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 
-export async function authenticate(req: Request, allowedRoles: string[]) {
+export async function authenticate(req: NextRequest, allowedRoles: string[]) {
   // Get the token from the request headers
   const token = req.headers.get('authorization')?.split(' ')[1];
 

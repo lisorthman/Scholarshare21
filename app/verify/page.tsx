@@ -78,18 +78,26 @@ const VerifyPage = () => {
       });
 
       const data = await response.json();
-      if (response.ok) {
-        alert('Verification successful!');
-        localStorage.removeItem('email'); // Clear the email from localStorage
-        localStorage.removeItem('otpExpiryTime'); // Clear the expiryTime
-        router.push('/dashboard'); // Redirect to the dashboard
+    if (response.ok) {
+      alert('Verification successful!');
+      localStorage.removeItem('email');
+      localStorage.removeItem('otpExpiryTime');
+
+      // Redirect based on role
+      if (data.role === 'admin') {
+        router.push('/admin-dashboard');
+      } else if (data.role === 'researcher') {
+        router.push('/researcher-dashboard');
       } else {
-        setError(data.message || 'Verification failed'); // Display error message
+        router.push('/user-dashboard');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      setError('An error occurred. Please try again.'); // Display generic error message
+    } else {
+      setError(data.message || 'Verification failed');
     }
+  } catch (error) {
+    console.error('Error:', error);
+    setError('An error occurred. Please try again.');
+  }
   };
 
   // Handle Resend OTP

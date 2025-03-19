@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { authenticate } from '../middleware';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   // Only allow users with the 'admin' role
   const authResult = await authenticate(req, ['admin']);
   if (authResult instanceof NextResponse) {

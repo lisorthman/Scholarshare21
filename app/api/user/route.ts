@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '../middleware';
 
-export async function GET(req: Request) {
+import { NextRequest } from 'next/server';
+
+export async function GET(req: NextRequest) {
   // Only allow users with the 'user' role
   const authResult = await authenticate(req, ['user']);
   if (authResult instanceof NextResponse) {
