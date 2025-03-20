@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react'; // Import signIn from next-auth/react
 import InputField from '../../components/InputField';
 import Button from '../../components/Button';
 import NavBar from '../../components/Navbar';
@@ -34,9 +35,6 @@ const SigninPage = () => {
         alert('Login Successful!');
         localStorage.setItem('token', data.token); // Store token in local storage
 
-        // Fetch user data after login
-        await fetchUserData();
-
         // Redirect based on role
         if (selectedRole === 'user') {
           router.push('/user-dashboard');
@@ -57,35 +55,14 @@ const SigninPage = () => {
     setSelectedRole(e.target.value);
   };
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-  
-  const fetchUserData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No token found');
-        return;
-      }
-  
-      const response = await fetch('/api/user', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      if (response.ok) {
-        const data = await response.json();
-        console.log('User data:', data); // Debugging log
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to fetch user data:', errorData); // Debugging log
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
+  // Handle Google Sign-In
+  const handleGoogleSignIn = async () => {
+    await signIn('google', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
+  };
+
+  // Handle Facebook Sign-In
+  const handleFacebookSignIn = async () => {
+    await signIn('facebook', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
   };
 
   return (
@@ -176,7 +153,10 @@ const SigninPage = () => {
                 gap: '20px',
               }}
             >
+              {/* Google Sign-In Button */}
               <button
+                type="button"
+                onClick={handleGoogleSignIn}
                 style={{
                   color: '#5C5C5C',
                   border: '1px solid black',
@@ -185,6 +165,7 @@ const SigninPage = () => {
                   borderRadius: '5px',
                   display: 'flex',
                   alignItems: 'center',
+                  cursor: 'pointer',
                 }}
               >
                 <img
@@ -199,7 +180,11 @@ const SigninPage = () => {
                 />
                 <span style={{ fontSize: '14px' }}>Sign in with Google</span>
               </button>
+
+              {/* Facebook Sign-In Button */}
               <button
+                type="button"
+                onClick={handleFacebookSignIn}
                 style={{
                   color: '#5C5C5C',
                   border: '1px solid black',
@@ -208,6 +193,7 @@ const SigninPage = () => {
                   borderRadius: '5px',
                   display: 'flex',
                   alignItems: 'center',
+                  cursor: 'pointer',
                 }}
               >
                 <img

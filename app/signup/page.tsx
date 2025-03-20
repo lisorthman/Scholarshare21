@@ -2,6 +2,7 @@
 
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react'; // Import signIn from next-auth/react
 import InputField from '../../components/InputField';
 import Button from '../../components/Button';
 import NavBar from '../../components/Navbar';
@@ -26,7 +27,6 @@ const SignupPage = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -50,11 +50,7 @@ const SignupPage = () => {
       const data = await response.json();
       if (response.ok) {
         alert('Registration Successful! Check your email for the verification code.');
-        
-        // Store the user's email in localStorage
         localStorage.setItem('email', formData.email);
-
-        // Redirect to the verification page
         router.push('/verify');
       } else {
         setError(data.message || 'Registration failed');
@@ -62,6 +58,16 @@ const SignupPage = () => {
     } catch (error) {
       setError('An error occurred. Please try again.');
     }
+  };
+
+  // Handle Google Sign-In
+  const handleGoogleSignIn = async () => {
+    await signIn('google', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
+  };
+
+  // Handle Facebook Sign-In
+  const handleFacebookSignIn = async () => {
+    await signIn('facebook', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
   };
 
   return (
@@ -79,7 +85,7 @@ const SignupPage = () => {
         <div
           style={{
             gridColumn: 1,
-            backgroundImage: `url('/SignUp.png')`, // Add your background image here
+            backgroundImage: `url('/SignUp.png')`,
             backgroundSize: '500px 500px',
             backgroundPosition: '50% 50%',
             backgroundRepeat: 'no-repeat',
@@ -139,6 +145,8 @@ const SignupPage = () => {
               <option value="researcher">Researcher</option>
             </select>
             <br />
+
+            {/* Google and Facebook Sign-In Buttons */}
             <div
               style={{
                 display: 'flex',
@@ -148,7 +156,10 @@ const SignupPage = () => {
                 gap: '20px',
               }}
             >
+              {/* Google Sign-In Button */}
               <button
+                type="button"
+                onClick={handleGoogleSignIn}
                 style={{
                   color: '#5C5C5C',
                   border: '1px solid black',
@@ -157,6 +168,7 @@ const SignupPage = () => {
                   borderRadius: '5px',
                   display: 'flex',
                   alignItems: 'center',
+                  cursor: 'pointer',
                 }}
               >
                 <img
@@ -171,7 +183,11 @@ const SignupPage = () => {
                 />
                 <span style={{ fontSize: '14px' }}>Sign up with Google</span>
               </button>
+
+              {/* Facebook Sign-In Button */}
               <button
+                type="button"
+                onClick={handleFacebookSignIn}
                 style={{
                   color: '#5C5C5C',
                   border: '1px solid black',
@@ -180,6 +196,7 @@ const SignupPage = () => {
                   borderRadius: '5px',
                   display: 'flex',
                   alignItems: 'center',
+                  cursor: 'pointer',
                 }}
               >
                 <img
@@ -195,9 +212,12 @@ const SignupPage = () => {
                 <span style={{ fontSize: '14px' }}>Sign up with Facebook</span>
               </button>
             </div>
+
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <span style={{ fontSize: '16px', color: '#666' }}>- or -</span>
             </div>
+
+            {/* Regular Sign-Up Form */}
             <InputField
               type="text"
               placeholder="Name"
