@@ -1,3 +1,4 @@
+// app/api/researcher/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { authenticate } from '../middleware';
 
@@ -14,8 +15,18 @@ export async function GET(req: NextRequest) {
 
     console.log('Researcher authenticated successfully:', authResult); // Debugging log
 
-    // If the researcher is authorized, proceed with the logic
-    return NextResponse.json({ message: 'Researcher route accessed successfully' }, { status: 200 });
+    // If the researcher is authorized, return their data
+    return NextResponse.json(
+      {
+        message: 'Researcher route accessed successfully',
+        user: {
+          name: authResult.user.name,
+          email: authResult.user.email,
+          role: authResult.user.role,
+        },
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error in /api/researcher:', error); // Debugging log
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

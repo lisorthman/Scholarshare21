@@ -1,25 +1,31 @@
+// app/api/middleware.ts
 import { NextResponse, NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken'; // Assuming you're using JWT for tokens
 
+// Utility function to authenticate and authorize users
 export async function authenticate(req: NextRequest, allowedRoles: string[]) {
-  const token = req.headers.get('authorization')?.split(' ')[1];
+  const token = req.headers.get('Authorization')?.split(' ')[1];
 
   if (!token) {
-    return NextResponse.json({ message: 'Token is required' }, { status: 401 });
+    return NextResponse.json({ error: 'Token is required' }, { status: 401 });
   }
 
   try {
     // Verify the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; email: string; role: string };
+    const user = jwt.verify(token, process.env.JWT_SECRET!) as {
+      name: string;
+      email: string;
+      role: string;
+    };
 
     // Check if the user's role is allowed
-    if (!allowedRoles.includes(decoded.role)) {
-      return NextResponse.json({ message: 'Access denied. Insufficient permissions.' }, { status: 403 });
+    if (!allowedRoles.includes(user.role)) {
+      return NextResponse.json({ error: 'Unauthorized role' }, { status: 403 });
     }
 
-    // If everything is fine, return the decoded token
-    return decoded;
+    // Return the user object
+    return { user };
   } catch (error) {
-    return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
+    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
 }

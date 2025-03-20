@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import InputField from '../../components/InputField';
 import Button from '../../components/Button';
@@ -57,6 +57,10 @@ const SigninPage = () => {
     setSelectedRole(e.target.value);
   };
 
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+  
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -64,18 +68,14 @@ const SigninPage = () => {
         console.error('No token found');
         return;
       }
-
-      console.log('Fetching user data with token:', token); // Debugging log
-
+  
       const response = await fetch('/api/user', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      console.log('API response status:', response.status); // Debugging log
-
+  
       if (response.ok) {
         const data = await response.json();
         console.log('User data:', data); // Debugging log

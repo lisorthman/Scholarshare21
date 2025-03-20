@@ -26,6 +26,8 @@ export default function ResearcherDashboard() {
         });
 
         const data = await response.json();
+        console.log('Token verification response:', data); // Debugging log
+
         if (data.valid && data.user.role === 'researcher') {
           setUser(data.user); // Set user data including the name
         } else {
