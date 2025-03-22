@@ -52,21 +52,20 @@ const VerifyPage = () => {
     }
   };
 
-  // Handle OTP submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     // Get the user's email from localStorage
     const email = localStorage.getItem('email');
-
+  
     if (!email) {
       setError('Email not found. Please sign up again.');
       return;
     }
-
+  
     // Combine the OTP digits into a single string
     const otp = code.join('');
-
+  
     try {
       // Send the OTP to the backend for verification
       const response = await fetch('/api/verify', {
@@ -76,30 +75,32 @@ const VerifyPage = () => {
         },
         body: JSON.stringify({ email, code: otp }),
       });
-
+  
       const data = await response.json();
-    if (response.ok) {
-      alert('Verification successful!');
-      localStorage.removeItem('email');
-      localStorage.removeItem('otpExpiryTime');
-
-      // Redirect based on role
-      if (data.role === 'admin') {
-        router.push('/admin-dashboard');
-      } else if (data.role === 'researcher') {
-        router.push('/researcher-dashboard');
+      if (response.ok) {
+        alert('Verification successful!');
+        localStorage.removeItem('email');
+        localStorage.removeItem('otpExpiryTime');
+  
+        // Store the token in localStorage
+        localStorage.setItem('token', data.token);
+  
+        // Redirect based on role
+        if (data.role === 'admin') {
+          router.push('/admin-dashboard');
+        } else if (data.role === 'researcher') {
+          router.push('/researcher-dashboard');
+        } else {
+          router.push('/user-dashboard');
+        }
       } else {
-        router.push('/user-dashboard');
+        setError(data.message || 'Verification failed');
       }
-    } else {
-      setError(data.message || 'Verification failed');
+    } catch (error) {
+      console.error('Error:', error);
+      setError('An error occurred. Please try again.');
     }
-  } catch (error) {
-    console.error('Error:', error);
-    setError('An error occurred. Please try again.');
-  }
   };
-
   // Handle Resend OTP
   const handleResend = async () => {
     const email = localStorage.getItem('email');

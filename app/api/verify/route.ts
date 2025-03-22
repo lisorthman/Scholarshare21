@@ -1,5 +1,7 @@
+// app/api/verify/route.ts
 import { NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
+import jwt from 'jsonwebtoken'; // Import jsonwebtoken
 
 export async function POST(request: Request) {
   try {
@@ -34,11 +36,18 @@ export async function POST(request: Request) {
       { $set: { isVerified: true }, $unset: { verificationCode: 1, verificationCodeExpiry: 1 } }
     );
 
+    // Generate a new token
+    const token = jwt.sign(
+      { userId: user._id, name: user.name, email: user.email, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' }
+    );
+
     client.close();
 
-    // Return the user's role along with the success message
+    // Return the token and role
     return NextResponse.json(
-      { message: 'User verified successfully', role: user.role },
+      { message: 'User verified successfully', token, role: user.role },
       { status: 200 }
     );
   } catch (error) {
