@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     // Connect to MongoDB
     const client = await MongoClient.connect(process.env.MONGODB_URI!);
-    const db = client.db();
+    const db = client.db('scholarshare');
     const usersCollection = db.collection('users');
 
     // Check if user already exists

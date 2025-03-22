@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const client = await MongoClient.connect(process.env.MONGODB_URI!);
     console.log('Connected to MongoDB'); // Debugging
 
-    const db = client.db();
+    const db = client.db('scholarshare');
     const usersCollection = db.collection('users');
 
     // Find user by email and role
