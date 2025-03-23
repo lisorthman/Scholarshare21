@@ -1,0 +1,18 @@
+.header {
+    display: flex;
+    align-items: center;
+  }
+  
+  .menuButton {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+  
+  .title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+  }

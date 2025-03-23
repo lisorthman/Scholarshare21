@@ -8,9 +8,17 @@ interface InputFieldProps {
   name: string; // Add the name prop
   value?: string; // Optional prop for controlled input
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void; // Optional prop for controlled input
+  className?: string; // Add className prop
 }
 
-const InputField: React.FC<InputFieldProps> = ({ type, placeholder, name, value, onChange }) => {
+const InputField: React.FC<InputFieldProps> = ({
+  type,
+  placeholder,
+  name,
+  value,
+  onChange,
+  className,
+}) => {
   const [inputValue, setInputValue] = useState<string>(value || '');
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -33,7 +41,7 @@ const InputField: React.FC<InputFieldProps> = ({ type, placeholder, name, value,
         onChange={handleInputChange}
         placeholder={placeholder}
         name={name} // Pass the name prop to the input element
-        className={styles.input}
+        className={`${styles.input} ${className}`} // Combine module styles with className prop
       />
       {type === 'password' && (
         <span onClick={handleShowPassword} className={styles.eyeIcon}>
