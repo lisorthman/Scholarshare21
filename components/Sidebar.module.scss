@@ -1,5 +1,5 @@
 .sidebar {
-  height: 100%; // Take full height of the container
+  height: 100%;
   padding: 20px;
   background-color: #ffffff;
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
@@ -31,8 +31,18 @@
     .logoutItem {
       margin-top: 30px;
 
-      a {
+      .logoutButton {
+        background: none;
+        border: none;
         color: #ff4d4d;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 0;
+        transition: color 0.3s ease;
+
+        &:hover {
+          color: #cc0000;
+        }
       }
     }
   }

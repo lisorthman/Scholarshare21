@@ -2,24 +2,27 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar'; // Adjust the import path as needed
-import Navbar from '@/components/Navbar'; // Adjust the import path as needed
-import DashboardHeader from '@/components/DashboardHeader'; // Adjust the import path as needed
-
+import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false); // State to control Sidebar visibility
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    router.push('/signin');
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      router.push('/login');
+      router.push('/signin');
       return;
     }
 
-    // Verify the token using the API route
     const verifyToken = async () => {
       try {
         const response = await fetch('/api/verify-token', {
@@ -31,16 +34,14 @@ export default function AdminDashboard() {
         });
 
         const data = await response.json();
-        console.log('Token verification response:', data); // Debugging log
-
         if (data.valid && data.user.role === 'admin') {
-          setUser(data.user); // Set user data including the name
+          setUser(data.user);
         } else {
           router.push('/unauthorized');
         }
       } catch (error) {
         console.error('Error verifying token:', error);
-        router.push('/login');
+        router.push('/signin');
       }
     };
 
@@ -73,7 +74,7 @@ export default function AdminDashboard() {
           padding: '20px',
         }}
       >
-        <DashboardHeader onMenuClick={() => setIsSidebarVisible(!isSidebarVisible)} />
+        <DashboardHeader onMenuClick={() => setIsSidebarVisible(!isSidebarVisible)} title={''} />
       </div>
 
       {/* Sidebar and Main Content Container */}
@@ -81,21 +82,27 @@ export default function AdminDashboard() {
         style={{
           display: 'flex',
           flex: 1,
-          overflow: 'hidden', // Prevent scrolling issues
+          overflow: 'hidden',
+          position: 'relative', // Added for sidebar positioning
         }}
       >
-        {/* Sidebar */}
-        {isSidebarVisible && (
-          <div
-            style={{
-              width: '250px', // Fixed width for the sidebar
-              backgroundColor: '#ffffff',
-              boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            <Sidebar />
-          </div>
-        )}
+        {/* Sidebar with smooth animation */}
+        <div
+          style={{
+            width: '250px',
+            backgroundColor: '#ffffff',
+            boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            transform: isSidebarVisible ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s ease',
+            zIndex: 10,
+          }}
+        >
+          <Sidebar onLogout={handleLogout} />
+        </div>
 
         {/* Main Content */}
         <div
@@ -105,7 +112,9 @@ export default function AdminDashboard() {
             justifyContent: 'center',
             alignItems: 'center',
             padding: '20px',
-            overflowY: 'auto', // Allow scrolling for main content
+            overflowY: 'auto',
+            marginLeft: isSidebarVisible ? '250px' : '0',
+            transition: 'margin-left 0.3s ease',
           }}
         >
           <div
@@ -137,7 +146,7 @@ export default function AdminDashboard() {
                 marginBottom: '30px',
               }}
             >
-              As an admin, you have full access to manage the system. You can oversee users, manage content, and configure settings.
+              As an admin, you have full access to manage the system.
             </p>
             <button
               style={{

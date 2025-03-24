@@ -1,7 +1,19 @@
 import React from 'react';
-import styles from './Sidebar.module.scss';  // Importing the styles
+import styles from './Sidebar.module.scss';
+import Link from 'next/link';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onLogout: () => void;
+  onPageChange?: (pageName: string) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange }) => {
+  const handlePageClick = (pageName: string) => {
+    if (onPageChange) {
+      onPageChange(pageName);
+    }
+  };
+
   return (
     <div className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
@@ -9,13 +21,47 @@ const Sidebar: React.FC = () => {
       </div>
       
       <ul className={styles.menuList}>
-        <li className={styles.menuItem}><a href="/dashboard">Dashboard</a></li>
-        <li className={styles.menuItem}><a href="/usercollection">Wishlist</a></li>
-        <li className={styles.menuItem}><a href="/settings">Settings</a></li>
-        <li className={styles.menuItem}><a href="/profile">Profile</a></li>
+        <li className={styles.menuItem}>
+          <Link 
+            href="/admin-dashboard" 
+            onClick={() => handlePageClick('Dashboard')}
+          >
+            Dashboard
+          </Link>
+        </li>
+        <li className={styles.menuItem}>
+          <Link 
+            href="/admin-dashboard/wishlist" 
+            onClick={() => handlePageClick('Wishlist')}
+          >
+            Wishlist
+          </Link>
+        </li>
+        <li className={styles.menuItem}>
+          <Link 
+            href="/admin-dashboard/settings" 
+            onClick={() => handlePageClick('Settings')}
+          >
+            Settings
+          </Link>
+        </li>
+        <li className={styles.menuItem}>
+          <Link 
+            href="/admin-dashboard/profile" 
+            onClick={() => handlePageClick('Profile')}
+          >
+            Profile
+          </Link>
+        </li>
         
-        {/* Logout Button at the bottom */}
-        <li className={`${styles.menuItem} ${styles.logoutItem}`}><a href="/logout">Logout</a></li>
+        <li className={`${styles.menuItem} ${styles.logoutItem}`}>
+          <button 
+            onClick={onLogout}
+            className={styles.logoutButton}
+          >
+            Logout
+          </button>
+        </li>
       </ul>
     </div>
   );
