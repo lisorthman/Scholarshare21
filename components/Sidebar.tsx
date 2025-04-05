@@ -1,3 +1,4 @@
+// components/Sidebar.tsx
 import React from 'react';
 import styles from './Sidebar.module.scss';
 import Link from 'next/link';
@@ -5,9 +6,10 @@ import Link from 'next/link';
 interface SidebarProps {
   onLogout: () => void;
   onPageChange?: (pageName: string) => void;
+  isVisible?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange, isVisible }) => {
   const handlePageClick = (pageName: string) => {
     if (onPageChange) {
       onPageChange(pageName);
@@ -40,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange }) => {
         <li className={styles.menuItem}>
           <Link 
             href="/admin-dashboard/settings" 
-            onClick={() => handlePageClick('Settings')}
+            onClick={() => onPageChange && onPageChange('Settings')}
           >
             Settings
           </Link>
