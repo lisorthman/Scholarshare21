@@ -35,7 +35,9 @@ const UserCollectionPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f7fafc' }}>
-      <Sidebar /> {/* Add Sidebar Component */}
+      <Sidebar onLogout={function (): void {
+        throw new Error("Function not implemented.");
+      } } /> {/* Add Sidebar Component */}
 
       <div style={{ flex: 1, padding: '2rem', backgroundColor: '#E0D8C3', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', borderRadius: '0.5rem' }}>
         <NavBar />

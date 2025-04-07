@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation'; // Import useRouter from Next.js
 import NavBar from '../components/Navbar'; // Import NavBar
+import Footer from '@/components/Footer';
 
 const HomePage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0); // Track current slide
@@ -539,6 +540,7 @@ const HomePage: React.FC = () => {
         }}
       >
         {/* Add more sections here */}
+        <Footer />
       </div>
     </div>
   );
