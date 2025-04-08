@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 
 export default function ResearcherDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string; role: 'admin' | 'researcher' | 'user' } | null>(null);
+  const [user, setUser] = useState<{ _id: string; name: string; email: string; role: 'admin' | 'researcher' | 'user'; createdAt: string; updatedAt: string } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -24,7 +24,14 @@ export default function ResearcherDashboard() {
 
         const data = await response.json();
         if (data.valid && data.user.role === 'researcher') {
-          setUser(data.user);
+          setUser({
+            _id: data.user._id,
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            createdAt: data.user.createdAt,
+            updatedAt: data.user.updatedAt,
+          });
         } else {
           router.push('/unauthorized');
         }
