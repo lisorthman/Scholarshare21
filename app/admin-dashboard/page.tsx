@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -87,12 +80,22 @@ export default function AdminDashboard() {
     Rejected: { backgroundColor: "#E5E7EB", color: "#6B7280" },
   };
 
-  const usersByLocation = [
-    { label: "United States", value: 52.1 },
-    { label: "Canada", value: 22.8 },
-    { label: "Mexico", value: 13.9 },
-    { label: "Other", value: 11.2 },
-  ];
+  const chartData = {
+    "Users by Location": [
+      { label: "India", value: 40 },
+      { label: "USA", value: 30 },
+      { label: "UK", value: 20 },
+      { label: "Others", value: 10 },
+    ],
+    "Users by Age": [
+      { label: "18-24", value: 35 },
+      { label: "25-34", value: 40 },
+      { label: "35-44", value: 15 },
+      { label: "45+", value: 10 },
+    ],
+  };
+
+  const COLORS = ["#E9D9D4", "#DCD3D0", "#6B4A45", "#713f12"];
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F3F4F6" }}>
@@ -477,32 +480,51 @@ export default function AdminDashboard() {
                   <h3 style={{ fontSize: "0.875rem", marginBottom: "1rem" }}>
                     {title}
                   </h3>
+
                   <div
                     style={{
                       width: "100%",
                       display: "flex",
-                      alignItems: "center", 
+                      alignItems: "center",
                       justifyContent: "center",
-                      height: "150px",
-                      borderRadius: "9999px",
-                      backgroundColor: "#6B4A45",
+                      height: "200px",
                       marginBottom: "1rem",
                     }}
                   >
-                    {/* Placeholder pie chart */}
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData[title]}
+                          dataKey="value"
+                          nameKey="label"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={60}
+                          label
+                        >
+                          {chartData[title].map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  <ul style={{ fontSize: "0.75rem", color: "#374151" }}>
-                    {usersByLocation.map((item, index) => (
+
+                  <div style={{ fontSize: "0.75rem", color: "#374151" }}>
+                    {chartData[title].map((item, index) => (
                       <li key={index} style={{ marginBottom: "0.25rem" }}>
                         ● {item.label} - {item.value}%
                       </li>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-          {/* Existing Fundamental Code End */}
         </div>
       </DashboardLayout>
     </div>
