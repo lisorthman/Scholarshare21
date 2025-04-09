@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
 import ResearchPaperCard from '@/components/ResearchPaperCard';
-import { ResearchPaper } from '@/types/research';
+import { DbResearchPaper } from '@/types/research';
 
 export default function ResearcherUpload() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function ResearcherUpload() {
   const [paperTitle, setPaperTitle] = useState('');
   const [paperAbstract, setPaperAbstract] = useState('');
   const [researchField, setResearchField] = useState('');
-  const [papers, setPapers] = useState<ResearchPaper[]>([]);
+  const [papers, setPapers] = useState<DbResearchPaper[]>([]);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -86,6 +86,11 @@ export default function ResearcherUpload() {
 
   const handleUpload = async () => {
     if (!selectedFile || !paperTitle || !researchField || !user) return;
+    
+    if (!user?._id || !/^[0-9a-fA-F]{24}$/.test(user._id)) {
+      setUploadError('Invalid user session. Please reload the page.');
+      return;
+    }
   
     setIsUploading(true);
     setUploadProgress(0);
@@ -291,7 +296,7 @@ export default function ResearcherUpload() {
         {papers.length > 0 ? (
           <div style={{ display: 'grid', gap: '20px' }}>
             {papers.map((paper) => (
-              <ResearchPaperCard key={paper._id} paper={paper} />
+              <ResearchPaperCard key={paper._id.toString()} paper={paper} />
             ))}
           </div>
         ) : (

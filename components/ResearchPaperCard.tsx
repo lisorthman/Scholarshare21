@@ -1,55 +1,50 @@
-import Link from 'next/link';
-import { DbResearchPaper as ResearchPaper } from '../types/research';
+import { ApiResearchPaper } from '@/types/research';
 
 interface ResearchPaperCardProps {
-  paper: ResearchPaper;
+  paper: ApiResearchPaper;
 }
 
 export default function ResearchPaperCard({ paper }: ResearchPaperCardProps) {
+  // Safely handle missing paper or status
+  if (!paper || !paper.status) {
+    console.error('Invalid paper data:', paper);
+    return <div className="p-4 border rounded-lg bg-red-50 text-red-600">Invalid paper data</div>;
+  }
+
   const getStatusColor = () => {
-    switch (paper.status) {
+    switch (paper.status.toLowerCase()) { // Case-insensitive check
       case 'approved':
-        return { backgroundColor: '#d4edda', color: '#155724' };
+        return 'bg-green-100 text-green-800';
       case 'rejected':
-        return { backgroundColor: '#f8d7da', color: '#721c24' };
-      default:
-        return { backgroundColor: '#fff3cd', color: '#856404' };
+        return 'bg-red-100 text-red-800';
+      default: // Includes 'pending' and any unexpected values
+        return 'bg-yellow-100 text-yellow-800';
     }
   };
 
+  // Safely format status text
+  const formattedStatus = paper.status.length > 0 
+    ? paper.status.charAt(0).toUpperCase() + paper.status.slice(1).toLowerCase()
+    : 'Unknown';
+
   return (
-    <div style={{
-      padding: '20px',
-      border: '1px solid #eee',
-      borderRadius: '10px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    }}>
+    <div className="p-4 border rounded-lg flex justify-between items-center">
       <div>
-        <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>{paper.title}</h3>
-        <p style={{ color: '#666', marginBottom: '8px' }}>{paper.researchField}</p>
-        <span style={{
-          display: 'inline-block',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '14px',
-          ...getStatusColor()
-        }}>
-          {paper.status.charAt(0).toUpperCase() + paper.status.slice(1)}
+        <h3 className="text-lg font-semibold mb-1">{paper.title || 'Untitled Paper'}</h3>
+        <p className="text-gray-600 mb-1">{paper.researchField || 'No field specified'}</p>
+        <span className={`inline-block px-2 py-1 rounded text-xs ${getStatusColor()}`}>
+          {formattedStatus}
         </span>
       </div>
       <div>
-        <Link href={paper.fileUrl} target="_blank" rel="noopener noreferrer" style={{
-          padding: '8px 16px',
-          backgroundColor: '#0070f3',
-          color: '#fff',
-          borderRadius: '6px',
-          textDecoration: 'none',
-          fontSize: '14px',
-        }}>
+        <a 
+          href={paper.fileUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+        >
           View Paper
-        </Link>
+        </a>
       </div>
     </div>
   );

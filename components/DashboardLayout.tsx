@@ -50,7 +50,7 @@ export default function DashboardLayout({
         <DashboardHeader
           onMenuClick={() => setIsSidebarVisible(!isSidebarVisible)}
           title={currentPage}
-          role={user.role}
+          role={["admin", "researcher", "user"].includes(user.role) ? (user.role as "admin" | "researcher" | "user") : "user"}
         />
       </div>
 
@@ -77,7 +77,7 @@ export default function DashboardLayout({
           }}
         >
           <Sidebar
-            role={user.role}
+            role={["admin", "researcher", "user"].includes(user.role) ? (user.role as "admin" | "researcher" | "user") : undefined}
             onLogout={handleLogout}
             onPageChange={(page) => setCurrentPage(page)}
             isVisible={isSidebarVisible}
