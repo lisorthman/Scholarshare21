@@ -10,6 +10,9 @@ export default function ResearcherProfile() {
     name: string; 
     email: string; 
     role: string;
+    _id?: string;
+    createdAt?: string;
+    updatedAt?: string;
     institution?: string;
     researchField?: string;
     publications?: number;
@@ -34,7 +37,11 @@ export default function ResearcherProfile() {
         if (data.valid && data.user.role === 'researcher') {
           // Add mock research data for demo
           setUser({
-            ...data.user,
+            _id: data.user._id || 'mock-id',
+            createdAt: data.user.createdAt || new Date().toISOString(),
+            updatedAt: data.user.updatedAt || new Date().toISOString(),
+            name: data.user.name || 'Unknown Name',
+            email: data.user.email || 'unknown@example.com',
             role: data.user.role as 'admin' | 'researcher' | 'user', // Ensure role matches the User type
             institution: data.user.institution || 'University of Research',
             researchField: data.user.researchField || 'Computer Science',
@@ -55,7 +62,13 @@ export default function ResearcherProfile() {
   if (!user) return <p>Loading...</p>;
 
   return (
-    <DashboardLayout user={user} defaultPage="Profile">
+    <DashboardLayout user={{
+      _id: user._id || 'default-id', // Provide a default value if undefined
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      // Optional fields can be omitted
+    }} defaultPage="Profile">
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '20px',
