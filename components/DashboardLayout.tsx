@@ -1,17 +1,16 @@
+
+// components/DashboardLayout.tsx
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import DashboardHeader from "./DashboardHeader";
+import { User } from "@/types/user";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  user: {
-    name: string;
-    email: string;
-    role: string;
-  };
+  user: User; // Now using the User interface
   defaultPage?: string;
 }
 
@@ -79,8 +78,10 @@ export default function DashboardLayout({
           }}
         >
           <Sidebar
+            role={user.role}
             onLogout={handleLogout}
             onPageChange={(page) => setCurrentPage(page)}
+            isVisible={isSidebarVisible}
           />
         </div>
 

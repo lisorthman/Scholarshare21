@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -93,6 +86,22 @@ export default function AdminDashboard() {
     { label: "Mexico", value: 13.9 },
     { label: "Other", value: 11.2 },
   ];
+  const chartData = {
+    "Users by Location": [
+      { label: "India", value: 40 },
+      { label: "USA", value: 30 },
+      { label: "UK", value: 20 },
+      { label: "Others", value: 10 },
+    ],
+    "Users by Age": [
+      { label: "18-24", value: 35 },
+      { label: "25-34", value: 40 },
+      { label: "35-44", value: 15 },
+      { label: "45+", value: 10 },
+    ],
+  };
+
+  const COLORS = ["#E9D9D4", "#DCD3D0", "#6B4A45", "#713f12"];
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F3F4F6" }}>
@@ -114,7 +123,6 @@ export default function AdminDashboard() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            {/* Existing Fundamental Code Start */}
             {/* Breadcrumb */}
             <div
               style={{
@@ -153,7 +161,7 @@ export default function AdminDashboard() {
                   color: "#000",
                 }}
               >
-                “Welcome, Admin!”
+                "Welcome, Admin!"
               </h1>
               <p
                 style={{
@@ -163,7 +171,7 @@ export default function AdminDashboard() {
                   lineHeight: "1.6",
                 }}
               >
-                Great job! You’ve engaged 85% of visitors, welcomed 120 new
+                Great job! You've engaged 85% of visitors, welcomed 120 new
                 users this month, and boosted active researchers by 30%. Keep up
                 the amazing work in growing the ScholarShare community and
                 making research more accessible!
@@ -391,8 +399,7 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </div>
-            <br></br>
-            <br></br>
+
             {/* Projects Section */}
             <div
               style={{
@@ -477,32 +484,51 @@ export default function AdminDashboard() {
                   <h3 style={{ fontSize: "0.875rem", marginBottom: "1rem" }}>
                     {title}
                   </h3>
+
                   <div
                     style={{
                       width: "100%",
                       display: "flex",
-                      alignItems: "center", 
+                      alignItems: "center",
                       justifyContent: "center",
-                      height: "150px",
-                      borderRadius: "9999px",
-                      backgroundColor: "#6B4A45",
+                      height: "200px",
                       marginBottom: "1rem",
                     }}
                   >
-                    {/* Placeholder pie chart */}
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData[title]}
+                          dataKey="value"
+                          nameKey="label"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={60}
+                          label
+                        >
+                          {chartData[title].map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  <ul style={{ fontSize: "0.75rem", color: "#374151" }}>
-                    {usersByLocation.map((item, index) => (
+
+                  <div style={{ fontSize: "0.75rem", color: "#374151" }}>
+                    {chartData[title].map((item, index) => (
                       <li key={index} style={{ marginBottom: "0.25rem" }}>
                         ● {item.label} - {item.value}%
                       </li>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-          {/* Existing Fundamental Code End */}
         </div>
       </DashboardLayout>
     </div>

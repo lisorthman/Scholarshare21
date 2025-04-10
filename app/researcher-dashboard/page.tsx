@@ -1,11 +1,11 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import DashboardLayout from '@/components/DashboardLayout';
 
 export default function ResearcherDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ _id: string; name: string; email: string; role: 'admin' | 'researcher' | 'user'; createdAt: string; updatedAt: string } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -14,22 +14,24 @@ export default function ResearcherDashboard() {
       return;
     }
 
-    // Verify the token using the API route
     const verifyToken = async () => {
       try {
         const response = await fetch('/api/verify-token', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
 
         const data = await response.json();
-        console.log('Token verification response:', data); // Debugging log
-
         if (data.valid && data.user.role === 'researcher') {
-          setUser(data.user); // Set user data including the name
+          setUser({
+            _id: data.user._id,
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            createdAt: data.user.createdAt,
+            updatedAt: data.user.updatedAt,
+          });
         } else {
           router.push('/unauthorized');
         }
@@ -42,51 +44,24 @@ export default function ResearcherDashboard() {
     verifyToken();
   }, [router]);
 
-  if (!user) {
-    return <p>Loading...</p>;
-  }
+  if (!user) return <p>Loading...</p>;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        backgroundColor: '#f0f2f5',
-        fontFamily: 'Arial, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '20px',
-          padding: '40px',
-          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-          maxWidth: '600px',
-          width: '100%',
-          textAlign: 'center',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '32px',
-            fontWeight: 'bold',
-            color: '#333',
-            marginBottom: '20px',
-          }}
-        >
+    <DashboardLayout user={user}>
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '20px',
+        padding: '40px',
+        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+        maxWidth: '600px',
+        width: '100%',
+        textAlign: 'center',
+      }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#333', marginBottom: '20px' }}>
           Welcome, {user.name}!
         </h1>
-        <p
-          style={{
-            fontSize: '18px',
-            color: '#555',
-            lineHeight: '1.6',
-            marginBottom: '30px',
-          }}
-        >
-          As a researcher, you have access to a wide range of tools and resources to help you conduct your studies and collaborate with others. Explore your projects, submit papers, and stay updated with the latest research trends.
+        <p style={{ fontSize: '18px', color: '#555', lineHeight: '1.6', marginBottom: '30px' }}>
+          As a researcher, you have access to research tools and resources.
         </p>
         <button
           style={{
@@ -105,6 +80,6 @@ export default function ResearcherDashboard() {
           Get Started
         </button>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

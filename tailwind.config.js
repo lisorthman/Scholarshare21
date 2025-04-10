@@ -5,6 +5,7 @@ module.exports = {
           custom: {
             DEFAULT: '#634141', // Add your custom color
             hover: '#4a3030', // Add a darker shade for hover
+            'dark-blue': '#0a192f',
           },
         },
       },

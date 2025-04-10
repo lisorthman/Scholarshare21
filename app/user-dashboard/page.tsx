@@ -1,11 +1,12 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import DashboardLayout from '@/components/DashboardLayout';
+import { User } from '@/types/user';
 
 export default function UserDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -14,22 +15,17 @@ export default function UserDashboard() {
       return;
     }
 
-    // Verify the token using the API route
     const verifyToken = async () => {
       try {
         const response = await fetch('/api/verify-token', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
 
         const data = await response.json();
-        console.log('Token verification response:', data); // Debugging log
-
         if (data.valid && data.user.role === 'user') {
-          setUser(data.user); // Set user data including the name
+          setUser(data.user);
         } else {
           router.push('/unauthorized');
         }
@@ -42,69 +38,45 @@ export default function UserDashboard() {
     verifyToken();
   }, [router]);
 
-  if (!user) {
-    return <p>Loading...</p>;
-  }
+  if (!user) return <p>Loading...</p>;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        backgroundColor: '#f0f2f5',
-        fontFamily: 'Arial, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '20px',
-          padding: '40px',
-          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-          maxWidth: '600px',
-          width: '100%',
-          textAlign: 'center',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '32px',
-            fontWeight: 'bold',
-            color: '#333',
-            marginBottom: '20px',
-          }}
-        >
+    <DashboardLayout user={user}>
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '20px',
+        padding: '40px',
+        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+        maxWidth: '600px',
+        width: '100%',
+        textAlign: 'center',
+      }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '20px' }}>
           Welcome, {user.name}!
         </h1>
-        <p
-          style={{
-            fontSize: '18px',
-            color: '#555',
-            lineHeight: '1.6',
-            marginBottom: '30px',
-          }}
-        >
-          As a user, you can explore the platform, access resources, and interact with the community. Enjoy your experience!
+        <p style={{ fontSize: '18px', color: '#555', marginBottom: '30px' }}>
+          Explore resources, save favorites, and manage your account.
         </p>
-        <button
-          style={{
-            backgroundColor: '#0070f3',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '10px',
-            padding: '12px 24px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease',
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#005bb5')}
-          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#0070f3')}
-        >
-          Explore Platform
-        </button>
+        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+          <button style={buttonStyle}>
+            Browse Resources
+          </button>
+          <button style={{ ...buttonStyle, backgroundColor: '#4CAF50' }}>
+            View Wishlist
+          </button>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
+
+const buttonStyle = {
+  backgroundColor: '#0070f3',
+  color: '#fff',
+  border: 'none',
+  borderRadius: '8px',
+  padding: '12px 24px',
+  fontSize: '16px',
+  cursor: 'pointer',
+  transition: 'background-color 0.3s ease',
+};

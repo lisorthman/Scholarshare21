@@ -2,6 +2,7 @@
 
 import React from 'react';
 import NavBar from '../../components/Navbar'; // Import NavBar
+import Footer from '@/components/Footer';
 
 const AboutPage: React.FC = () => {
   return (
@@ -221,6 +222,7 @@ const AboutPage: React.FC = () => {
             As we continue to develop ScholarShare, our next steps include refining the platform’s features, enhancing user experience, and integrating advanced tools for seamless collaboration. We aim to launch a beta version for feedback, ensuring the platform meets the needs of researchers and students worldwide before a full-scale release.
           </p>
         </div>
+        <Footer />
       </div>
     </div>
   );
