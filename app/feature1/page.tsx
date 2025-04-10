@@ -1,7 +1,15 @@
 // components/Layout.tsx
 import React, { ReactNode } from "react";
-import NavBar from "../../components/Navbar"; // Import NavBar
+import NavBar from "../../components/Navbar";
 import Image from "next/image";
+import { Poppins } from "next/font/google"; // Import Poppins
+
+// Configure Poppins font
+const poppins = Poppins({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+});
 
 interface LayoutProps {
   children: ReactNode;
@@ -17,7 +25,6 @@ const FreeAccessSection = () => {
         maxWidth: "900px",
         margin: "2rem auto",
         textAlign: "center",
-        fontFamily: "sans-serif",
       }}
     >
       <h1 style={{ color: "#5b2a3c", fontSize: "1.8rem", fontWeight: "bold" }}>
@@ -42,7 +49,7 @@ const FreeAccessSection = () => {
       >
         <div style={{ flex: 1, minWidth: "250px" }}>
           <Image
-            src="/21532509_6432092 1.png" // Make sure this image is in the public folder
+            src="/21532509_6432092 1.png"
             alt="Illustration"
             width={250}
             height={250}
@@ -57,7 +64,7 @@ const FreeAccessSection = () => {
             vast collection of research papers, empowering students,
             researchers, and knowledge seekers worldwide.
           </p>
-          <br></br>
+          <br />
           <p>
             <strong>Why Free Access?</strong>
           </p>
@@ -118,20 +125,15 @@ const FreeAccessSection = () => {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div
+      className={poppins.className} // Apply Poppins here
       style={{
-        fontFamily: "Space Grotesk, sans-serif",
         color: "#000",
         minHeight: "100vh",
         backgroundColor: "white",
       }}
     >
-      {/* Add the NavBar */}
       <NavBar />
-
-      {/* Render the FreeAccessSection component */}
       <FreeAccessSection />
-
-      {/* Render children */}
       {children}
     </div>
   );
