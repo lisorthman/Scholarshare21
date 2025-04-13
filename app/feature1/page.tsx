@@ -1,9 +1,8 @@
 // components/Layout.tsx
-import React, { ReactNode } from "react";
 import NavBar from "../../components/Navbar";
 import Image from "next/image";
 import { Poppins } from "next/font/google"; // Import Poppins
-
+import type { ReactNode } from 'react';
 // Configure Poppins font
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
@@ -138,5 +137,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     </div>
   );
 };
-
-export default Layout;
+export default function Feature1Page({
+  children,
+}: {
+  children: ReactNode
+}) {
+  return <>{children}</>;
+}

@@ -1,46 +1,46 @@
+// app/lib/mongoose.ts
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI not defined in environment');
+// Server-side only check
+if (typeof window !== 'undefined') {
+  throw new Error('Mongoose cannot be used in client-side code');
 }
 
-let cached = global.mongoose || { conn: null, promise: null };
+const MONGODB_URI = process.env.MONGODB_URI as string;
 
-async function connectToDB() {
-  if (cached.conn) {
-    console.log("Using existing DB connection");
-    return cached.conn;
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI not defined');
+}
+let cached = global.mongoose || { conn: null, promise: null };
+let isConnected=false;
+
+export async function connectDB() {
+  if (isConnected) {
+    return mongoose;
   }
+  if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    console.log("Creating new DB connection");
-    if (!MONGODB_URI) {
-      throw new Error('MONGODB_URI must be a defined string');
-    }
     cached.promise = mongoose.connect(MONGODB_URI, {
       dbName: 'scholarshare',
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 30000
-    }).then(mongoose => {
-      console.log("DB connection established");
-      return mongoose;
-    }).catch(err => {
-      console.error("DB connection failed:", err);
-      throw err;
-    });
+    }).then(mongoose => mongoose);
+
+    if (process.env.NODE_ENV === 'development') {
+      global.mongoose = cached;
+    }
   }
 
   try {
     cached.conn = await cached.promise;
-  } catch (err) {
+  } catch (e) {
     cached.promise = null;
-    console.error("DB connection error:", err);
-    throw err;
+    throw e;
   }
 
   return cached.conn;
-}
 
-export default connectToDB;
+  
+}
+// Option 1: Export connectDB as default
+export default connectDB; 
