@@ -23,9 +23,9 @@ const Footer = () => {
 
           {/* Navigation Links */}
           <nav className={styles.navLinks}>
+            <Link href="/" className={styles.navLink}>Home</Link>
             <Link href="/about" className={styles.navLink}>About us</Link>
-            <Link href="/services" className={styles.navLink}>Services</Link>
-            <Link href="/login" className={styles.navLink}>Login</Link>
+            <Link href="/signin" className={styles.navLink}>Login</Link>
           </nav>
 
           {/* Social Media Icons */}
