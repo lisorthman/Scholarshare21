@@ -101,7 +101,7 @@ export default function PlagiarismCheck() {
   return (
     <DashboardLayout user={admin} defaultPage="Plagiarism Check">
       <div style={{ marginTop: '20px', width: '100%' }}>
-        <h1 style={{ fontSize: '28px', marginBottom: '30px',marginTop: '100px', }}>Plagiarism Check</h1>
+        <h1 style={{ fontSize: '28px', marginBottom: '30px',marginTop: '10px', }}>Plagiarism Check</h1>
         
         <div style={{
           backgroundColor: '#ffffff',
