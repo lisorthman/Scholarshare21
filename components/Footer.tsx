@@ -1,139 +1,94 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from 'react-icons/fa';
-import styles from './Navbar.module.scss';
+import styles from './Footer.module.scss';
 
 const Footer = () => {
   return (
-    <footer className="bg-black text-white py-12 px-4 sm:px-6 lg:px-8">
-      {/* About Section */}
-      <nav className={styles.navBar}>
-        <div>
-          <h2 className="text-xl font-bold mb-4 flex items-center">
-            <span className="bg-blue-600 p-2 rounded mr-2"></span>
-            ScholarShare
-          </h2>
-        </div>
-        <div>
-          <ul className={styles.navLinks}>
-            <li>
-              <u>
-                <Link href="/about" className="text-gray-200 hover:text-white transition flex items-center">
-                  About us
-                </Link>
-              </u>
-            </li>
-            <li>
-              <u>
-                <Link href="/services" className="text-gray-200 hover:text-white transition flex items-center">
-                  Services
-                </Link>
-              </u>
-            </li>
-            <li>
-              <u>
-                <Link href="/reviews" className="text-gray-200 hover:text-white transition flex items-center">
-                  Review
-                </Link>
-              </u>
-            </li>
-            <li>
-              <u>
-                <Link href="/login" className="text-gray-200 hover:text-white transition flex items-center">
-                  Login
-                </Link>
-              </u>
-            </li>
-          </ul>
-        </div>
-        {/* social media icons */}
-        <div className="flex space-x-4">
-          <a href="#" className="text-gray-200 hover:text-white transition">
-            <FaFacebook size={20} />
-          </a>
-          <a href="#" className="text-gray-200 hover:text-white transition">
-            <FaTwitter size={20} />
-          </a>
-          <a href="#" className="text-gray-200 hover:text-white transition">
-            <FaLinkedin size={20} />
-          </a>
-          <a href="#" className="text-gray-200 hover:text-white transition">
-            <FaInstagram size={20} />
-          </a>
-        </div>
-      </nav>
+    <footer className={styles.footer}>
+      <div className={styles.footerContainer}>
+        {/* Top Section */}
+        <div className={styles.topSection}>
+          {/* Logo Section */}
+          <div className={styles.logoSection}>
+            <Image
+              src="/logo.png"
+              alt="ScholarShare Logo"
+              width={280}
+              height={65}
+              className={styles.logoImage}
+              priority
+            />
+          </div>
 
-      {/* Contact Information - Fixed Table Structure */}
-      <table width="100%">
-        <tbody>
-          <tr>
-            <td className="align-top">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Contact us</h3>
-                <address className="not-italic text-gray-200">
-                  <div className="flex items-center mb-3">
-                    <FaEnvelope className="mr-2 text-blue-400" />
-                    <a href="mailto:scholarshare@uom.it" className="hover:text-white transition">
-                      scholarshare@uom.it
-                    </a>
-                  </div>
-                  <div className="flex items-center mb-3">
-                    <FaPhone className="mr-2 text-blue-400" />
-                    <a href="tel:0743802400" className="hover:text-white transition">
-                      0743802400
-                    </a>
-                  </div>
-                  <div className="flex items-start">
-                    <FaMapMarkerAlt className="mr-2 mt-1 text-blue-400" />
-                    <span>
-                      1234 Main St<br />Colombo DD08
-                    </span>
-                  </div>
-                </address>
+          {/* Navigation Links */}
+          <nav className={styles.navLinks}>
+            <Link href="/" className={styles.navLink}>Home</Link>
+            <Link href="/about" className={styles.navLink}>About us</Link>
+            <Link href="/signin" className={styles.navLink}>Login</Link>
+          </nav>
+
+          {/* Social Media Icons */}
+          <div className={styles.socialIcons}>
+            <a href="#" className={styles.socialIcon}><FaFacebook /></a>
+            <a href="#" className={styles.socialIcon}><FaTwitter /></a>
+            <a href="#" className={styles.socialIcon}><FaLinkedin /></a>
+            <a href="#" className={styles.socialIcon}><FaInstagram /></a>
+          </div>
+        </div>
+
+        {/* Contact and Subscribe Section */}
+        <div className={styles.middleSection}>
+          {/* Contact Information */}
+          <div className={styles.contactInfo}>
+            <h3 className={styles.sectionTitle}>Contact us</h3>
+            <address className={styles.contactDetails}>
+              <div className={styles.contactItem}>
+                <FaEnvelope className={styles.contactIcon} />
+                <a href="mailto:scholarshare@uom.it">scholarshare@uom.it</a>
               </div>
-            </td>
-
-            <td className="align-top">
-              <div>
-                <form className="flex flex-col space-y-4">
-                  <div className="flex">
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      className="flex-grow px-4 py-2 text-gray-800 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                    <button
-                      type="submit"
-                      className="bg-blue-600 text-white px-4 py-2 rounded-r hover:bg-blue-700 transition"
-                    >
-                      Subscribe to news
-                    </button>
-                  </div>
-                </form>
+              <div className={styles.contactItem}>
+                <FaPhone className={styles.contactIcon} />
+                <a href="tel:0743802400">0743802400</a>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <div className={styles.contactItem}>
+                <FaMapMarkerAlt className={styles.contactIcon} />
+                <span>1234 Main St<br />Colombo DD08</span>
+              </div>
+            </address>
+          </div>
 
-      <hr className="border-gray-700 my-4" />
-      <br />
+          {/* Subscribe Form */}
+          <div className={styles.subscribeForm}>
+            <form className={styles.form}>
+              <div className={styles.formGroup}>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className={styles.formInput}
+                  required
+                />
+                <button type="submit" className={styles.formButton}>
+                  Subscribe to news
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
 
-      {/* Bottom Bar */}
-      <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center">
-        <p className="text-sm text-gray-300 mb-4 md:mb-0">
-          © {new Date().getFullYear()} ScholarShare. All Rights Reserved.
-        </p>
-        <div className="flex space-x-6">
-          <Link href="/privacy-policy" className="text-sm text-gray-300 hover:text-white transition">
-            Privacy Policy
-          </Link>
-          <Link href="/terms" className="text-sm text-gray-300 hover:text-white transition">
-            Terms of Service
-          </Link>
-          <Link href="/cookies" className="text-sm text-gray-300 hover:text-white transition">
-            Cookie Policy
-          </Link>
+        {/* Divider */}
+        <div className={styles.divider}></div>
+
+        {/* Bottom Bar */}
+        <div className={styles.bottomBar}>
+          <p className={styles.copyright}>
+            © {new Date().getFullYear()} ScholarShare. All Rights Reserved.
+          </p>
+          <div className={styles.legalLinks}>
+            <Link href="/privacy-policy" className={styles.legalLink}>Privacy Policy</Link>
+            <Link href="/terms" className={styles.legalLink}>Terms of Service</Link>
+            <Link href="/cookies" className={styles.legalLink}>Cookie Policy</Link>
+          </div>
         </div>
       </div>
     </footer>

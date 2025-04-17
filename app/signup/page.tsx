@@ -26,12 +26,12 @@ const SignupPage = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+  
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
+  
     try {
       const response = await fetch('/api/signup', {
         method: 'POST',
@@ -46,19 +46,36 @@ const SignupPage = () => {
           role: formData.role,
         }),
       });
-
+  
       const data = await response.json();
       if (response.ok) {
         alert('Registration Successful! Check your email for the verification code.');
         localStorage.setItem('email', formData.email);
+  
+        // 🔁 Call /api/send-otp after registration
+        const otpRes = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: formData.email }),
+        });
+  
+        const otpData = await otpRes.json();
+        if (otpRes.ok && otpData.expiry) {
+          localStorage.setItem('otpExpiryTime', otpData.expiry);
+        }
+  
         router.push('/verify');
       } else {
         setError(data.message || 'Registration failed');
       }
     } catch (error) {
+      console.error('Signup error:', error);
       setError('An error occurred. Please try again.');
     }
-  };
+  };  
+  
 
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {

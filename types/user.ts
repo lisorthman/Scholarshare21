@@ -2,12 +2,15 @@
 export const UserRoles = ['admin', 'researcher', 'user'] as const;
 export type UserRole = typeof UserRoles[number];
 
-export interface User {
+// types/user.ts
+export type User = {
   _id: string;
   name: string;
   email: string;
-  role: 'admin' | 'researcher' | 'user';
+  role: string;
+  createdAt?: string;    // Make optional if not always present
+  updatedAt?: string;    // Make optional if not always present
+  institution?: string;  // Optional fields
   researchField?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+  publications?: number;
+};
