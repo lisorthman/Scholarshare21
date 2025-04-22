@@ -135,7 +135,7 @@ export default function AdminDashboard() {
               />
             </div>
             <Link 
-              href="/addpage"
+              href="/admin-dashboard/add-category/create"
               style={{
                 backgroundColor: "#EFE9DC",
                 border: "1px solid #ccc",
