@@ -254,7 +254,7 @@ export default function UserWishlist() {
         }
         
         .browse-button {
-          background-color: #0070f3;
+          background-color:#725454;
           color: #fff;
           border: none;
           border-radius: 6px;
@@ -265,7 +265,7 @@ export default function UserWishlist() {
         }
         
         .browse-button:hover {
-          background-color: #0061d9;
+          background-color:#634141;
         }
         
         .wishlist-grid {
