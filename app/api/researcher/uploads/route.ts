@@ -4,11 +4,6 @@ import ResearchPaper from '@/models/ResearchPaper';
 import connectToDB from '@/lib/mongoose';
 import { ObjectId } from 'mongodb';
 
-// Define a custom error type interface
-interface MongooseValidationError extends Error {
-  errors?: Record<string, { message: string }>;
-}
-
 export const config = {
   runtime: 'edge',
 };
@@ -28,22 +23,23 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File;
     const title = formData.get('title') as string;
     const authorId = formData.get('authorId') as string;
-    const abstract = formData.get('abstract') as string;
-    const category = formData.get('category') as string;
-    const keywords = formData.getAll('keywords') as string[];
 
-    // Validate ObjectId
+    // Validate ObjectId first
     if (!ObjectId.isValid(authorId)) {
       return NextResponse.json(
-        { error: 'Invalid author ID format' },
+        { 
+          error: 'Invalid author ID format',
+          received: authorId,
+          expected: '24-character hex string'
+        },
         { status: 400 }
       );
     }
 
-    // Required fields validation
-    if (!file || !title || !abstract || !category) {
+    // Basic validation
+    if (!file || !title) {
       return NextResponse.json(
-        { error: 'Missing required fields (file, title, abstract, or category)' },
+        { error: 'Missing required fields (file, title)' },
         { status: 400 }
       );
     }
@@ -79,14 +75,11 @@ export async function POST(request: Request) {
     // Save to MongoDB
     const paper = await ResearchPaper.create({
       title,
-      abstract,
       fileUrl: blob.url,
-      fileName: file.name,
+      fileName: file.name, // Use original filename
       fileSize: file.size,
       fileType: file.type,
-      authorId: new ObjectId(authorId),
-      category,
-      keywords: keywords.filter(k => k.trim().length > 0),
+      authorId: new ObjectId(authorId), // Use native MongoDB ObjectId
       status: 'pending'
     });
 
@@ -96,39 +89,18 @@ export async function POST(request: Request) {
         _id: paper._id.toString(),
         title: paper.title,
         fileUrl: paper.fileUrl,
-        authorId: paper.authorId.toString(),
-        status: paper.status
+        authorId: paper.authorId.toString()
       }
     });
 
-  } catch (error: unknown) { // TypeScript now knows error is of type unknown
+  } catch (error) {
     console.error('API Error:', error);
-    
-    // Initialize error response
-    const errorResponse: {
-      error: string;
-      message?: string;
-      validationErrors?: Array<{ field: string; message: string }>;
-    } = {
-      error: 'Upload failed'
-    };
-
-    // Check if it's a standard Error
-    if (error instanceof Error) {
-      errorResponse.message = error.message;
-      
-      // Check if it's a Mongoose validation error
-      if ('errors' in error) {
-        const mongooseError = error as MongooseValidationError;
-        errorResponse.validationErrors = Object.entries(mongooseError.errors || {}).map(
-          ([field, err]) => ({
-            field,
-            message: err.message
-          })
-        );
-      }
-    }
-
-    return NextResponse.json(errorResponse, { status: 500 });
+    return NextResponse.json(
+      { 
+        error: 'Upload failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
 }

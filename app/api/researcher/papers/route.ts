@@ -1,62 +1,32 @@
-// app/api/researcher/papers/route.ts
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
 import ResearchPaper from '@/models/ResearchPaper';
 import connectToDB from '@/lib/mongoose';
+import mongoose from 'mongoose';
 
-export async function POST(request: Request) {
+export async function GET(req: Request) {
   try {
     await connectToDB();
     
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const title = formData.get('title') as string;
-    const category = formData.get('category') as string;
-    const authorId = formData.get('authorId') as string;
-    const abstract = formData.get('abstract') as string;
-    const keywords = (formData.get('keywords') as string)?.split(',');
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
 
-    // Validate required fields
-    if (!file || !title || !category || !authorId) {
+    // Add proper validation
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Valid user ID is required' },
         { status: 400 }
       );
     }
 
-    // Upload to Vercel Blob
-    const blob = await put(`papers/${Date.now()}-${file.name}`, file, {
-      access: 'public',
-    });
+    const papers = await ResearchPaper.find({ authorId: new mongoose.Types.ObjectId(userId) })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    // Save metadata to MongoDB
-    const newPaper = new ResearchPaper({
-      title,
-      abstract,
-      fileUrl: blob.url,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      authorId,
-      category,
-      keywords,
-      status: 'pending'
-    });
-
-    await newPaper.save();
-
-    return NextResponse.json(
-      { 
-        message: 'Paper submitted successfully', 
-        paper: newPaper,
-        downloadUrl: blob.url 
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({ papers });
   } catch (error) {
-    console.error('Error submitting paper:', error);
+    console.error('Error fetching research papers:', error);
     return NextResponse.json(
-      { error: 'Failed to submit paper' },
+      { error: 'Failed to fetch papers' },
       { status: 500 }
     );
   }

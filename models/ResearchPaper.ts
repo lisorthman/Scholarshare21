@@ -1,58 +1,36 @@
-// models/ResearchPaper.ts
 import { Schema, model, models } from 'mongoose';
+import { ObjectId } from 'mongodb';
 
-// Define possible categories (adjust as needed)
-const CATEGORIES = [
-  'Computer Science',
-  'Engineering',
-  'Mathematics',
-  'Physics',
-  'Biology',
-  'Chemistry',
-  'Medicine',
-  'Social Sciences',
-  'Humanities',
-  'Business',
-  'Other'
-];
+interface ResearchPaperDocument {
+  title: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  authorId: typeof ObjectId;
+  status: 'pending' | 'approved' | 'rejected';
+}
 
-const ResearchPaperSchema = new Schema({
-  title: { type: String, required: [true, 'Title is required'] },
-  abstract: { type: String, required: [true, 'Abstract is required'] },
-  fileUrl: { type: String, required: [true, 'File URL is required'] }, // Vercel Blob URL
-  fileName: { type: String, required: [true, 'File name is required'] },
-  fileSize: { type: Number, required: [true, 'File size is required'] },
-  fileType: { type: String, required: [true, 'File type is required'] },
+const ResearchPaperSchema = new Schema<ResearchPaperDocument>({
+  title: { type: String, required: true },
+  fileUrl: { type: String, required: true },
+  fileName: { type: String, required: true },
+  fileSize: { type: Number, required: true },
+  fileType: { type: String, required: true },
   authorId: { 
     type: Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: [true, 'Author ID is required'] 
-  },
-  category: { 
-    type: String, 
-    required: [true, 'Category is required'],
-    enum: {
-      values: CATEGORIES,
-      message: '{VALUE} is not a valid category'
-    }
-  },
-  keywords: [{ 
-    type: String,
+    ref: 'User',
+    required: true,
     validate: {
-      validator: function(v: string) {
-        return v.length <= 50; // Max keyword length
-      },
-      message: 'Keyword cannot be longer than 50 characters'
+      validator: (v: any) => ObjectId.isValid(v),
+      message: 'Invalid author ID format'
     }
-  }],
+  },
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected'], 
     default: 'pending' 
-  },
-  createdAt: { type: Date, default: Date.now }
-}, {
-  timestamps: true // Adds createdAt and updatedAt automatically
-});
+  }
+}, { timestamps: true });
 
 export default models.ResearchPaper || model('ResearchPaper', ResearchPaperSchema);

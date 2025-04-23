@@ -6,7 +6,6 @@ export type UserRole = typeof UserRoles[number];
 export type User = {
   _id: string;
   name: string;
-<<<<<<< HEAD
   email: string;
   role: string;
   createdAt?: string;    // Make optional if not always present
@@ -15,11 +14,3 @@ export type User = {
   researchField?: string;
   publications?: number;
 };
-=======
-  email?: string;
-  role?: 'admin' | 'researcher' | 'user';
-  researchField?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
->>>>>>> e71d22f (update rating,wishlist and views sections)
