@@ -11,7 +11,10 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<{
     name: string;
     email: string;
-    role: string;
+    role: "user" | "admin" | "researcher";
+    _id: string;
+    createdAt: string;
+    updatedAt: string;
   } | null>(null);
 
   useEffect(() => {
@@ -31,7 +34,14 @@ export default function AdminDashboard() {
 
         const data = await response.json();
         if (data.valid && data.user.role === "admin") {
-          setUser(data.user);
+          setUser({
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            _id: data.user._id,
+            createdAt: data.user.createdAt,
+            updatedAt: data.user.updatedAt,
+          });
         } else {
           router.push("/unauthorized");
         }

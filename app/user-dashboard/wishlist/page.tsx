@@ -126,9 +126,10 @@ export default function UserWishlist() {
 
       if (response.ok) {
         // Update the local state to reflect the new rating
+        const responseData = await response.json();
         setWishlist(wishlist.map(paper => 
           paper.id === paperId 
-            ? { ...paper, rating, averageRating: response.data.averageRating } 
+            ? { ...paper, rating, averageRating: responseData.averageRating } 
             : paper
         ));
       }

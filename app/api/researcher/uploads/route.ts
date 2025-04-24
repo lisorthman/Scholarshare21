@@ -2,7 +2,7 @@ import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import ResearchPaper from '@/models/ResearchPaper';
 import connectToDB from '@/lib/mongoose';
-import mongoose from 'mongoose';
+import { ObjectId } from 'mongodb';
 
 export const config = {
   runtime: 'edge',
@@ -19,16 +19,27 @@ export async function POST(request: Request) {
   try {
     await connectToDB();
     
-    // IMPORTANT: Clone the request to read it twice
-    const formData = await request.clone().formData();
+    const formData = await request.formData();
     const file = formData.get('file') as File;
     const title = formData.get('title') as string;
     const authorId = formData.get('authorId') as string;
 
-    // Basic validation
-    if (!file || !title || !authorId) {
+    // Validate ObjectId first
+    if (!ObjectId.isValid(authorId)) {
       return NextResponse.json(
-        { error: 'Missing required fields (file, title, authorId)' },
+        { 
+          error: 'Invalid author ID format',
+          received: authorId,
+          expected: '24-character hex string'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Basic validation
+    if (!file || !title) {
+      return NextResponse.json(
+        { error: 'Missing required fields (file, title)' },
         { status: 400 }
       );
     }
@@ -65,18 +76,20 @@ export async function POST(request: Request) {
     const paper = await ResearchPaper.create({
       title,
       fileUrl: blob.url,
-      fileName: blob.pathname,
+      fileName: file.name, // Use original filename
       fileSize: file.size,
       fileType: file.type,
-      authorId: new mongoose.Types.ObjectId(authorId),
-      status: 'pending',
-    }) as mongoose.Document & { _id: mongoose.Types.ObjectId };
+      authorId: new ObjectId(authorId), // Use native MongoDB ObjectId
+      status: 'pending'
+    });
 
     return NextResponse.json({
       success: true,
       paper: {
         _id: paper._id.toString(),
-        fileUrl: blob.url,
+        title: paper.title,
+        fileUrl: paper.fileUrl,
+        authorId: paper.authorId.toString()
       }
     });
 

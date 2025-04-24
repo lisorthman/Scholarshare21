@@ -42,7 +42,10 @@ export default function UserManagement() {
               email: 'john@research.edu',
               role: 'researcher',
               joinDate: '2023-01-15',
-              status: 'active'
+              status: 'active',
+              _id: '',
+              createdAt: '',
+              updatedAt: ''
             },
             {
               id: '2',
@@ -50,7 +53,10 @@ export default function UserManagement() {
               email: 'sarah@university.edu',
               role: 'researcher',
               joinDate: '2023-03-22',
-              status: 'active'
+              status: 'active',
+              _id: '',
+              createdAt: '',
+              updatedAt: ''
             },
             {
               id: '3',
@@ -58,7 +64,10 @@ export default function UserManagement() {
               email: 'mike@college.edu',
               role: 'user',
               joinDate: '2023-05-10',
-              status: 'suspended'
+              status: 'suspended',
+              _id: '',
+              createdAt: '',
+              updatedAt: ''
             }
           ]);
         } else {
