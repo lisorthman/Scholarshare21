@@ -1,194 +1,245 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
-import { User } from '@/types/user';
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import DashboardLayout from "@/components/DashboardLayout";
 
-interface ResearchPaper {
-  id: string;
-  title: string;
-  author: string;
-  status: 'pending' | 'approved' | 'rejected';
-  uploadDate: string;
-  citations: number;
-}
-
-export default function PaperManagement() {
+export default function AdminDashboard() {
   const router = useRouter();
-  const [admin, setAdmin] = useState<User | null>(null);
-  const [papers, setPapers] = useState<ResearchPaper[]>([]);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    role: string;
+  } | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      router.push('/login');
+      router.push("/signin");
       return;
     }
 
     const verifyToken = async () => {
       try {
-        const response = await fetch('/api/verify-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/verify-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
         });
 
         const data = await response.json();
-        if (data.valid && data.user.role === 'admin') {
-          setAdmin(data.user);
-          // Mock papers data
-          setPapers([
-            {
-              id: '1',
-              title: 'Advanced AI Techniques',
-              author: 'Dr. Smith',
-              status: 'approved',
-              uploadDate: '2023-06-15',
-              citations: 42
-            },
-            {
-              id: '2',
-              title: 'Quantum Computing Basics',
-              author: 'Prof. Johnson',
-              status: 'pending',
-              uploadDate: '2023-07-01',
-              citations: 0
-            },
-            {
-              id: '3',
-              title: 'Climate Change Models',
-              author: 'Dr. Lee',
-              status: 'rejected',
-              uploadDate: '2023-05-22',
-              citations: 18
-            }
-          ]);
+        if (data.valid && data.user.role === "admin") {
+          setUser(data.user);
         } else {
-          router.push('/unauthorized');
+          router.push("/unauthorized");
         }
       } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/login');
+        console.error("Error verifying token:", error);
+        router.push("/signin");
       }
     };
 
     verifyToken();
   }, [router]);
 
-  const filteredPapers = filter === 'all' 
-    ? papers 
-    : papers.filter(paper => paper.status === filter);
+  if (!user) return <p>Loading...</p>;
 
-  const updatePaperStatus = (id: string, status: 'approved' | 'rejected') => {
-    setPapers(papers.map(paper =>
-      paper.id === id ? { ...paper, status } : paper
-    ));
+  const pdfData = [
+    {
+      title: "The Impact of Lifestyle on Cardiovascular Diseases",
+      details:
+        "Explores how diet, exercise, and stress levels influence heart disease risk",
+      date: "2025-01-10",
+      owner: "Dr. Tarun",
+      status: "Approved",
+    },
+    {
+      title: "Organic Farming vs. Conventional Farming: A Comparative Study",
+      details:
+        "Analyzes the benefits and drawbacks of organic farming in terms of yield, cost, and environmental impact.",
+      date: "2024-09-01",
+      owner: "Ivor ES",
+      status: "Rejected",
+    },
+    {
+      title: "Alternative Fuels for Sustainable Transportation",
+      details:
+        "Explores biofuels, hydrogen fuel cells, and other alternatives for reducing carbon emissions.",
+      date: "2024-08-23",
+      owner: "Adhithiya sai",
+      status: "Rejected",
+    },
+    {
+      title:
+        "The Applications of Fibonacci Sequence in Nature and Architecture",
+      details:
+        "Examines how this mathematical pattern appears in plants, shells, and historical structures.",
+      date: "2024-08-12",
+      owner: "Hannah silvas",
+      status: "Pending",
+    },
+    {
+      title: "The Role of Poetry in Expressing Human Emotions",
+      details:
+        "Discusses how poetry has been used throughout history to convey deep emotional and philosophical ideas.",
+      date: "2024-07-30",
+      owner: "Supun Jayakodi",
+      status: "Approved",
+    },
+    {
+      title: "AI-Powered Chatbots for E-Commerce Customer Support",
+      details:
+        "Studies the effectiveness of AI chatbots in handling customer queries, reducing response time.",
+      date: "2024-07-21",
+      owner: "-",
+      status: "Pending",
+    },
+  ];
+
+  const statusColors: Record<string, string> = {
+    Approved: "#41A446",
+    Pending: "#F4B740",
+    Rejected: "#D84727",
   };
 
-  if (!admin) return <p>Loading...</p>;
-
   return (
-    <DashboardLayout user={admin} defaultPage="Paper Management">
-      <div style={{ marginTop: '20px', width: '100%' }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '30px'
-        }}>
-          <h1 style={{ fontSize: '28px' }}>Paper Management</h1>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => setFilter('all')}
-              style={filter === 'all' ? activeFilterButtonStyle : filterButtonStyle}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter('pending')}
-              style={filter === 'pending' ? activeFilterButtonStyle : filterButtonStyle}
-            >
-              Pending
-            </button>
-            <button
-              onClick={() => setFilter('approved')}
-              style={filter === 'approved' ? activeFilterButtonStyle : filterButtonStyle}
-            >
-              Approved
-            </button>
-            <button
-              onClick={() => setFilter('rejected')}
-              style={filter === 'rejected' ? activeFilterButtonStyle : filterButtonStyle}
-            >
-              Rejected
-            </button>
-          </div>
-        </div>
+    <DashboardLayout user={user}>
+      <div
+        style={{
+          backgroundColor: "#D8CBB0",
+          padding: "2rem",
+          borderRadius: "12px",
+          minHeight: "100vh",
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "2rem",
+            borderRadius: "12px",
+            maxWidth: "auto",
+            margin: "0 auto",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "20px",
+              fontWeight: 600,
+              marginBottom: "1.5rem",
+            }}
+          >
+            Pdf Approval
+          </h1>
 
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '10px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          overflow: 'hidden'
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          {/* Search Bar */}
+          <div
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: "10px",
+              padding: "0.75rem 1rem",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Search Here"
+              style={{
+                width: "100%",
+                border: "none",
+                outline: "none",
+                fontSize: "14px",
+                background: "transparent",
+              }}
+            />
+          </div>
+
+          {/* Table */}
+          {/* Table */}
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "14px",
+            }}
+          >
             <thead>
-              <tr style={{ backgroundColor: '#f5f5f5' }}>
-                <th style={tableHeaderStyle}>Title</th>
-                <th style={tableHeaderStyle}>Author</th>
-                <th style={tableHeaderStyle}>Status</th>
-                <th style={tableHeaderStyle}>Upload Date</th>
-                <th style={tableHeaderStyle}>Citations</th>
-                <th style={tableHeaderStyle}>Actions</th>
+              <tr style={{ backgroundColor: "#EFEFEF", textAlign: "left" }}>
+                <th style={{ padding: "0.75rem" }}>Title</th>
+                <th style={{ padding: "0.75rem" }}>Details</th>
+                <th style={{ padding: "0.75rem" }}>Submitted date</th>
+                <th style={{ padding: "0.75rem" }}>Owner</th>
+                <th style={{ padding: "0.75rem" }}>Status</th>
+                <th style={{ padding: "0.75rem" }}>Actions</th>{" "}
+                {/* New column header */}
               </tr>
             </thead>
             <tbody>
-              {filteredPapers.map((paper) => (
-                <tr key={paper.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={tableCellStyle}>
-                    <a href="#" style={{ color: '#1976d2', textDecoration: 'none' }}>
-                      {paper.title}
-                    </a>
+              {pdfData.map((item, index) => (
+                <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
+                  <td style={{ padding: "1.5rem", verticalAlign: "top" }}>
+                    {item.title}
                   </td>
-                  <td style={tableCellStyle}>{paper.author}</td>
-                  <td style={tableCellStyle}>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: 
-                        paper.status === 'approved' ? '#e8f5e9' :
-                        paper.status === 'rejected' ? '#ffebee' : '#fff8e1',
-                      color: 
-                        paper.status === 'approved' ? '#2e7d32' :
-                        paper.status === 'rejected' ? '#d32f2f' : '#ff8f00'
-                    }}>
-                      {paper.status.charAt(0).toUpperCase() + paper.status.slice(1)}
+                  <td style={{ padding: "1.5rem", verticalAlign: "top" }}>
+                    {item.details}
+                  </td>
+                  <td style={{ padding: "1.5rem", verticalAlign: "top" }}>
+                    {item.date}
+                  </td>
+                  <td style={{ padding: "1.5rem", verticalAlign: "top" }}>
+                    {item.owner}
+                  </td>
+                  <td style={{ padding: "1.5rem", verticalAlign: "top" }}>
+                    <span
+                      style={{
+                        backgroundColor: statusColors[item.status],
+                        color: "white",
+                        padding: "0.25rem 1rem",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        display: "inline-block",
+                        minWidth: "80px",
+                        textAlign: "center",
+                      }}
+                    >
+                      {item.status}
                     </span>
                   </td>
-                  <td style={tableCellStyle}>{paper.uploadDate}</td>
-                  <td style={tableCellStyle}>{paper.citations}</td>
-                  <td style={tableCellStyle}>
-                    {paper.status === 'pending' && (
+                  <td
+                    style={{
+                      padding: "0.75rem",
+                      verticalAlign: "top",
+                      width: "250px",
+                    }}
+                  >
+                    {item.status === "Pending" && (
                       <>
                         <button
-                          onClick={() => updatePaperStatus(paper.id, 'approved')}
                           style={{
-                            ...actionButtonStyle,
-                            backgroundColor: '#e8f5e9',
-                            color: '#2e7d32',
-                            marginRight: '8px'
+                            backgroundColor: "#d1f0d1",
+                            color: "#1a7f1a",
+                            border: "1px solid #a8e6a1",
+                            borderRadius: "6px",
+                            padding: "6px 10px",
+                            fontSize: "13px",
+                            marginRight: "6px",
+                            cursor: "pointer",
                           }}
+                          onClick={() => alert(`Approved: ${item.title}`)}
                         >
                           Approve
                         </button>
+
                         <button
-                          onClick={() => updatePaperStatus(paper.id, 'rejected')}
                           style={{
-                            ...actionButtonStyle,
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f'
+                            backgroundColor: "#fddddd",
+                            color: "#d13434",
+                            border: "1px solid #f8bfbf",
+                            borderRadius: "6px",
+                            padding: "6px 10px",
+                            fontSize: "13px",
+                            marginRight: "6px",
+                            cursor: "pointer",
                           }}
+                          onClick={() => alert(`Rejected: ${item.title}`)}
                         >
                           Reject
                         </button>
@@ -196,11 +247,15 @@ export default function PaperManagement() {
                     )}
                     <button
                       style={{
-                        ...actionButtonStyle,
-                        backgroundColor: '#e3f2fd',
-                        color: '#1976d2',
-                        marginLeft: '8px'
+                        backgroundColor: "#e7f0fd",
+                        color: "#0070f3",
+                        border: "1px solid #c2ddf9",
+                        borderRadius: "6px",
+                        padding: "6px 10px",
+                        fontSize: "13px",
+                        cursor: "pointer",
                       }}
+                      onClick={() => alert(`Viewing PDF: ${item.title}`)}
                     >
                       View
                     </button>
@@ -214,38 +269,3 @@ export default function PaperManagement() {
     </DashboardLayout>
   );
 }
-
-const tableHeaderStyle = {
-  padding: '12px 16px',
-  textAlign: 'left' as const,
-  fontWeight: '600',
-  color: '#555'
-};
-
-const tableCellStyle = {
-  padding: '12px 16px',
-  color: '#333'
-};
-
-const filterButtonStyle = {
-  padding: '8px 16px',
-  backgroundColor: 'transparent',
-  color: '#555',
-  border: '1px solid #ddd',
-  borderRadius: '6px',
-  cursor: 'pointer'
-};
-
-const activeFilterButtonStyle = {
-  ...filterButtonStyle,
-  backgroundColor: '#0070f3',
-  color: '#fff',
-  border: '1px solid #0070f3'
-};
-
-const actionButtonStyle = {
-  padding: '6px 12px',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer'
-};
