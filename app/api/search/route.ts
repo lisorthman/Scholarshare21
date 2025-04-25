@@ -22,7 +22,10 @@ export async function GET(req: Request) {
       },
     });
 
-    const results = hits.hits.map((hit: any) => hit._source);
+    const results = hits.hits.map((hit: any) => ({
+      id: hit._id, // <-- Include the Elasticsearch ID
+      ...hit._source, // <-- Merge the rest of the data
+    }));
     return NextResponse.json({ results });
   } catch (error) {
     console.error('Elasticsearch search error:', error);
