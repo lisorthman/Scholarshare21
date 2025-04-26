@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react"; // Import signIn from next-auth/react
 import InputField from "../../components/InputField";
-import Button from "../../components/ui/Button";
+import Button from "../../components/ui/button";
 import NavBar from "../../components/Navbar";
 
 const SignupPage = () => {
@@ -28,12 +28,12 @@ const SignupPage = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-  
+
     try {
       const response = await fetch("/api/signup", {
         method: "POST",
@@ -48,20 +48,21 @@ const SignupPage = () => {
           role: formData.role,
         }),
       });
-  
+
       const data = await response.json();
       if (response.ok) {
-        alert('Registration Successful! Check your email for the verification code.');
-        localStorage.setItem('email', formData.email);
-        router.push('/verify');
+        alert(
+          "Registration Successful! Check your email for the verification code."
+        );
+        localStorage.setItem("email", formData.email);
+        router.push("/verify");
       } else {
         setError(data.message || "Registration failed");
       }
     } catch (error) {
-      setError('An error occurred. Please try again.');
+      setError("An error occurred. Please try again.");
     }
-  };  
-  
+  };
 
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
