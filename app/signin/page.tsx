@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react"; // Import signIn from next-auth/react
 import InputField from "../../components/InputField";
-import {Button, buttonVariants} from "../../components/ui/button";
+import { Button, buttonVariants } from "../../components/ui/Button";
 import NavBar from "../../components/Navbar";
 
 const SigninPage = () => {
