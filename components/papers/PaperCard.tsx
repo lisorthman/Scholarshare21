@@ -90,7 +90,8 @@ export default function PaperCard({
                 )}
               </Button>
             )}
-            
+
+            {/* View PDF Button */}
             <Link
               href={paper.fileUrl}
               target="_blank"
@@ -98,6 +99,14 @@ export default function PaperCard({
               className="text-blue-500 hover:text-blue-700 font-medium"
             >
               View
+            </Link>
+
+            {/* View Citation Button */}
+            <Link
+              href={`/papers/${paper._id}`}
+              className="text-green-600 hover:text-green-800 font-medium"
+            >
+              Citation
             </Link>
           </div>
         </div>
