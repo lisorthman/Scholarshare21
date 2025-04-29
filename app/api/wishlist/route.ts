@@ -1,5 +1,6 @@
 // app/api/wishlist/route.ts
-import { connectDB } from '@/lib/mongoose';
+import connectToDB from '@/lib/mongoose'; // ✅ correct
+
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 
@@ -13,7 +14,7 @@ export async function GET() {
       );
     }
 
-    const db = await connectDB();
+    const db = await connectToDB();
     const wishlist = await db.connection.collection('wishlists')
       .find({ userId: session.user.id })
       .toArray();
