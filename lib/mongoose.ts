@@ -19,6 +19,7 @@ async function connectToDB() {
     if (!MONGODB_URI) {
       throw new Error('MONGODB_URI must be a defined string');
     }
+
     cached.promise = mongoose.connect(MONGODB_URI, {
       dbName: 'scholarshare',
       serverSelectionTimeoutMS: 5000,

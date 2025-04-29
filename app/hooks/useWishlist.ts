@@ -1,5 +1,5 @@
 // app/api/wishlist/route.ts
-import { connectDB } from '@/lib/mongoose';
+import connectToDB from '@/lib/mongoose'; // ✅ correct
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 

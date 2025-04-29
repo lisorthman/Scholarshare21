@@ -1,10 +1,13 @@
-// Lib/auth.ts
+// lib/auth.ts
 
-import mongoose from 'mongoose';
+import { cookies } from 'next/headers'; // ✅ correct import
 
-// Example function to check if user is authenticated (you can adjust this)
-export const isAuthenticated = (token: string): boolean => {
-  if (!token) return false;
-  // Add your token validation logic here
-  return true;
+export const getSession = async () => {
+  const cookieStore = await cookies(); // ✅ use await here
+  const token = cookieStore.get('token')?.value;
+
+  if (!token) return null;
+
+  // Optional: validate token or fetch user from DB
+  return { token }; // Customize based on your logic
 };
