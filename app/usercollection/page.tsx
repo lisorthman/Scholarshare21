@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import Button from "../../components/ui/Button"; // Import Button component
-import NavBar from "../../components/Navbar"; // Import NavBar component
-import Sidebar from "../../components/Sidebar"; // Import Sidebar component
+import {Button} from "../../components/ui/Button"; // Adjust path as needed
+import NavBar from "../../components/Navbar"; 
+import Sidebar from "../../components/Sidebar"; 
 
 interface ResearchPaper {
   id: number;
@@ -14,7 +14,7 @@ interface ResearchPaper {
 
 const UserCollectionPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [papers, setPapers] = useState<ResearchPaper[]>([
+  const [papers] = useState<ResearchPaper[]>([
     {
       id: 1,
       title: "AI in Healthcare",
@@ -37,41 +37,35 @@ const UserCollectionPage: React.FC = () => {
       id: 4,
       title: "The Impact of Lifestyle on Cardiovascular Diseases",
       author: "Mark Wilson",
-      preview:
-        "Investigating lifestyle choices and their effects on heart health...",
+      preview: "Investigating lifestyle choices and their effects on heart health...",
     },
     {
       id: 5,
       title: "Sentiment Analysis of Social Media Using Deep Learning",
       author: "Emily Davis",
-      preview:
-        "Applying deep learning models for sentiment analysis on social media data...",
+      preview: "Applying deep learning models for sentiment analysis on social media data...",
     },
     {
       id: 6,
       title: "Decentralized Research Paper Repository Using Next.js and IPFS",
       author: "Sam Lee",
-      preview:
-        "Building a decentralized repository for research papers with Next.js and IPFS...",
+      preview: "Building a decentralized repository for research papers with Next.js and IPFS...",
     },
     {
       id: 7,
       title: "Role-Based Access Control in Web Applications Using Laravel",
       author: "John Doe",
-      preview:
-        "Explaining the implementation of RBAC in web applications using Laravel...",
+      preview: "Explaining the implementation of RBAC in web applications using Laravel...",
     },
     {
       id: 8,
       title: "The Role of Poetry in Expressing Human Emotions",
       author: "Lisa Green",
-      preview:
-        "A deep dive into the emotional impact of poetry on human expression...",
+      preview: "A deep dive into the emotional impact of poetry on human expression...",
     },
   ]);
 
-  // Simulate a logged-in user
-  const loggedInUser = "John Doe"; // Replace this with actual login state
+  const loggedInUser = "John Doe"; // Replace with actual auth
 
   const filteredPapers = papers.filter(
     (paper) =>
@@ -80,14 +74,8 @@ const UserCollectionPage: React.FC = () => {
   );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        backgroundColor: "#f7fafc",
-      }}
-    >
-      <Sidebar /> {/* Add Sidebar Component */}
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f7fafc" }}>
+      <Sidebar onLogout={() => alert("Logged out successfully")} />
       <div
         style={{
           flex: 1,
@@ -97,13 +85,6 @@ const UserCollectionPage: React.FC = () => {
           borderRadius: "0.5rem",
         }}
       >
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f7fafc' }}>
-      <Sidebar onLogout={function (): void {
-        throw new Error("Function not implemented.");
-      } } /> {/* Add Sidebar Component */}
-
-      <div style={{ flex: 1, padding: '2rem', backgroundColor: '#E0D8C3', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', borderRadius: '0.5rem' }}>
-
         <NavBar />
 
         <h2
@@ -118,7 +99,6 @@ const UserCollectionPage: React.FC = () => {
           User Collection
         </h2>
 
-        {/* Search Bar (styled like NavBar's search bar) */}
         <div
           style={{
             display: "flex",
@@ -134,16 +114,15 @@ const UserCollectionPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
-              flex: 1, // Make it expand to fill available space
+              flex: 1,
               padding: "1rem",
-              fontSize: "1.125rem", // Slightly larger font size
-              border: "none", // Remove border for consistency
+              fontSize: "1.125rem",
+              border: "none",
               borderRadius: "0.375rem",
               outline: "none",
               boxShadow: "none",
             }}
           />
-          {/* Button component for logged-in user or sign up */}
           {loggedInUser ? (
             <Button onClick={() => alert(`Welcome, ${loggedInUser}`)}>
               {loggedInUser}
@@ -156,13 +135,17 @@ const UserCollectionPage: React.FC = () => {
         </div>
 
         <div
-          style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr",
+            gap: "1.5rem",
+          }}
         >
           {filteredPapers.map((paper) => (
             <div
               key={paper.id}
               style={{
-                padding: "1.5rem", // Increased padding for larger boxes
+                padding: "1.5rem",
                 backgroundColor: "#f7fafc",
                 border: "1px solid #e2e8f0",
                 borderRadius: "0.375rem",
