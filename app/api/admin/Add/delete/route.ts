@@ -1,19 +1,21 @@
-import connectToDB from '@/lib/mongodb'; // Make sure this path is correct
+// app/api/admin/Add/delete/route.ts
+
+import { NextResponse } from 'next/server';
+import connectToDB from '@/lib/mongodb';
 import Category from '@/models/Category';
-import type { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
+export async function POST(req: Request) {
   try {
     await connectToDB();
 
-    const { name, contents } = req.body;
+    const body = await req.json();
+    const { name, contents } = body;
 
     if (!name) {
-      return res.status(400).json({ success: false, message: 'Name is required' });
+      return NextResponse.json(
+        { success: false, message: 'Name is required' },
+        { status: 400 }
+      );
     }
 
     const newCategory = new Category({
@@ -23,9 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await newCategory.save();
 
-    res.status(201).json({ success: true, category: newCategory });
+    return NextResponse.json({ success: true, category: newCategory }, { status: 201 });
   } catch (error) {
     console.error('Error creating category:', error);
-    res.status(500).json({ success: false, message: 'Internal Server Error' });
+    return NextResponse.json(
+      { success: false, message: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
