@@ -8,7 +8,7 @@ if (!MONGODB_URI) {
 
 let cached = global.mongoose || { conn: null, promise: null };
 
-async function connectToDB() {
+async function connectDB() {
   if (cached.conn) {
     console.log("Using existing DB connection");
     return cached.conn;
@@ -44,4 +44,4 @@ async function connectToDB() {
   return cached.conn;
 }
 
-export default connectToDB;
+export default connectDB;
