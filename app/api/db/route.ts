@@ -1,5 +1,5 @@
 // app/api/data/route.ts
-import { connectDB } from '@/lib/mongoose';
+import connectDB from '@/lib/mongoose';
 
 export async function GET() {
   try {
