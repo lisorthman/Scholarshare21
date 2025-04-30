@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -18,6 +19,18 @@ export default function ResearcherUpload() {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [researchFields, setResearchFields] = useState<string[]>([
+    'Computer Science',
+    'Biology', 
+    'Physics',
+    'Chemistry',
+    'Engineering',
+    'Mathematics',
+    'Medicine',
+    'Social Sciences', // Must include the 's'
+    'Other',
+    'Uncategorized'
+  ]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -79,18 +92,49 @@ export default function ResearcherUpload() {
         setUploadError('File size exceeds 10MB limit');
         return;
       }
+      // Validate file type (PDF, DOC, DOCX)
+      if (!/\.(pdf|docx?)$/i.test(file.name)) {
+        setUploadError('Invalid file type. Only PDF, DOC, or DOCX files are allowed');
+        return;
+      }
       setUploadError('');
       setSelectedFile(file);
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !paperTitle || !researchField || !user) return;
-    
+    // Validate all required fields with specific error messages
+    if (!selectedFile) {
+      setUploadError('Please select a file to upload');
+      return;
+    }
+    if (!paperTitle) {
+      setUploadError('Please enter a paper title');
+      return;
+    }
+    if (!researchField) {
+      setUploadError('Please select a research category');
+      return;
+    }
+    if (!user) {
+      setUploadError('User session not found. Please log in again.');
+      return;
+    }
+  
+    // Validate user ID format
     if (!user?._id || !/^[0-9a-fA-F]{24}$/.test(user._id)) {
       setUploadError('Invalid user session. Please reload the page.');
       return;
     }
+  
+    // Debug: Log all form data before sending
+    console.log('Form data being submitted:', {
+      title: paperTitle,
+      category: researchField,
+      abstract: paperAbstract,
+      file: selectedFile.name,
+      authorId: user._id
+    });
   
     setIsUploading(true);
     setUploadProgress(0);
@@ -99,31 +143,71 @@ export default function ResearcherUpload() {
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('title', paperTitle);
-    formData.append('researchField', researchField);
+    formData.append('abstract', paperAbstract);
+    formData.append('category', researchField);  // Ensure this matches backend expectation
     formData.append('authorId', user._id);
   
+    // Debug: Log FormData contents
+    console.log('FormData contents:');
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
+  
     try {
-      const response = await fetch('/api/researcher/uploads', { // Update this path
+      const response = await fetch('/api/researcher/uploads', {
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
       });
   
-      if (!response.ok) throw new Error(await response.text());
-      
-      const data = await response.json();
+      // Debug: Log raw response
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+  
+      if (!response.ok) {
+        throw new Error(responseText || 'Upload failed with unknown error');
+      }
+  
+      const data = JSON.parse(responseText);
+      console.log('Parsed response data:', data);
+  
+      // Verify the returned paper contains the correct category
+      if (!data.paper || data.paper.category !== researchField) {
+        console.warn('Category mismatch in response:', {
+          sent: researchField,
+          received: data.paper?.category
+        });
+      }
+  
       setPapers([data.paper, ...papers]);
       setUploadProgress(100);
-      setTimeout(() => setShowUploadForm(false), 2000);
       
+      // Show success message briefly before closing form
+      setUploadError(''); // Clear any previous errors
+      setTimeout(() => {
+        setShowUploadForm(false);
+        resetForm();
+      }, 2000);
+  
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+      console.error('Upload error details:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Upload failed for unknown reason';
+      
+      setUploadError(errorMessage);
+      
+      // Specific handling for category-related errors
+      if (typeof errorMessage === 'string' && errorMessage.includes('category')) {
+        setUploadError('Invalid research category. Please select a valid option.');
+      }
     } finally {
       setIsUploading(false);
     }
   };
+
   const resetForm = () => {
     setSelectedFile(null);
     setPaperTitle('');
@@ -166,7 +250,7 @@ export default function ResearcherUpload() {
         {showUploadForm && (
           <div style={{ marginBottom: '40px', padding: '20px', border: '1px solid #eee', borderRadius: '10px' }}>
             <h2 style={{ fontSize: '22px', marginBottom: '20px' }}>Upload New Research Paper</h2>
-            
+
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Paper Title*</label>
               <input
@@ -190,25 +274,25 @@ export default function ResearcherUpload() {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Research Field*</label>
-              <select
-                value={researchField}
-                onChange={(e) => setResearchField(e.target.value)}
-                style={inputStyle}
-                required
-              >
-                <option value="">Select research field</option>
-                <option value="Computer Science">Computer Science</option>
-                <option value="Biology">Biology</option>
-                <option value="Physics">Physics</option>
-                <option value="Chemistry">Chemistry</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Mathematics">Mathematics</option>
-                <option value="Medicine">Medicine</option>
-                <option value="Social Sciences">Social Sciences</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Research Field*</label>
+  <select
+    value={researchField}
+    onChange={(e) => {
+      console.log('Selected category:', e.target.value); // Debug log
+      setResearchField(e.target.value);
+    }}
+    style={inputStyle}
+    required
+    name="category" // Add name attribute
+  >
+    <option value="">Select research field</option>
+    {researchFields.map((field) => (
+      <option key={field} value={field} selected={field === researchField}>
+        {field}
+      </option>
+    ))}
+  </select>
+</div>
 
             <div style={{
               border: '2px dashed #ccc',
@@ -300,29 +384,20 @@ export default function ResearcherUpload() {
             ))}
           </div>
         ) : (
-          <div style={{
-            padding: '40px',
-            textAlign: 'center',
-            backgroundColor: '#f9f9f9',
-            borderRadius: '10px',
-            color: '#666'
-          }}>
-            {showUploadForm ? 'Fill the form to upload your first paper' : 'You have not uploaded any papers yet'}
-          </div>
+          <p>No papers uploaded yet.</p>
         )}
       </div>
     </DashboardLayout>
   );
 }
 
-// ... (keep the same style constants as before)
-
 const inputStyle = {
   width: '100%',
   padding: '12px',
-  border: '1px solid #ddd',
   borderRadius: '6px',
+  border: '1px solid #ddd',
   fontSize: '16px',
+  boxSizing: 'border-box' as const,
 };
 
 const primaryButtonStyle = {
@@ -332,15 +407,13 @@ const primaryButtonStyle = {
   borderRadius: '6px',
   padding: '12px 24px',
   fontSize: '16px',
-  cursor: 'pointer',
 };
 
 const secondaryButtonStyle = {
-  backgroundColor: 'transparent',
+  backgroundColor: '#f4f4f4',
   color: '#0070f3',
   border: '1px solid #0070f3',
   borderRadius: '6px',
   padding: '12px 24px',
   fontSize: '16px',
-  cursor: 'pointer',
 };
