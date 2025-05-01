@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FiSearch, FiEdit2, FiTrash2 } from "react-icons/fi";
 import AddCategoryForm from "@/components/AddCategoryForm";
-import { User } from "@/types/user"; // Import the User type
+import { User } from "@/types/user";
 
 // Define types for your data structures
 interface Category {
@@ -12,6 +12,7 @@ interface Category {
   name: string;
   description?: string;
   createdAt: string | Date;
+  parentCategory?: string | null; // Add parentCategory to the interface
 }
 
 export default function AdminDashboard() {
@@ -21,6 +22,9 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [error, setError] = useState<string>("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null); // State for editing
 
   const fetchCategories = async (token: string) => {
     try {
@@ -50,6 +54,52 @@ export default function AdminDashboard() {
         error instanceof Error ? error.message : "Failed to load categories"
       );
     }
+  };
+
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
+
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        alert("No token found, please sign in again.");
+        router.push("/signin");
+        return;
+      }
+
+      const response = await fetch(`/api/admin/delete-category?id=${categoryToDelete.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete category");
+      }
+
+      // Refetch categories to update the table
+      await fetchCategories(token);
+      alert(data.message);
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete category");
+    } finally {
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+    }
+  };
+
+  const openDeleteModal = (categoryId: string, categoryName: string) => {
+    setCategoryToDelete({ id: categoryId, name: categoryName });
+    setShowDeleteModal(true);
+  };
+
+  const openEditModal = (category: Category) => {
+    setCategoryToEdit(category);
+    setShowForm(true);
   };
 
   useEffect(() => {
@@ -158,7 +208,10 @@ export default function AdminDashboard() {
               />
             </div>
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setCategoryToEdit(null); // Clear edit mode
+                setShowForm(true);
+              }}
               style={{
                 backgroundColor: "#EFE9DC",
                 border: "1px solid #ccc",
@@ -172,7 +225,7 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          {/* Add Category Modal */}
+          {/* Add/Update Category Modal */}
           {showForm && (
             <div
               style={{
@@ -188,13 +241,89 @@ export default function AdminDashboard() {
               <AddCategoryForm
                 onClose={() => {
                   setShowForm(false);
+                  setCategoryToEdit(null);
                   const token =
                     typeof window !== "undefined"
                       ? localStorage.getItem("token")
                       : null;
                   if (token) fetchCategories(token);
                 }}
+                categoryId={categoryToEdit?._id}
+                initialName={categoryToEdit?.name}
+                initialDescription={categoryToEdit?.description}
+                initialParentCategory={categoryToEdit?.parentCategory}
+                isUpdateMode={!!categoryToEdit}
               />
+            </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteModal && categoryToDelete && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 50,
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "white",
+                  padding: "2rem",
+                  borderRadius: "10px",
+                  width: "400px",
+                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  Confirm Deletion
+                </h2>
+                <p style={{ fontSize: "14px", marginBottom: "1.5rem" }}>
+                  Are you sure you want to delete the category "
+                  {categoryToDelete.name}"?
+                </p>
+                <div style={{ display: "flex", gap: "1rem" }}>
+                  <button
+                    onClick={handleDelete}
+                    style={{
+                      backgroundColor: "#EFE9DC",
+                      border: "1px solid #ccc",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "5px",
+                      fontWeight: "500",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setCategoryToDelete(null);
+                    }}
+                    style={{
+                      backgroundColor: "#f0f0f0",
+                      border: "1px solid #ccc",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "5px",
+                      fontWeight: "500",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -209,8 +338,8 @@ export default function AdminDashboard() {
             <thead>
               <tr style={{ backgroundColor: "#EFEFEF", textAlign: "left" }}>
                 <th style={{ padding: "0.75rem" }}>Category</th>
-                <th style={{ padding: "0.75rem" }}>Contents</th>
-                <th style={{ padding: "0.75rem" }}>Joined Date</th>
+                <th style={{ padding: "0.75rem" }}>Description</th>
+                <th style={{ padding: "0.75rem" }}>Created At</th>
                 <th style={{ padding: "0.75rem" }}></th>
               </tr>
             </thead>
@@ -240,8 +369,14 @@ export default function AdminDashboard() {
                         gap: "0.75rem",
                       }}
                     >
-                      <FiEdit2 style={{ cursor: "pointer" }} />
-                      <FiTrash2 style={{ cursor: "pointer" }} />
+                      <FiEdit2
+                        style={{ cursor: "pointer" }}
+                        onClick={() => openEditModal(item)} // Open form in edit mode
+                      />
+                      <FiTrash2
+                        style={{ cursor: "pointer" }}
+                        onClick={() => openDeleteModal(item._id, item.name)}
+                      />
                     </td>
                   </tr>
                 ))

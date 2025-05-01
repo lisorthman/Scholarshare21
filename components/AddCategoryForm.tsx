@@ -5,16 +5,28 @@ import { useRouter } from "next/navigation";
 interface AddCategoryFormProps {
   onClose?: () => void;
   redirect?: boolean;
+  categoryId?: string; // Add categoryId for update mode
+  initialName?: string; // Pre-fill name
+  initialDescription?: string; // Pre-fill description
+  initialParentCategory?: string | null; // Pre-fill parentCategory
+  isUpdateMode?: boolean; // Flag to indicate update mode
 }
 
 export default function AddCategoryForm({
   onClose,
   redirect = false,
+  categoryId,
+  initialName = "",
+  initialDescription = "",
+  initialParentCategory = null,
+  isUpdateMode = false,
 }: AddCategoryFormProps) {
   const router = useRouter();
-  const [categoryName, setCategoryName] = useState("");
-  const [description, setDescription] = useState("");
-  const [parentCategory, setParentCategory] = useState("");
+  const [categoryName, setCategoryName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
+  const [parentCategory, setParentCategory] = useState(
+    initialParentCategory || ""
+  );
   const [categories, setCategories] = useState<{ _id: string; name: string }[]>(
     []
   );
@@ -73,8 +85,13 @@ export default function AddCategoryForm({
     }
 
     try {
-      const response = await fetch("/api/admin/Add-category", {
-        method: "POST",
+      const apiUrl = isUpdateMode
+        ? `/api/admin/update-category?id=${categoryId}`
+        : "/api/admin/Add-category";
+      const method = isUpdateMode ? "PUT" : "POST";
+
+      const response = await fetch(apiUrl, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -90,7 +107,8 @@ export default function AddCategoryForm({
       console.log("AddCategoryForm: Submit response:", result);
 
       if (response.ok) {
-        alert(`Category "${categoryName}" added successfully!`);
+        const action = isUpdateMode ? "updated" : "added";
+        alert(`Category "${categoryName}" ${action} successfully!`);
         setCategoryName("");
         setDescription("");
         setParentCategory("");
@@ -105,7 +123,7 @@ export default function AddCategoryForm({
       }
     } catch (error) {
       console.error("AddCategoryForm: Error submitting form:", error);
-      alert("Failed to add category");
+      alert(`Failed to ${isUpdateMode ? "update" : "add"} category`);
     } finally {
       setIsSubmitting(false);
     }
@@ -114,7 +132,7 @@ export default function AddCategoryForm({
   return (
     <div style={{ maxWidth: "800px", width: "100%" }}>
       <h1 style={{ fontSize: "28px", marginBottom: "30px" }}>
-        Add New Category
+        {isUpdateMode ? "Update Category" : "Add New Category"}
       </h1>
 
       <form
@@ -124,8 +142,27 @@ export default function AddCategoryForm({
           borderRadius: "10px",
           padding: "30px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          position: "relative",
         }}
       >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: "15px",
+            right: "15px",
+            background: "transparent",
+            border: "none",
+            fontSize: "18px",
+            fontWeight: "bold",
+            color: "#000",
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+
         <div style={{ marginBottom: "25px" }}>
           <label
             style={{
@@ -202,6 +239,9 @@ export default function AddCategoryForm({
           >
             Clear
           </button>
+          <button type="button" onClick={onClose} style={secondaryButtonStyle}>
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={!categoryName || isSubmitting}
@@ -211,7 +251,13 @@ export default function AddCategoryForm({
               cursor: !categoryName || isSubmitting ? "not-allowed" : "pointer",
             }}
           >
-            {isSubmitting ? "Adding..." : "Add Category"}
+            {isUpdateMode
+              ? isSubmitting
+                ? "Updating..."
+                : "Update Category"
+              : isSubmitting
+              ? "Adding..."
+              : "Add Category"}
           </button>
         </div>
       </form>
@@ -245,4 +291,4 @@ const secondaryButtonStyle = {
   padding: "12px 24px",
   fontSize: "16px",
   cursor: "pointer",
-}; 
+};
