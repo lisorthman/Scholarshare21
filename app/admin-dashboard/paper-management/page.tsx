@@ -22,6 +22,8 @@ export default function AdminDashboard(): JSX.Element {
   const [papers, setPapers] = useState<Paper[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -76,6 +78,37 @@ export default function AdminDashboard(): JSX.Element {
     }
   }, [user, searchQuery]);
 
+  const handleAction = async (id: string, action: "approve" | "reject") => {
+    try {
+      const response = await fetch(`/api/papers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || "Failed to update paper");
+      }
+      const result = await response.json();
+      if (!result.emailSent) {
+        setError("Action completed, but failed to send notification email");
+      } else {
+        setError(null);
+      }
+      setIsModalOpen(false);
+      setSelectedPaper(null);
+      await fetchPapers();
+    } catch (err) {
+      console.error("Error updating paper:", err);
+      setError(err.message || "Failed to update paper");
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPaper(null);
+  };
+
   if (!user) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
 
@@ -87,11 +120,15 @@ export default function AdminDashboard(): JSX.Element {
 
   return (
     <DashboardLayout user={user}>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+        rel="stylesheet"
+      />
+
       <div className="dashboard-container">
         <div className="dashboard-content">
           <h1 className="dashboard-title">Pdf Approval</h1>
 
-          {/* Search Bar */}
           <div className="search-bar">
             <input
               type="text"
@@ -102,7 +139,6 @@ export default function AdminDashboard(): JSX.Element {
             />
           </div>
 
-          {/* Table */}
           <div className="table-wrapper">
             <table className="dashboard-table">
               <thead>
@@ -147,7 +183,10 @@ export default function AdminDashboard(): JSX.Element {
                       <td data-label="Actions" className="action-buttons">
                         <button
                           className="view-button"
-                          onClick={() => alert(`Viewing PDF: ${item.title}`)}
+                          onClick={() => {
+                            setSelectedPaper(item);
+                            setIsModalOpen(true);
+                          }}
                         >
                           View
                         </button>
@@ -165,6 +204,97 @@ export default function AdminDashboard(): JSX.Element {
         </div>
       </div>
 
+      {isModalOpen && selectedPaper && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-button" onClick={closeModal}>
+              ✕
+            </button>
+            <h2 className="modal-title">Verification Request Details</h2>
+            <div className="modal-field">
+              <label>Name:</label>
+              <span>{selectedPaper.authorId?.name || "Unknown"}</span>
+            </div>
+            <div className="modal-field">
+              <label>Email:</label>
+              <span>{selectedPaper.authorId?.email || "N/A"}</span>
+            </div>
+            <div className="modal-field">
+              <label>PDF:</label>
+              <span>{selectedPaper.title}</span>
+            </div>
+            <div className="modal-field">
+              <label>Submitted date:</label>
+              <span>
+                {new Date(selectedPaper.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <div className="modal-field description-field">
+              <label>
+                <span className="pdf-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M4 1H12C12.5523 1 13 1.44772 13 2V14C13 14.5523 12.5523 15 12 15H4C3.44772 15 3 14.5523 3 14V2C3 1.44772 3.44772 1 4 1Z"
+                      stroke="#000"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5 5H11"
+                      stroke="#000"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5 7H11"
+                      stroke="#000"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5 9H8"
+                      stroke="#000"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                Any additional description:
+              </label>
+              <div className="modal-description">
+                {selectedPaper.abstract || "N/A"}
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="approve-button"
+                onClick={() => handleAction(selectedPaper._id, "approve")}
+                disabled={selectedPaper.status !== "pending"}
+              >
+                Approve
+              </button>
+              <button
+                className="reject-button"
+                onClick={() => handleAction(selectedPaper._id, "reject")}
+                disabled={selectedPaper.status !== "pending"}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .dashboard-container {
           background-color: #d8cbb0;
@@ -172,6 +302,7 @@ export default function AdminDashboard(): JSX.Element {
           border-radius: 12px;
           min-height: 100vh;
           box-sizing: border-box;
+          font-family: "Poppins", sans-serif;
           width: 100%;
         }
 
@@ -232,7 +363,7 @@ export default function AdminDashboard(): JSX.Element {
           display: flex;
           gap: 0.5rem;
           flex-wrap: wrap;
-          width: 100px; /* Adjusted width since only View button remains */
+          width: 100px;
         }
 
         .view-button {
@@ -245,7 +376,116 @@ export default function AdminDashboard(): JSX.Element {
           color: #0070f3;
         }
 
-        /* Responsive Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          padding: 2rem;
+          border-radius: 8px;
+          border: 4px solid #d8cbb0;
+          width: 90%;
+          max-width: 500px;
+          position: relative;
+        }
+
+        .modal-close-button {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: none;
+          border: none;
+          font-size: 18px;
+          cursor: pointer;
+          color: #666;
+        }
+
+        .modal-title {
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 1.5rem;
+          text-align: center;
+        }
+
+        .modal-field {
+          margin-bottom: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .modal-field label {
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .modal-field span {
+          font-size: 14px;
+          font-weight: 400;
+        }
+
+        .description-field label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .pdf-icon {
+          display: inline-block;
+        }
+
+        .modal-description {
+          background: #e0e0e0;
+          padding: 0.5rem;
+          border-radius: 4px;
+          font-size: 14px;
+          min-height: 40px;
+          font-weight: 400;
+        }
+
+        .modal-actions {
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          margin-top: 1.5rem;
+        }
+
+        .approve-button,
+        .reject-button {
+          padding: 0.5rem 1.5rem;
+          border-radius: 6px;
+          font-size: 14px;
+          cursor: pointer;
+          border: none;
+          font-weight: 600;
+        }
+
+        .approve-button {
+          background-color: #41a446;
+          color: white;
+        }
+
+        .reject-button {
+          background-color: #d84727;
+          color: white;
+        }
+
+        .approve-button:disabled,
+        .reject-button:disabled {
+          background-color: #ccc;
+          cursor: not-allowed;
+        }
+
         @media (max-width: 768px) {
           .dashboard-container {
             padding: 0.5rem;
@@ -309,7 +549,7 @@ export default function AdminDashboard(): JSX.Element {
 
           .dashboard-table tbody td:before {
             content: attr(data-label);
-            font-weight: bold;
+            font-weight: 600;
             width: 40%;
             flex-shrink: 0;
           }
@@ -322,6 +562,35 @@ export default function AdminDashboard(): JSX.Element {
 
           .dashboard-table tbody td.action-buttons:before {
             display: none;
+          }
+
+          .modal-content {
+            padding: 1rem;
+            max-width: 90%;
+          }
+
+          .modal-title {
+            font-size: 16px;
+          }
+
+          .modal-field label,
+          .modal-field span {
+            font-size: 12px;
+          }
+
+          .modal-description {
+            min-height: 30px;
+            font-size: 12px;
+          }
+
+          .modal-actions {
+            gap: 0.5rem;
+          }
+
+          .approve-button,
+          .reject-button {
+            padding: 0.5rem 1rem;
+            font-size: 12px;
           }
         }
 
@@ -340,6 +609,15 @@ export default function AdminDashboard(): JSX.Element {
 
           .dashboard-table tbody td:before {
             width: 50%;
+          }
+
+          .modal-title {
+            font-size: 14px;
+          }
+
+          .modal-description {
+            min-height: 20px;
+            font-size: 10px;
           }
         }
       `}</style>
