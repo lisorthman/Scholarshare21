@@ -12,7 +12,7 @@ interface Category {
   name: string;
   description?: string;
   createdAt: string | Date;
-  parentCategory?: string | null; // Add parentCategory to the interface
+  parentCategory?: string | null;
 }
 
 export default function AdminDashboard() {
@@ -24,7 +24,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string>("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null); // State for editing
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [searchQuery, setSearchQuery] = useState(""); // State for search input
 
   const fetchCategories = async (token: string) => {
     try {
@@ -80,7 +81,6 @@ export default function AdminDashboard() {
         throw new Error(data.message || "Failed to delete category");
       }
 
-      // Refetch categories to update the table
       await fetchCategories(token);
       alert(data.message);
     } catch (error) {
@@ -147,6 +147,14 @@ export default function AdminDashboard() {
     verifyToken();
   }, [router]);
 
+  // Filter categories based on search query
+  const filteredCategories = categories.filter((category) =>
+    [category.name, category.description || ""]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
+
   if (isAuthenticated === null) return <p>Loading...</p>;
   if (!isAuthenticated) return null;
 
@@ -199,6 +207,8 @@ export default function AdminDashboard() {
               <input
                 type="text"
                 placeholder="Search Here"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   border: "none",
                   outline: "none",
@@ -209,7 +219,7 @@ export default function AdminDashboard() {
             </div>
             <button
               onClick={() => {
-                setCategoryToEdit(null); // Clear edit mode
+                setCategoryToEdit(null);
                 setShowForm(true);
               }}
               style={{
@@ -344,8 +354,8 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {categories.length > 0 ? (
-                categories.map((item) => (
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map((item) => (
                   <tr key={item._id} style={{ borderBottom: "1px solid #ddd" }}>
                     <td style={{ padding: "1.5rem" }}>
                       <input
@@ -371,7 +381,7 @@ export default function AdminDashboard() {
                     >
                       <FiEdit2
                         style={{ cursor: "pointer" }}
-                        onClick={() => openEditModal(item)} // Open form in edit mode
+                        onClick={() => openEditModal(item)}
                       />
                       <FiTrash2
                         style={{ cursor: "pointer" }}
@@ -386,7 +396,7 @@ export default function AdminDashboard() {
                     colSpan={4}
                     style={{ padding: "1.5rem", textAlign: "center" }}
                   >
-                    {error || "No categories found"}
+                    {searchQuery ? "No matching categories found" : (error || "No categories found")}
                   </td>
                 </tr>
               )}
