@@ -1,26 +1,14 @@
-import { Download, ChevronRight } from 'react-feather';
+'use client';
 
-interface ResearchPaper {
-  _id: string;
-  title?: string;
-  abstract?: string;
-  category?: {
-    _id?: string;
-    name?: string;
-  };
-  fileUrl: string;
-  fileName?: string;
-  fileSize?: number;
-  fileType?: string;
-  authorId?: string;
-  status?: string;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-}
+import { ApiResearchPaper } from '@/types/research';
+import { Download, ChevronRight, Edit2, Trash2 } from 'react-feather';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 interface ResearchPaperCardProps {
-  paper: ResearchPaper;
+  paper: ApiResearchPaper;
   onView?: (paperId: string) => void;
+  onDelete?: (paperId: string) => void; // optional callback to update UI after delete
 }
 
 const CATEGORY_EMOJIS: Record<string, string> = {
@@ -36,13 +24,15 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   'Uncategorized': '📌'
 };
 
-const DEFAULT_CATEGORY = 'Uncategorized';
-
-export default function ResearchPaperCard({ 
-  paper, 
-  onView 
+export default function ResearchPaperCard({
+  paper,
+  onView,
+  onDelete
 }: ResearchPaperCardProps) {
-  if (!paper?._id) {
+  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  if (!paper || !paper._id) {
     return (
       <div className="p-4 rounded-lg bg-red-50 text-red-600" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
         ⚠️ Invalid paper data
@@ -50,20 +40,41 @@ export default function ResearchPaperCard({
     );
   }
 
-  // Safe property access with fallbacks
-  const categoryName = paper.category?.name || DEFAULT_CATEGORY;
-  const emoji = CATEGORY_EMOJIS[categoryName] || CATEGORY_EMOJIS[DEFAULT_CATEGORY];
-  const title = paper.title || 'Untitled Paper';
-  const status = paper.status?.toLowerCase() || 'pending';
-  const fileSizeMB = paper.fileSize ? (paper.fileSize / (1024 * 1024)).toFixed(2) : '0.00';
-  
-  const formattedDate = paper.createdAt 
-    ? new Date(paper.createdAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    : 'Date not available';
+  const fileSizeMB = (paper.fileSize / (1024 * 1024)).toFixed(2);
+  const formattedDate = new Date(paper.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+
+  const handleEdit = () => {
+    router.push(`/researcher/edit/${paper._id}`);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this research paper?')) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/researcher/uploads/${paper._id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(`Delete failed: ${errorData.error || 'Unknown error'}`);
+        setIsDeleting(false);
+        return;
+      }
+
+      if (onDelete) onDelete(paper._id);
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('An unexpected error occurred.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div 
@@ -74,21 +85,21 @@ export default function ResearchPaperCard({
         {/* Header with title and status */}
         <div className="flex justify-between items-start gap-2">
           <h3 className="text-lg font-medium text-gray-900 line-clamp-2 leading-tight">
-            {title}
+            {paper.title || 'Untitled Paper'}
           </h3>
           <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-            status === 'pending' 
+            paper.status === 'pending' 
               ? 'bg-amber-100 text-amber-800' 
               : 'bg-gray-100 text-gray-800'
           }`}>
-            {status === 'pending' ? '⏳ Pending' : status.toUpperCase()}
+            {paper.status === 'pending' ? '⏳ Pending' : paper.status.toUpperCase()}
           </span>
         </div>
 
         {/* Metadata row */}
         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
           <span className="inline-flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
-            {emoji} {categoryName}
+            {CATEGORY_EMOJIS[paper.category] || '📌'} {paper.category || 'Uncategorized'}
           </span>
           
           <span className="flex items-center gap-1">
@@ -102,24 +113,39 @@ export default function ResearchPaperCard({
 
         {/* Action buttons */}
         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <button
-            onClick={() => onView?.(paper._id)}
-            className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors group"
-            aria-label="View paper details"
-          >
-            View details
-            <ChevronRight 
-              size={16} 
-              className="transition-transform group-hover:translate-x-0.5" 
-            />
-          </button>
-          
+          <div className="flex gap-3">
+            <button
+              onClick={() => onView?.(paper._id)}
+              className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors group"
+            >
+              View
+              <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
+
+            <button
+              onClick={handleEdit}
+              className="flex items-center gap-1 text-sm text-yellow-600 hover:text-yellow-800 transition-colors"
+              disabled={isDeleting}
+            >
+              <Edit2 size={14} />
+              Edit
+            </button>
+
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-1 text-sm text-red-600 hover:text-red-800 transition-colors"
+              disabled={isDeleting}
+            >
+              <Trash2 size={14} />
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+
           <a
             href={paper.fileUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
-            aria-label="Download research paper"
           >
             <Download size={14} />
             Download
