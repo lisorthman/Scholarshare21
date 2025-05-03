@@ -72,6 +72,7 @@ export default function DashboardLayout({
         height: "auto",
         backgroundColor: "#f0f2f5",
         fontFamily: "Arial, sans-serif",
+        
       }}
     >
       <Navbar />

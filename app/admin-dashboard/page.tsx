@@ -121,7 +121,7 @@ export default function AdminDashboard() {
             padding: "1.5rem",
             fontFamily: "sans-serif",
             width: "100%",
-            maxWidth: "1400px",
+            maxWidth: "100%",
             margin: "0 auto",
           }}
         >
