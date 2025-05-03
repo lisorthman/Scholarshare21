@@ -1,3 +1,4 @@
+// app/researcher-dashboard/uploads/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,6 +8,11 @@ import { User } from '@/types/user';
 import ResearchPaperCard from '@/components/ResearchPaperCard';
 import { DbResearchPaper } from '@/types/research';
 
+interface Category {
+  _id: string;
+  name: string;
+}
+
 export default function ResearcherUpload() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -14,23 +20,12 @@ export default function ResearcherUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [paperTitle, setPaperTitle] = useState('');
   const [paperAbstract, setPaperAbstract] = useState('');
-  const [researchField, setResearchField] = useState('');
+  const [categoryId, setCategoryId] = useState(''); // Changed from researchField to categoryId
+  const [categories, setCategories] = useState<Category[]>([]); // Changed from researchFields
   const [papers, setPapers] = useState<DbResearchPaper[]>([]);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [researchFields, setResearchFields] = useState<string[]>([
-    'Computer Science',
-    'Biology', 
-    'Physics',
-    'Chemistry',
-    'Engineering',
-    'Mathematics',
-    'Medicine',
-    'Social Sciences', // Must include the 's'
-    'Other',
-    'Uncategorized'
-  ]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -39,7 +34,7 @@ export default function ResearcherUpload() {
       return;
     }
 
-    const verifyTokenAndFetchPapers = async () => {
+    const verifyTokenAndFetchData = async () => {
       try {
         const response = await fetch('/api/verify-token', {
           method: 'POST',
@@ -50,10 +45,8 @@ export default function ResearcherUpload() {
         const data = await response.json();
         if (data.valid && data.user.role === 'researcher') {
           setUser(data.user);
-          if (data.user.researchField) {
-            setResearchField(data.user.researchField);
-          }
           fetchPapers(data.user._id);
+          fetchCategories(); // Fetch categories when user is verified
         } else {
           router.push('/unauthorized');
         }
@@ -63,20 +56,25 @@ export default function ResearcherUpload() {
       }
     };
 
-    verifyTokenAndFetchPapers();
+    verifyTokenAndFetchData();
   }, [router]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/fetch-category');
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setUploadError('Failed to load categories. Please try again later.');
+    }
+  };
 
   const fetchPapers = async (userId: string) => {
     try {
-      if (!userId || typeof userId !== 'string') {
-        console.error('Invalid user ID');
-        return;
-      }
-
       const response = await fetch(`/api/researcher/papers?userId=${encodeURIComponent(userId)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch papers');
-      }
+      if (!response.ok) throw new Error('Failed to fetch papers');
       const data = await response.json();
       setPapers(data.papers);
     } catch (error) {
@@ -103,7 +101,6 @@ export default function ResearcherUpload() {
   };
 
   const handleUpload = async () => {
-    // Validate all required fields with specific error messages
     if (!selectedFile) {
       setUploadError('Please select a file to upload');
       return;
@@ -112,7 +109,7 @@ export default function ResearcherUpload() {
       setUploadError('Please enter a paper title');
       return;
     }
-    if (!researchField) {
+    if (!categoryId) {
       setUploadError('Please select a research category');
       return;
     }
@@ -127,14 +124,6 @@ export default function ResearcherUpload() {
       return;
     }
   
-    // Debug: Log all form data before sending
-    console.log('Form data being submitted:', {
-      title: paperTitle,
-      category: researchField,
-      abstract: paperAbstract,
-      file: selectedFile.name,
-      authorId: user._id
-    });
   
     setIsUploading(true);
     setUploadProgress(0);
@@ -144,14 +133,9 @@ export default function ResearcherUpload() {
     formData.append('file', selectedFile);
     formData.append('title', paperTitle);
     formData.append('abstract', paperAbstract);
-    formData.append('category', researchField);  // Ensure this matches backend expectation
+    formData.append('category', categoryId); // Now sending category ID instead of name
     formData.append('authorId', user._id);
   
-    // Debug: Log FormData contents
-    console.log('FormData contents:');
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
   
     try {
       const response = await fetch('/api/researcher/uploads', {
@@ -162,47 +146,21 @@ export default function ResearcherUpload() {
         },
       });
   
-      // Debug: Log raw response
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
   
       if (!response.ok) {
-        throw new Error(responseText || 'Upload failed with unknown error');
+        throw new Error(await response.text());
       }
   
-      const data = JSON.parse(responseText);
-      console.log('Parsed response data:', data);
-  
-      // Verify the returned paper contains the correct category
-      if (!data.paper || data.paper.category !== researchField) {
-        console.warn('Category mismatch in response:', {
-          sent: researchField,
-          received: data.paper?.category
-        });
-      }
-  
+      const data = await response.json();
       setPapers([data.paper, ...papers]);
       setUploadProgress(100);
-      
-      // Show success message briefly before closing form
-      setUploadError(''); // Clear any previous errors
       setTimeout(() => {
         setShowUploadForm(false);
         resetForm();
       }, 2000);
-  
     } catch (error) {
-      console.error('Upload error details:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Upload failed for unknown reason';
-      
-      setUploadError(errorMessage);
-      
-      // Specific handling for category-related errors
-      if (typeof errorMessage === 'string' && errorMessage.includes('category')) {
-        setUploadError('Invalid research category. Please select a valid option.');
-      }
+      console.error('Upload error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setIsUploading(false);
     }
@@ -212,7 +170,7 @@ export default function ResearcherUpload() {
     setSelectedFile(null);
     setPaperTitle('');
     setPaperAbstract('');
-    setResearchField(user?.researchField || '');
+    setCategoryId('');
     setUploadProgress(0);
     setUploadError('');
   };
@@ -274,25 +232,22 @@ export default function ResearcherUpload() {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Research Field*</label>
-  <select
-    value={researchField}
-    onChange={(e) => {
-      console.log('Selected category:', e.target.value); // Debug log
-      setResearchField(e.target.value);
-    }}
-    style={inputStyle}
-    required
-    name="category" // Add name attribute
-  >
-    <option value="">Select research field</option>
-    {researchFields.map((field) => (
-      <option key={field} value={field} selected={field === researchField}>
-        {field}
-      </option>
-    ))}
-  </select>
-</div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Research Category*</label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              style={inputStyle}
+              required
+              disabled={categories.length === 0}
+            >
+              <option value="">{categories.length === 0 ? 'Loading categories...' : 'Select a category'}</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
             <div style={{
               border: '2px dashed #ccc',
@@ -364,11 +319,11 @@ export default function ResearcherUpload() {
               </button>
               <button
                 onClick={handleUpload}
-                disabled={!selectedFile || !paperTitle || !researchField || isUploading}
+                disabled={!selectedFile || !paperTitle || !categoryId || isUploading}
                 style={{
                   ...primaryButtonStyle,
-                  opacity: (!selectedFile || !paperTitle || !researchField || isUploading) ? 0.7 : 1,
-                  cursor: (!selectedFile || !paperTitle || !researchField || isUploading) ? 'not-allowed' : 'pointer'
+                  opacity: (!selectedFile || !paperTitle || !categoryId || isUploading) ? 0.7 : 1,
+                  cursor: (!selectedFile || !paperTitle || !categoryId || isUploading) ? 'not-allowed' : 'pointer'
                 }}
               >
                 {isUploading ? 'Uploading...' : 'Submit Paper'}

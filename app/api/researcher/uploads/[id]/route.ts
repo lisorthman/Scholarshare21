@@ -1,133 +1,212 @@
 import { NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
 import connectToDB from '@/lib/mongoose';
 import ResearchPaper from '@/models/ResearchPaper';
+import AdminCategory from '@/models/AdminCategory'; // Import AdminCategory model
+import { ObjectId } from 'mongodb';
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
 
-const ALLOWED_CATEGORIES = [
-  'Computer Science',
-  'Biology',
-  'Physics',
-  'Chemistry',
-  'Engineering',
-  'Mathematics',
-  'Medicine',
-  'Social Sciences',
-  'Other',
-  'Uncategorized'
-];
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-
-// PATCH: Update research paper
-export async function PATCH(
+// GET: Fetch single paper
+export async function GET(
   request: Request,
-  contextPromise: Promise<{ params: { id: string } }>
+  { params }: { params: { id: string } }
 ) {
-  await connectToDB();
-  const { params } = await contextPromise;
+  try {
+    await connectToDB();
 
-  const formData = await request.formData();
-  const title = formData.get('title') as string;
-  const abstract = formData.get('abstract') as string;
-  const category = formData.get('category') as string;
-  const file = formData.get('file') as File | null;
+    const paper = await ResearchPaper.findById(params.id)
+      .select('-__v')
+      .lean();
 
-  const paper = await ResearchPaper.findById(params.id);
-  if (!paper) {
-    return NextResponse.json({ error: 'Research paper not found' }, { status: 404 });
-  }
+    if (!paper) {
+      return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
+    }
 
-  if (!ALLOWED_CATEGORIES.includes(category)) {
+    return NextResponse.json(paper);
+  } catch (error) {
+    console.error('GET error:', error);
     return NextResponse.json(
-      { error: 'Invalid category', allowed: ALLOWED_CATEGORIES },
-      { status: 400 }
+      { error: 'Failed to fetch paper' },
+      { status: 500 }
     );
   }
-
-  let fileUrl = paper.fileUrl;
-  let fileName = paper.fileName;
-  let fileSize = paper.fileSize;
-  let fileType = paper.fileType;
-
-  if (file && file.size > 0) {
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large' }, { status: 400 });
-    }
-
-    const blobRes = await fetch('https://blob.vercel-storage.com/upload', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN!}`,
-      },
-      body: file
-    });
-
-    const blobData = await blobRes.json();
-
-    const oldBlobKey = paper.fileUrl.split('/').pop();
-    await fetch(`https://blob.vercel-storage.com/${oldBlobKey}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN!}`,
-      },
-    });
-
-    fileUrl = blobData.url;
-    fileName = file.name;
-    fileSize = file.size;
-    fileType = file.type;
-  }
-
-  paper.title = title;
-  paper.abstract = abstract;
-  paper.category = category;
-  paper.fileUrl = fileUrl;
-  paper.fileName = fileName;
-  paper.fileSize = fileSize;
-  paper.fileType = fileType;
-
-  await paper.save();
-
-  return NextResponse.json({ success: true, paper });
 }
 
-// DELETE: Remove paper + file
+// PATCH: Update paper
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await connectToDB();
+    const formData = await request.formData();
+
+    const title = formData.get('title')?.toString() || '';
+    const abstract = formData.get('abstract')?.toString() || '';
+    const categoryId = formData.get('category')?.toString() || ''; // Now expecting category ID
+    const file = formData.get('file') as File | null;
+
+    // Validate category exists in database
+    const category = await AdminCategory.findById(categoryId);
+    if (!category && categoryId) { // Only validate if category was provided
+      const allCategories = await AdminCategory.find({}, 'name');
+      return NextResponse.json(
+        { 
+          error: 'Invalid category selected',
+          receivedCategoryId: categoryId,
+          availableCategories: allCategories
+        },
+        { status: 400 }
+      );
+    }
+
+    const paper = await ResearchPaper.findById(params.id);
+    if (!paper) {
+      return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
+    }
+
+    let fileData = {
+      url: paper.fileUrl,
+      name: paper.fileName,
+      size: paper.fileSize,
+      type: paper.fileType,
+      blobKey: paper.blobKey
+    };
+
+    if (file?.size) {
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ error: 'File too large' }, { status: 400 });
+      }
+
+      // Delete old blob if exists
+      if (paper.blobKey) {
+        try {
+          const deleteResponse = await fetch(`https://blob.vercel-storage.com/${paper.blobKey}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+            },
+          });
+
+          if (!deleteResponse.ok) {
+            const text = await deleteResponse.text();
+            console.error('Blob delete failed:', deleteResponse.status, text);
+            throw new Error('Failed to delete blob');
+          }
+        } catch (err) {
+          console.error('Blob delete error during PATCH:', err);
+        }
+      }
+
+      // Upload new blob
+      const { url, pathname } = await put(file.name, file, { access: 'public' });
+      fileData = {
+        url,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        blobKey: pathname
+      };
+    }
+
+    const updateData: any = {
+      title,
+      abstract,
+      updatedAt: new Date()
+    };
+
+    // Only update category fields if a new category was provided
+    if (categoryId) {
+      updateData.category = category ? category.name : null;
+      updateData.categoryId = new ObjectId(categoryId);
+    }
+
+    // Only update file fields if a new file was provided
+    if (file?.size) {
+      updateData.fileUrl = fileData.url;
+      updateData.fileName = fileData.name;
+      updateData.fileSize = fileData.size;
+      updateData.fileType = fileData.type;
+      updateData.blobKey = fileData.blobKey;
+    }
+
+    const updatedPaper = await ResearchPaper.findByIdAndUpdate(
+      params.id,
+      updateData,
+      { new: true }
+    );
+
+    return NextResponse.json({
+      success: true,
+      paper: updatedPaper
+    });
+  } catch (error) {
+    console.error('PATCH error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update paper' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Remove paper and blob
 export async function DELETE(
   request: Request,
-  contextPromise: Promise<{ params: { id: string } }>
+  { params }: { params: { id: string } }
 ) {
-  await connectToDB();
-  const { params } = await contextPromise;
-
-  const paper = await ResearchPaper.findById(params.id);
-  if (!paper) {
-    return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
-  }
-
-  const blobKey = paper.fileUrl.split('/').pop();
-
   try {
-    await fetch(`https://blob.vercel-storage.com/${blobKey}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN!}`,
-      },
-    });
+    await connectToDB();
 
+    const paper = await ResearchPaper.findById(params.id);
+    if (!paper) {
+      return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
+    }
+
+    // Delete blob from Vercel
+    if (paper.blobKey) {
+      try {
+        const response = await fetch(`https://blob.vercel-storage.com/${paper.blobKey}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+          },
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('Blob delete failed:', response.status, text);
+          throw new Error('Failed to delete blob');
+        }
+      } catch (err) {
+        console.error('Blob delete error during DELETE:', err);
+        return NextResponse.json(
+          { error: 'Failed to delete blob' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Delete from DB
     await ResearchPaper.findByIdAndDelete(params.id);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: 'Paper deleted successfully'
+    });
   } catch (error) {
-    console.error('Error deleting paper:', error);
-    return NextResponse.json({ error: 'Failed to delete paper or file' }, { status: 500 });
+    console.error('DELETE error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete paper' },
+      { status: 500 }
+    );
   }
 }
