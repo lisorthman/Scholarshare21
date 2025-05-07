@@ -5,19 +5,26 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
 
-interface Milestone {
+interface ResearchMilestone {
   _id: string;
   title: string;
-  description?: string;
-  date: string;
-  progress?: number;
-  status: 'pending' | 'completed';
+  abstract?: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  status: 'pending' | 'approved' | 'rejected';
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+  readerStats?: {
+    [key: string]: any;
+  };
 }
 
 export default function MilestonePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestones, setMilestones] = useState<ResearchMilestone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,10 +43,14 @@ export default function MilestonePage() {
           body: JSON.stringify({ token }),
         });
 
+        if (!response.ok) {
+          throw new Error('Failed to verify token');
+        }
+
         const data = await response.json();
         if (data.valid && data.user.role === 'researcher') {
           setUser(data.user);
-          fetchMilestones(data.user._id);
+          await fetchResearchPapers(data.user._id);
         } else {
           router.push('/unauthorized');
         }
@@ -50,20 +61,21 @@ export default function MilestonePage() {
     };
 
     verifyTokenAndFetchMilestones();
-  }, [router]);
+  }, []);
 
-  const fetchMilestones = async (userId: string) => {
+  const fetchResearchPapers = async (userId: string) => {
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/milestones?userId=${userId}`);
+      const res = await fetch(`/api/papers?authorId=${userId}`);
       if (!res.ok) {
-        throw new Error('Failed to fetch milestones');
+        throw new Error('Failed to fetch research papers');
       }
       const data = await res.json();
-      setMilestones(data);
+      setMilestones(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error fetching milestones:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load milestones');
+      console.error('Error fetching papers:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load research papers');
+      setMilestones([]);
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +83,20 @@ export default function MilestonePage() {
 
   const handleRefresh = () => {
     if (user) {
-      fetchMilestones(user._id);
+      fetchResearchPapers(user._id);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return { bg: '#e8f5e9', text: '#2e7d32' };
+      case 'pending':
+        return { bg: '#fff3e0', text: '#f57c00' };
+      case 'rejected':
+        return { bg: '#ffebee', text: '#c62828' };
+      default:
+        return { bg: '#f5f5f5', text: '#666666' };
     }
   };
 
@@ -102,7 +127,7 @@ export default function MilestonePage() {
           alignItems: 'center', 
           marginBottom: '30px' 
         }}>
-          <h1 style={{ fontSize: '28px', margin: 0 }}>Research Milestones</h1>
+          <h1 style={{ fontSize: '28px', margin: 0 }}>Research Paper Milestones</h1>
           <button
             onClick={handleRefresh}
             style={{
@@ -127,7 +152,7 @@ export default function MilestonePage() {
             backgroundColor: '#f9f9f9',
             borderRadius: '10px' 
           }}>
-            <p>Loading milestones...</p>
+            <p>Loading research papers...</p>
           </div>
         ) : error ? (
           <div style={{ 
@@ -152,100 +177,83 @@ export default function MilestonePage() {
               Try Again
             </button>
           </div>
-        ) : milestones.length === 0 ? (
+        ) : !Array.isArray(milestones) || milestones.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '40px',
             backgroundColor: '#f9f9f9',
             borderRadius: '10px'
           }}>
-            <p style={{ color: '#666', marginBottom: '16px' }}>No milestones found.</p>
+            <p style={{ color: '#666', marginBottom: '16px' }}>No research papers uploaded yet.</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gap: '20px' }}>
-            {milestones.map((milestone) => (
-              <div
-                key={milestone._id}
-                style={{
-                  padding: '20px',
-                  backgroundColor: '#f9f9f9',
-                  borderRadius: '10px',
-                  border: '1px solid #eee',
-                  transition: 'transform 0.2s ease',
-                  cursor: 'pointer',
-                  ':hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 12px rgba(0,0,0,0.1)'
-                  }
-                }}
-              >
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '10px'
-                }}>
-                  <h3 style={{ margin: 0, fontSize: '18px' }}>{milestone.title}</h3>
-                  <span style={{
-                    padding: '4px 12px',
-                    borderRadius: '15px',
-                    fontSize: '14px',
-                    backgroundColor: milestone.status === 'completed' ? '#e8f5e9' : '#fff3e0',
-                    color: milestone.status === 'completed' ? '#2e7d32' : '#f57c00'
+            {milestones.map((paper) => {
+              if (!paper) return null;
+              const statusColor = getStatusColor(paper.status);
+              return (
+                <div
+                  key={paper._id}
+                  style={{
+                    padding: '20px',
+                    backgroundColor: '#f9f9f9',
+                    borderRadius: '10px',
+                    border: '1px solid #eee',
+                    transition: 'transform 0.2s ease',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '10px'
                   }}>
-                    {milestone.status}
-                  </span>
-                </div>
+                    <h3 style={{ margin: 0, fontSize: '18px' }}>{paper.title}</h3>
+                    <span style={{
+                      padding: '4px 12px',
+                      borderRadius: '15px',
+                      fontSize: '14px',
+                      backgroundColor: statusColor.bg,
+                      color: statusColor.text
+                    }}>
+                      {paper.status.charAt(0).toUpperCase() + paper.status.slice(1)}
+                    </span>
+                  </div>
 
-                {milestone.description && (
-                  <p style={{ 
-                    margin: '10px 0', 
-                    color: '#666',
-                    fontSize: '14px' 
-                  }}>
-                    {milestone.description}
-                  </p>
-                )}
-
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '10px',
-                  fontSize: '14px',
-                  color: '#666'
-                }}>
-                  <span>Date: {new Date(milestone.date).toLocaleDateString()}</span>
-                  {milestone.progress !== undefined && (
-                    <div style={{ flex: 1, marginLeft: '20px' }}>
-                      <div style={{
-                        width: '100%',
-                        height: '6px',
-                        backgroundColor: '#eee',
-                        borderRadius: '3px',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          width: `${milestone.progress}%`,
-                          height: '100%',
-                          backgroundColor: '#4caf50',
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </div>
-                      <span style={{ 
-                        fontSize: '12px',
-                        color: '#666',
-                        marginTop: '5px',
-                        display: 'block',
-                        textAlign: 'right'
-                      }}>
-                        Progress: {milestone.progress}%
-                      </span>
-                    </div>
+                  {paper.abstract && (
+                    <p style={{ 
+                      margin: '10px 0', 
+                      color: '#666',
+                      fontSize: '14px' 
+                    }}>
+                      {paper.abstract.length > 200 
+                        ? `${paper.abstract.substring(0, 200)}...` 
+                        : paper.abstract}
+                    </p>
                   )}
+
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '10px',
+                    fontSize: '14px',
+                    color: '#666'
+                  }}>
+                    <div>
+                      <div>Category: {paper.category}</div>
+                      <div>File: {paper.fileName}</div>
+                      <div>Size: {(paper.fileSize / 1024).toFixed(2)} KB</div>
+                    </div>
+                    <div>
+                      <div>Uploaded: {new Date(paper.createdAt).toLocaleDateString()}</div>
+                      <div>Last Updated: {new Date(paper.updatedAt).toLocaleDateString()}</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
