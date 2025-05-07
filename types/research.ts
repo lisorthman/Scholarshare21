@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 
 export interface DbResearchPaper {
+  categoryDetails: any;
   _id: ObjectId;
   title: string;
   abstract?: string;
@@ -17,6 +18,7 @@ export interface DbResearchPaper {
 }
 
 export interface ApiResearchPaper {
+  categoryDetails: any;
   _id: string;
   title: string;
   abstract?: string;
