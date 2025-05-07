@@ -1,9 +1,8 @@
-// app/api/researcher/uploads/route.ts
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import ResearchPaper from '@/models/ResearchPaper';
-import AdminCategory from '@/models/AdminCategory'; // Import the AdminCategory model
-import connectToDB from '@/lib/mongoose';
+import AdminCategory from '@/models/AdminCategory';
+import connectDB from '@/lib/mongoose';
 import { ObjectId } from 'mongodb';
 
 // Constants
@@ -16,7 +15,7 @@ const ALLOWED_FILE_TYPES = [
 
 export async function POST(request: Request) {
   try {
-    await connectToDB();
+    await connectDB();
     const formData = await request.formData();
 
     // Extract and validate fields
@@ -24,7 +23,7 @@ export async function POST(request: Request) {
     const title = formData.get('title') as string;
     const abstract = formData.get('abstract') as string;
     const authorId = formData.get('authorId') as string;
-    const categoryId = formData.get('category') as string; // Now receiving category ID
+    const categoryId = formData.get('category') as string;
 
     // Validate file
     if (!file) {
@@ -85,6 +84,7 @@ export async function POST(request: Request) {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
+    console.log('Uploaded file URL for plagiarism check:', blob.url); // Debug log for plagiarism check
 
     // Create paper
     const paper = await ResearchPaper.create({
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
       fileSize: file.size,
       fileType: file.type,
       authorId: new ObjectId(authorId),
-      category: category.name, // Store the category name
-      categoryId: new ObjectId(categoryId), // Also store the category ID for reference
+      category: category.name,
+      categoryId: new ObjectId(categoryId),
       status: 'pending'
     });
 
