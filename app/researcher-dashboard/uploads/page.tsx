@@ -1,12 +1,12 @@
-// app/researcher-dashboard/uploads/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
-import ResearchPaperCard from '@/components/ResearchPaperCard';
 import { DbResearchPaper } from '@/types/research';
+import { Download, Edit2, Search } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 interface Category {
   _id: string;
@@ -20,12 +20,34 @@ export default function ResearcherUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [paperTitle, setPaperTitle] = useState('');
   const [paperAbstract, setPaperAbstract] = useState('');
-  const [categoryId, setCategoryId] = useState(''); // Changed from researchField to categoryId
-  const [categories, setCategories] = useState<Category[]>([]); // Changed from researchFields
+  const [categoryId, setCategoryId] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
   const [papers, setPapers] = useState<DbResearchPaper[]>([]);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  // State for deletion confirmation
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [paperToDelete, setPaperToDelete] = useState<string | null>(null);
+
+  // Filter papers based on search term and status
+  const filteredPapers = useMemo(() => {
+    return papers.filter(paper => {
+      const matchesSearch = searchTerm === '' || 
+        paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        paper.abstract?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (typeof paper.category === 'string' 
+          ? paper.category.toLowerCase().includes(searchTerm.toLowerCase())
+          : paper.categoryDetails?.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesStatus = statusFilter === 'all' || paper.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [papers, searchTerm, statusFilter]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -46,7 +68,7 @@ export default function ResearcherUpload() {
         if (data.valid && data.user.role === 'researcher') {
           setUser(data.user);
           fetchPapers(data.user._id);
-          fetchCategories(); // Fetch categories when user is verified
+          fetchCategories();
         } else {
           router.push('/unauthorized');
         }
@@ -85,12 +107,10 @@ export default function ResearcherUpload() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
         setUploadError('File size exceeds 10MB limit');
         return;
       }
-      // Validate file type (PDF, DOC, DOCX)
       if (!/\.(pdf|docx?)$/i.test(file.name)) {
         setUploadError('Invalid file type. Only PDF, DOC, or DOCX files are allowed');
         return;
@@ -101,42 +121,22 @@ export default function ResearcherUpload() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setUploadError('Please select a file to upload');
+    if (!selectedFile || !paperTitle || !categoryId || !user) {
+      setUploadError('Please fill all required fields');
       return;
     }
-    if (!paperTitle) {
-      setUploadError('Please enter a paper title');
-      return;
-    }
-    if (!categoryId) {
-      setUploadError('Please select a research category');
-      return;
-    }
-    if (!user) {
-      setUploadError('User session not found. Please log in again.');
-      return;
-    }
-  
-    // Validate user ID format
-    if (!user?._id || !/^[0-9a-fA-F]{24}$/.test(user._id)) {
-      setUploadError('Invalid user session. Please reload the page.');
-      return;
-    }
-  
-  
+
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError('');
-  
+
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('title', paperTitle);
     formData.append('abstract', paperAbstract);
-    formData.append('category', categoryId); // Now sending category ID instead of name
+    formData.append('category', categoryId);
     formData.append('authorId', user._id);
-  
-  
+
     try {
       const response = await fetch('/api/researcher/uploads', {
         method: 'POST',
@@ -145,12 +145,11 @@ export default function ResearcherUpload() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-  
-  
+
       if (!response.ok) {
         throw new Error(await response.text());
       }
-  
+
       const data = await response.json();
       setPapers([data.paper, ...papers]);
       setUploadProgress(100);
@@ -163,6 +162,39 @@ export default function ResearcherUpload() {
       setUploadError(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleEdit = (paperId: string) => {
+    router.push(`/researcher-dashboard/uploads/edit/${paperId}`);
+  };
+
+  const handleDeleteClick = (paperId: string) => {
+    setPaperToDelete(paperId);
+    setShowConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!paperToDelete) return;
+    
+    try {
+      const response = await fetch(`/api/researcher/uploads/${paperToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to delete paper');
+      
+      setPapers(papers.filter(paper => paper._id !== paperToDelete));
+      toast.success('Paper deleted successfully');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error instanceof Error ? error.message : 'Deletion failed');
+    } finally {
+      setShowConfirm(false);
+      setPaperToDelete(null);
     }
   };
 
@@ -179,84 +211,87 @@ export default function ResearcherUpload() {
 
   return (
     <DashboardLayout user={user} defaultPage="Uploads">
-      <div style={{
-        marginTop: '50px',
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        padding: '40px',
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-          <h1 style={{ fontSize: '28px' }}>Your Research Papers</h1>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Your Research Papers</h1>
           <button
             onClick={() => setShowUploadForm(!showUploadForm)}
-            style={{
-              backgroundColor: '#0070f3',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '12px 24px',
-              fontSize: '16px',
-              cursor: 'pointer',
-            }}
+            style={styles.uploadButton}
           >
             {showUploadForm ? 'Cancel' : 'Add New'}
           </button>
         </div>
 
-        {showUploadForm && (
-          <div style={{ marginBottom: '40px', padding: '20px', border: '1px solid #eee', borderRadius: '10px' }}>
-            <h2 style={{ fontSize: '22px', marginBottom: '20px' }}>Upload New Research Paper</h2>
+        {/* Search and Filter Bar */}
+        <div style={styles.filterContainer}>
+          <div style={styles.searchInputContainer}>
+            <Search size={18} style={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Search papers by title, abstract or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+          </div>
+          
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
+            style={styles.filterSelect}
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Paper Title*</label>
+        {showUploadForm && (
+          <div style={styles.uploadForm}>
+            <h2 style={styles.formTitle}>Upload New Research Paper</h2>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Paper Title*</label>
               <input
                 type="text"
                 value={paperTitle}
                 onChange={(e) => setPaperTitle(e.target.value)}
-                style={inputStyle}
+                style={styles.input}
                 placeholder="Enter your paper title"
                 required
               />
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Abstract</label>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Abstract</label>
               <textarea
                 value={paperAbstract}
                 onChange={(e) => setPaperAbstract(e.target.value)}
-                style={{ ...inputStyle, minHeight: '100px' }}
+                style={{...styles.input, ...styles.textarea}}
                 placeholder="Enter paper abstract (optional)"
               />
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Research Category*</label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              style={inputStyle}
-              required
-              disabled={categories.length === 0}
-            >
-              <option value="">{categories.length === 0 ? 'Loading categories...' : 'Select a category'}</option>
-              {categories.map((category) => (
-                <option key={category._id} value={category._id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Research Category*</label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                style={styles.input}
+                required
+                disabled={categories.length === 0}
+              >
+                <option value="">{categories.length === 0 ? 'Loading categories...' : 'Select a category'}</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <div style={{
-              border: '2px dashed #ccc',
-              borderRadius: '8px',
-              padding: '20px',
-              textAlign: 'center',
-              marginBottom: '20px',
-              backgroundColor: '#f9f9f9'
-            }}>
+            <div style={styles.fileDropzone}>
               <input
                 type="file"
                 id="paper-upload"
@@ -264,56 +299,43 @@ export default function ResearcherUpload() {
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
               />
-              <label htmlFor="paper-upload" style={{
-                display: 'inline-block',
-                padding: '10px 20px',
-                backgroundColor: '#0070f3',
-                color: '#fff',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                marginBottom: '10px'
-              }}>
+              <label htmlFor="paper-upload" style={styles.fileButton}>
                 Choose Paper File
               </label>
-              <p style={{ color: '#666', fontSize: '14px' }}>Accepted formats: PDF, DOC, DOCX (Max 10MB)</p>
-              <p style={{ color: '#666', marginTop: '10px' }}>
-                {selectedFile ? selectedFile.name : 'No file selected'}
-              </p>
+              <p style={styles.fileHint}>Accepted formats: PDF, DOC, DOCX (Max 10MB)</p>
+              {selectedFile && (
+                <p style={styles.fileSelected}>
+                  {selectedFile.name}
+                </p>
+              )}
             </div>
 
-            {selectedFile && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span>File: {selectedFile.name}</span>
-                  <span>{Math.round(selectedFile.size / 1024)} KB</span>
-                </div>
-                <div style={{
-                  width: '100%',
-                  height: '10px',
-                  backgroundColor: '#eee',
-                  borderRadius: '5px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    width: `${uploadProgress}%`,
-                    height: '100%',
-                    backgroundColor: '#0070f3',
-                    transition: 'width 0.3s ease'
-                  }}></div>
-                </div>
-                <p style={{ textAlign: 'right', marginTop: '5px', color: '#666' }}>
-                  {uploadProgress}%
-                </p>
+            {uploadError && (
+              <div style={styles.errorBox}>
+                {uploadError}
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+            {selectedFile && (
+              <div style={styles.progressContainer}>
+                <div style={styles.progressHeader}>
+                  <span>Upload Progress</span>
+                  <span>{Math.round(selectedFile.size / 1024)} KB</span>
+                </div>
+                <div style={styles.progressBar}>
+                  <div style={{...styles.progressFill, width: `${uploadProgress}%`}}></div>
+                </div>
+                <p style={styles.progressPercent}>{uploadProgress}%</p>
+              </div>
+            )}
+
+            <div style={styles.formActions}>
               <button
                 onClick={() => {
                   setShowUploadForm(false);
                   resetForm();
                 }}
-                style={secondaryButtonStyle}
+                style={styles.secondaryButton}
               >
                 Cancel
               </button>
@@ -321,7 +343,7 @@ export default function ResearcherUpload() {
                 onClick={handleUpload}
                 disabled={!selectedFile || !paperTitle || !categoryId || isUploading}
                 style={{
-                  ...primaryButtonStyle,
+                  ...styles.primaryButton,
                   opacity: (!selectedFile || !paperTitle || !categoryId || isUploading) ? 0.7 : 1,
                   cursor: (!selectedFile || !paperTitle || !categoryId || isUploading) ? 'not-allowed' : 'pointer'
                 }}
@@ -332,43 +354,506 @@ export default function ResearcherUpload() {
           </div>
         )}
 
-        {papers.length > 0 ? (
-          <div style={{ display: 'grid', gap: '20px' }}>
-            {papers.map((paper) => (
-              <ResearchPaperCard key={paper._id.toString()} paper={paper} />
-            ))}
+{filteredPapers.length > 0 ? (
+          <div style={styles.tableContainer}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={styles.tableHeaderRow}>
+                  <th style={styles.tableHeaderCell}>Paper Title</th>
+                  <th style={styles.tableHeaderCell}>Category</th>
+                  <th style={styles.tableHeaderCell}>Submitted Date</th>
+                  <th style={styles.tableHeaderCell}>Status</th>
+                  <th style={styles.tableHeaderCell}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPapers.map((paper) => (
+                  <tr key={paper._id.toString()} style={styles.tableRow}>
+                    <td style={styles.tableCell}>
+                      <div style={styles.paperTitle}>{paper.title}</div>
+                      {paper.abstract && (
+                        <div style={styles.paperAbstract}>
+                          {paper.abstract.substring(0, 80)}...
+                        </div>
+                      )}
+                    </td>
+                    <td style={styles.tableCell}>
+                      {typeof paper.category === 'string' 
+                        ? paper.category 
+                        : paper.categoryDetails?.name || 'Uncategorized'}
+                    </td>
+                    <td style={styles.tableCell}>
+                      {new Date(paper.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </td>
+                    <td style={styles.tableCell}>
+                      <div style={{
+                        ...styles.statusBadge,
+                        backgroundColor: paper.status === 'approved' ? '#ECFDF5' : 
+                                        paper.status === 'pending' ? '#FFFBEB' : 
+                                        paper.status === 'rejected' ? '#FEF2F2' : '#F3F4F6',
+                        color: paper.status === 'approved' ? '#065F46' : 
+                              paper.status === 'pending' ? '#92400E' : 
+                              paper.status === 'rejected' ? '#B91C1C' : '#4B5563'
+                      }}>
+                        {paper.status.charAt(0).toUpperCase() + paper.status.slice(1)}
+                      </div>
+                    </td>
+                    <td style={styles.tableCell}>
+                      <div style={styles.actionButtons}>
+                        <a
+                          href={paper.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={styles.downloadButton}
+                          download
+                        >
+                          <Download size={16} style={styles.buttonIcon} />
+                        </a>
+                        <button 
+                          onClick={() => handleEdit(paper._id.toString())}
+                          style={styles.editButton}
+                        >
+                          <Edit2 size={16} style={styles.buttonIcon} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <p>No papers uploaded yet.</p>
+          <div style={styles.emptyState}>
+            <h3 style={styles.emptyTitle}>
+              {searchTerm ? 'No matching papers found' : 'No papers uploaded yet'}
+            </h3>
+            <p style={styles.emptyText}>
+              {searchTerm 
+                ? 'Try adjusting your search query'
+                : 'Get started by uploading your first research paper'}
+            </p>
+            {!searchTerm && (
+              <button
+                onClick={() => setShowUploadForm(true)}
+                style={styles.emptyButton}
+              >
+                Upload Paper
+              </button>
+            )}
+          </div>
         )}
       </div>
     </DashboardLayout>
   );
 }
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px',
-  borderRadius: '6px',
-  border: '1px solid #ddd',
-  fontSize: '16px',
-  boxSizing: 'border-box' as const,
-};
-
-const primaryButtonStyle = {
-  backgroundColor: '#0070f3',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '6px',
-  padding: '12px 24px',
-  fontSize: '16px',
-};
-
-const secondaryButtonStyle = {
-  backgroundColor: '#f4f4f4',
-  color: '#0070f3',
-  border: '1px solid #0070f3',
-  borderRadius: '6px',
-  padding: '12px 24px',
-  fontSize: '16px',
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    margin: '24px auto',
+    maxWidth: '1300px',
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    padding: '32px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    fontFamily: '"Space Grotesk", sans-serif',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '32px',
+  },
+  filterContainer: {
+    display: 'flex',
+    gap: '16px',
+    marginBottom: '24px',
+    alignItems: 'center',
+  },
+  filterSelect: {
+    padding: '12px 16px',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    fontSize: '16px',
+    fontFamily: '"Space Grotesk", sans-serif',
+    backgroundColor: '#fff',
+    minWidth: '180px',
+  },
+  deleteButton: {
+    padding: '8px',
+    backgroundColor: '#ef4444',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background-color 0.2s ease',
+    ':hover': {
+      backgroundColor: '#dc2626',
+    },
+  },
+  confirmModal: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  confirmContent: {
+    backgroundColor: '#ffffff',
+    padding: '32px',
+    borderRadius: '12px',
+    maxWidth: '500px',
+    width: '100%',
+    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  },
+  confirmTitle: {
+    fontSize: '20px',
+    fontWeight: '600',
+    marginBottom: '16px',
+    color: '#1a1a1a',
+  },
+  confirmText: {
+    fontSize: '16px',
+    color: '#4b5563',
+    marginBottom: '24px',
+    lineHeight: '1.5',
+  },
+  confirmButtons: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '16px',
+  },
+  cancelButton: {
+    padding: '10px 20px',
+    backgroundColor: '#f3f4f6',
+    color: '#4b5563',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    ':hover': {
+      backgroundColor: '#e5e7eb',
+    },
+  },
+  deleteConfirmButton: {
+    padding: '10px 20px',
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    ':hover': {
+      backgroundColor: '#dc2626',
+    },
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+    margin: '0',
+  },
+  uploadButton: {
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  searchContainer: {
+    marginBottom: '24px',
+    width: '100%',
+  },
+  searchInputContainer: {
+    position: 'relative',
+    maxWidth: '600px',
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: '16px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#6b7280',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px 16px 12px 44px',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    fontSize: '16px',
+    boxSizing: 'border-box',
+    fontFamily: '"Space Grotesk", sans-serif',
+    backgroundColor: '#fff',
+    transition: 'border-color 0.2s ease',
+  },
+  tableContainer: {
+    border: '1px solid #E0D8C3',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    width: '100%',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontFamily: '"Space Grotesk", sans-serif',
+  },
+  tableHeaderRow: {
+    backgroundColor: '#F8F5ED',
+  },
+  tableHeaderCell: {
+    padding: '16px 24px',
+    textAlign: 'left',
+    fontWeight: '600',
+    color: '#5F5F5F',
+    fontSize: '16px',
+    borderBottom: '1px solid #E0D8C3',
+  },
+  tableRow: {
+    borderBottom: '1px solid #E0D8C3',
+  },
+  tableCell: {
+    padding: '16px 24px',
+    verticalAlign: 'middle',
+  },
+  paperTitle: {
+    fontWeight: '500',
+    color: '#1A1A1A',
+    marginBottom: '8px',
+    fontSize: '16px',
+  },
+  paperAbstract: {
+    fontSize: '14px',
+    color: '#6B7280',
+    lineHeight: '1.4',
+  },
+  statusBadge: {
+    display: 'inline-block',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    fontSize: '14px',
+    fontWeight: '500',
+    minWidth: '100px',
+    textAlign: 'center',
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: '12px',
+  },
+  downloadButton: {
+    padding: '8px',
+    backgroundColor: '#4f46e5',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background-color 0.2s ease',
+  },
+  editButton: {
+    padding: '8px',
+    backgroundColor: '#f59e0b',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background-color 0.2s ease',
+  },
+  buttonIcon: {
+    width: '18px',
+    height: '18px',
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '48px',
+    border: '1px dashed #E0D8C3',
+    borderRadius: '12px',
+    backgroundColor: '#FCFAF6',
+    marginTop: '24px',
+  },
+  emptyTitle: {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+    margin: '0 0 12px',
+  },
+  emptyText: {
+    fontSize: '16px',
+    color: '#6b7280',
+    margin: '0 0 24px',
+    textAlign: 'center',
+  },
+  emptyButton: {
+    padding: '12px 24px',
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+  },
+  uploadForm: {
+    marginBottom: '32px',
+    padding: '32px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    backgroundColor: '#f9fafb',
+  },
+  formTitle: {
+    fontSize: '24px',
+    marginBottom: '24px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  formGroup: {
+    marginBottom: '24px',
+  },
+  label: {
+    display: 'block',
+    marginBottom: '8px',
+    fontWeight: '500',
+    color: '#374151',
+    fontSize: '16px',
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    fontSize: '16px',
+    boxSizing: 'border-box',
+    fontFamily: '"Space Grotesk", sans-serif',
+    backgroundColor: '#fff',
+    transition: 'border-color 0.2s ease',
+  },
+  textarea: {
+    minHeight: '120px',
+    resize: 'vertical',
+  },
+  fileDropzone: {
+    border: '2px dashed #d1d5db',
+    borderRadius: '12px',
+    padding: '32px',
+    textAlign: 'center',
+    marginBottom: '24px',
+    backgroundColor: '#fff',
+    transition: 'all 0.2s ease',
+  },
+  fileButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 24px',
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    marginBottom: '12px',
+    fontWeight: '500',
+    transition: 'all 0.2s ease',
+  },
+  fileHint: {
+    color: '#6b7280',
+    fontSize: '14px',
+    margin: '8px 0 0',
+  },
+  fileSelected: {
+    color: '#374151',
+    marginTop: '16px',
+    fontWeight: '500',
+  },
+  errorBox: {
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+    padding: '16px',
+    borderRadius: '8px',
+    marginBottom: '24px',
+    fontSize: '14px',
+  },
+  progressContainer: {
+    marginBottom: '24px',
+  },
+  progressHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '8px',
+    fontSize: '14px',
+    color: '#4b5563',
+  },
+  progressBar: {
+    width: '100%',
+    height: '8px',
+    backgroundColor: '#e5e7eb',
+    borderRadius: '4px',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4f46e5',
+    transition: 'width 0.3s ease',
+  },
+  progressPercent: {
+    textAlign: 'right',
+    marginTop: '4px',
+    fontSize: '14px',
+    color: '#4b5563',
+  },
+  formActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '16px',
+  },
+  primaryButton: {
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    color: '#4f46e5',
+    border: '1px solid #4f46e5',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
 };

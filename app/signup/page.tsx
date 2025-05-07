@@ -275,15 +275,19 @@ const SignupPage = () => {
               onChange={handleChange}
             />
             <br />
+            {/* Submit Button */}
             <Button
-              name="Register"
+              name="Login"
               type="submit"
+              variant="default"
               style={{
-                width: '100%',
-                height: '40px',
-                marginBottom: '20px',
+                width: "100%",
+                height: "40px",
+                marginBottom: "20px",
               }}
-            />
+            >
+              Register
+            </Button>
             <br />
             <br />
 

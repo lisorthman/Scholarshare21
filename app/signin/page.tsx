@@ -253,14 +253,17 @@ const SigninPage = () => {
 
             {/* Submit Button */}
             <Button
-              name="Login"
-              type="submit"
-              style={{
-                width: "100%",
-                height: "40px",
-                marginBottom: "20px",
-              }}
-            />
+  name="Login"
+  type="submit"
+  variant="default"
+  style={{
+    width: "100%",
+    height: "40px",
+    marginBottom: "20px",
+  }}
+>
+  Login
+</Button>
             <br />
             <br />
 
