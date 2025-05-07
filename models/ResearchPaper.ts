@@ -8,14 +8,17 @@ export interface ResearchPaperDocument extends Document {
   fileSize: number;
   fileType: string;
   authorId: Types.ObjectId;
-  status: 'pending' | 'approved' | 'rejected';
-  category: string; // Category name for display
-  categoryId: Types.ObjectId; // Reference to AdminCategory
+  status: 'pending' | 'approved' | 'rejected' | 'rejected_plagiarism' | 'rejected_ai' | 'passed_checks';
+  category: string;
+  categoryId: Types.ObjectId;
   keywords?: string[];
   readerStats: Map<string, number>;
   createdAt: Date;
   updatedAt: Date;
   blobKey: string;
+  plagiarismScore?: number;
+  aiScore?: number;
+  rejectionReason?: string;
 }
 
 const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
@@ -73,7 +76,7 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     status: {
       type: String,
       enum: {
-        values: ['pending', 'approved', 'rejected'],
+        values: ['pending', 'approved', 'rejected', 'rejected_plagiarism', 'rejected_ai', 'passed_checks'],
         message: 'Invalid status value',
       },
       default: 'pending',
@@ -103,6 +106,15 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
       default: () => new Map<string, number>(),
     },
     blobKey: {
+      type: String,
+    },
+    plagiarismScore: {
+      type: Number,
+    },
+    aiScore: {
+      type: Number,
+    },
+    rejectionReason: {
       type: String,
     },
   },

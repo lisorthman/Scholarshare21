@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
-import connectToDB from '@/lib/mongoose';
+import connectDB from '@/lib/mongoose';
 import ResearchPaper from '@/models/ResearchPaper';
-import AdminCategory from '@/models/AdminCategory'; // Import AdminCategory model
+import AdminCategory from '@/models/AdminCategory';
 import { ObjectId } from 'mongodb';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDB();
+    await connectDB();
 
     const paper = await ResearchPaper.findById(params.id)
       .select('-__v')
@@ -44,17 +44,17 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDB();
+    await connectDB();
     const formData = await request.formData();
 
     const title = formData.get('title')?.toString() || '';
     const abstract = formData.get('abstract')?.toString() || '';
-    const categoryId = formData.get('category')?.toString() || ''; // Now expecting category ID
+    const categoryId = formData.get('category')?.toString() || '';
     const file = formData.get('file') as File | null;
 
     // Validate category exists in database
     const category = await AdminCategory.findById(categoryId);
-    if (!category && categoryId) { // Only validate if category was provided
+    if (!category && categoryId) {
       const allCategories = await AdminCategory.find({}, 'name');
       return NextResponse.json(
         { 
@@ -109,6 +109,7 @@ export async function PATCH(
 
       // Upload new blob
       const { url, pathname } = await put(file.name, file, { access: 'public' });
+      console.log('Updated file URL for plagiarism check:', url); // Debug log for plagiarism check
       fileData = {
         url,
         name: file.name,
@@ -137,6 +138,11 @@ export async function PATCH(
       updateData.fileSize = fileData.size;
       updateData.fileType = fileData.type;
       updateData.blobKey = fileData.blobKey;
+      // Reset plagiarism-related fields to trigger a new check
+      updateData.status = 'pending';
+      updateData.plagiarismScore = 0;
+      updateData.aiScore = 0;
+      updateData.rejectionReason = null;
     }
 
     const updatedPaper = await ResearchPaper.findByIdAndUpdate(
@@ -164,7 +170,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDB();
+    await connectDB();
 
     const paper = await ResearchPaper.findById(params.id);
     if (!paper) {
