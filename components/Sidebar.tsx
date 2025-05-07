@@ -1,7 +1,7 @@
-// components/Sidebar.tsx
 import React from 'react';
 import styles from './Sidebar.module.scss';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -10,12 +10,8 @@ interface SidebarProps {
   role?: 'admin' | 'researcher' | 'user';
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange, isVisible, role }) => {
-  const handlePageClick = (pageName: string) => {
-    if (onPageChange) {
-      onPageChange(pageName);
-    }
-  };
+const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
+  const router = useRouter();
 
   // Admin menu items
   const adminMenu = [
@@ -31,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange, isVisible, ro
   const researcherMenu = [
     { href: '/researcher-dashboard', label: 'Dashboard' },
     { href: '/researcher-dashboard/uploads', label: 'Uploads' },
+    { href: '/researcher-dashboard/milestones', label: 'Milestones' },
     { href: '/researcher-dashboard/settings', label: 'Settings' },
     { href: '/researcher-dashboard/profile', label: 'Profile' }
   ];
@@ -43,7 +40,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange, isVisible, ro
     { href: '/user-dashboard/profile', label: 'Profile' }
   ];
 
-  // Get menu items based on role
   const getMenuItems = () => {
     switch(role) {
       case 'admin': return adminMenu;
@@ -53,21 +49,29 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, onPageChange, isVisible, ro
     }
   };
 
+  const handleNavigation = (href: string) => {
+    router.push(href);
+  };
+
   return (
     <div className={`${styles.sidebar} ${isVisible ? styles.visible : ''}`}>
-      <div className={styles.sidebarHeader}>
-        {/* Title removed */}
-      </div>
-      
       <ul className={styles.menuList}>
         {getMenuItems().map((item) => (
           <li key={item.href} className={styles.menuItem}>
-            <Link 
-              href={item.href} 
-              onClick={() => handlePageClick(item.label)}
+            <button
+              onClick={() => handleNavigation(item.href)}
+              className={styles.menuLink}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '10px',
+                cursor: 'pointer',
+                width: '100%',
+                textAlign: 'left'
+              }}
             >
               {item.label}
-            </Link>
+            </button>
           </li>
         ))}
         
