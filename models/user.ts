@@ -11,7 +11,14 @@ export interface IUser extends Document {
   username?: string;
   createdAt: Date;
   updatedAt: Date;
-  lastLogin?: Date | null; // Added lastLogin field
+  lastLogin?: Date | null;
+  // Milestone fields
+  counts: {
+    uploads: number;
+    approvals: number;
+    downloads: number;
+  };
+  badges: string[];
 }
 
 const UserSchema = new Schema<IUser>(
@@ -45,7 +52,14 @@ const UserSchema = new Schema<IUser>(
       },
     ],
     username: { type: String, unique: true, sparse: true },
-    lastLogin: { type: Date, default: null }, // Added lastLogin field
+    lastLogin: { type: Date, default: null },
+    // Milestone tracking
+    counts: {
+      uploads: { type: Number, default: 0 },
+      approvals: { type: Number, default: 0 },
+      downloads: { type: Number, default: 0 }
+    },
+    badges: { type: [String], default: [] }
   },
   { timestamps: true }
 );

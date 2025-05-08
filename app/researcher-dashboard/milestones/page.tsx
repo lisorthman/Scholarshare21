@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
-import { MilestoneProgress, MILESTONE_THRESHOLDS } from '@/types/milestone';
+import { MilestoneProgress } from '@/types/milestone';
+import { BadgeCheck, UploadCloud, CheckCircle, Download, Trophy, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { toast } from 'react-toastify';
 
 export default function MilestonePage() {
   const router = useRouter();
@@ -15,39 +18,63 @@ export default function MilestonePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        
         const token = localStorage.getItem('token');
         if (!token) {
           router.push('/signin');
           return;
         }
 
-        const authRes = await fetch('/api/verify-token', {
+        // Verify token
+        const authRes = await fetch('/api/auth/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
 
-        const userData = await authRes.json();
-        if (!userData.valid) {
-          throw new Error('Invalid authentication');
+        if (!authRes.ok) {
+          const errorData = await authRes.json();
+          throw new Error(errorData.error || 'Authentication failed');
         }
+        
+        const authData = await authRes.json();
+        setUser(authData.user);
 
-        setUser(userData.user);
-
-        const milestonesRes = await fetch(`/api/milestones?userId=${userData.user._id}`);
+        // Fetch milestones - updated to match API response structure
+        const milestonesRes = await fetch(`/api/milestones?userId=${authData.user._id}`);
+        
         if (!milestonesRes.ok) {
-          throw new Error('Failed to fetch milestones');
+          const errorData = await milestonesRes.json();
+          throw new Error(errorData.error || 'Failed to fetch milestones');
         }
-
-        const data = await milestonesRes.json();
-        if (!Array.isArray(data)) {
-          throw new Error('Invalid milestone data format');
+        
+        const apiResponse = await milestonesRes.json();
+        
+        // Updated validation to match the API response structure
+        if (!apiResponse.success || !Array.isArray(apiResponse.data?.milestones)) {
+          throw new Error('Invalid data format received from server');
         }
+        
+        setMilestones(apiResponse.data.milestones);
 
-        setMilestones(data);
+        // Show notifications for new badges
+        if (apiResponse.data.newBadges?.length > 0) {
+          apiResponse.data.newBadges.forEach((badge: string) => {
+            toast.success(
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="text-green-500" />
+                <span>New achievement: <strong>{badge}</strong></span>
+              </div>,
+              { autoClose: 5000 }
+            );
+          });
+        }
       } catch (err) {
         console.error('Error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load milestones');
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+        toast.error('Failed to load milestones');
       } finally {
         setIsLoading(false);
       }
@@ -56,155 +83,283 @@ export default function MilestonePage() {
     fetchData();
   }, [router]);
 
-  if (!user) return null;
+  // In your milestones page component
+const fetchMilestones = async (userId: string) => {
+  try {
+    const response = await fetch(`/api/milestones?userId=${userId}`);
+    const result = await response.json();
 
-  const getMilestoneTheme = (type: string) => {
-    switch (type) {
-      case 'uploads':
-        return {
-          icon: '📄',
-          headerBg: 'bg-blue-500',
-          progress: 'bg-blue-500',
-          badge: 'bg-blue-50 text-blue-700 border-blue-200'
-        };
-      case 'approvals':
-        return {
-          icon: '✅',
-          headerBg: 'bg-green-500',
-          progress: 'bg-green-500',
-          badge: 'bg-green-50 text-green-700 border-green-200'
-        };
-      case 'downloads':
-        return {
-          icon: '⭐',
-          headerBg: 'bg-violet-500',
-          progress: 'bg-violet-500',
-          badge: 'bg-violet-50 text-violet-700 border-violet-200'
-        };
-      default:
-        return {
-          icon: '🎯',
-          headerBg: 'bg-gray-500',
-          progress: 'bg-gray-500',
-          badge: 'bg-gray-50 text-gray-700 border-gray-200'
-        };
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to fetch milestones');
+    }
+
+    if (!Array.isArray(result.data?.milestones)) {
+      throw new Error('Invalid milestones data format');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Fetch milestones error:', error);
+    throw error;
+  }
+};
+
+const handleApprove = async (paperId: string) => {
+  try {
+    const response = await fetch(`/api/paper/${paperId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'approve' })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      toast.success('Paper approved!');
+      if (result.shouldRefreshMilestones) {
+        refreshMilestones(); // Your refresh function
+      }
+    } else {
+      toast.error(result.error || 'Approval failed');
+    }
+  } catch (error) {
+    toast.error('Error approving paper');
+  }
+};
+
+// Update your useEffect hook
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/signin');
+        return;
+      }
+
+      // Verify token
+      const authRes = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!authRes.ok) throw new Error('Authentication failed');
+      
+      const authData = await authRes.json();
+      setUser(authData.user);
+
+      // Fetch milestones
+      const { milestones, newBadges } = await fetchMilestones(authData.user._id);
+      setMilestones(milestones);
+
+      // Handle new badges
+      if (newBadges?.length > 0) {
+        newBadges.forEach((badge: any) => {
+          toast.success(`New achievement: ${badge}`);
+        });
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  loadData();
+}, [router]);
+
+const refreshMilestones = async () => {
+  try {
+    setIsLoading(true);
+    const res = await fetch(`/api/milestones?userId=${user?._id}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      setMilestones(data.data.milestones);
+    }
+  } catch (error) {
+    console.error('Refresh failed:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  const getMilestoneConfig = (type: string) => {
+    const configs = {
+      uploads: {
+        icon: <UploadCloud className="w-5 h-5" />,
+        colors: {
+          bg: 'bg-blue-100',
+          text: 'text-blue-800',
+          progress: 'bg-blue-500',
+          border: 'border-blue-200'
+        }
+      },
+      approvals: {
+        icon: <CheckCircle className="w-5 h-5" />,
+        colors: {
+          bg: 'bg-green-100',
+          text: 'text-green-800',
+          progress: 'bg-green-500',
+          border: 'border-green-200'
+        }
+      },
+      downloads: {
+        icon: <Download className="w-5 h-5" />,
+        colors: {
+          bg: 'bg-purple-100',
+          text: 'text-purple-800',
+          progress: 'bg-purple-500',
+          border: 'border-purple-200'
+        }
+      }
+    };
+
+    return configs[type as keyof typeof configs] || {
+      icon: <BadgeCheck className="w-5 h-5" />,
+      colors: {
+        bg: 'bg-gray-100',
+        text: 'text-gray-800',
+        progress: 'bg-gray-500',
+        border: 'border-gray-200'
+      }
+    };
+  };
+
+  if (!user) return null;
+
   return (
-    <DashboardLayout user={user} defaultPage="Milestones">
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          {/* Header Section */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-gray-900">Research Milestones</h1>
-            <p className="mt-2 text-sm text-gray-600">Track your research journey and unlock achievements</p>
+    <DashboardLayout user={user} activeTab="milestones">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Research Milestones</h1>
+          <p className="text-muted-foreground">
+            Track your research achievements and progress
+          </p>
+        </div>
+
+        {/* Content */}
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary" />
           </div>
+        ) : error ? (
+          <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center">
+            <div className="text-destructive mb-2">
+              <AlertCircle className="mx-auto h-8 w-8" />
+            </div>
+            <h3 className="font-medium">Error loading milestones</h3>
+            <p className="text-sm text-muted-foreground mt-2">{error}</p>
+            <Button
+              variant="ghost"
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
+          </div>
+        ) : milestones.length === 0 ? (
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-8 text-center">
+            <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">No milestones yet</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Start by uploading your first research paper
+            </p>
+            <Button
+              className="mt-6"
+              onClick={() => router.push('/researcher-dashboard/uploads')}
+            >
+              Upload Paper
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {milestones.map((milestone) => {
+              const config = getMilestoneConfig(milestone._id);
+              const isComplete = milestone.status === 'completed';
 
-          {/* Content Section */}
-          <div className="relative">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
-              </div>
-            ) : error ? (
-              <div className="rounded-lg bg-red-50 p-4 border border-red-200">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">Error loading milestones</h3>
-                    <p className="mt-1 text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              </div>
-            ) : milestones.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="text-center">
-                  <span className="text-6xl">🎯</span>
-                  <h2 className="mt-4 text-xl font-medium text-gray-900">Start Your Journey</h2>
-                  <p className="mt-2 text-gray-500">Upload your first paper to begin earning achievements</p>
-                  <button 
-                    onClick={() => router.push('/researcher-dashboard/uploads')}
-                    className="mt-6 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    Upload Paper
-                    <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {milestones.map((milestone) => {
-                  const theme = getMilestoneTheme(milestone._id);
-                  return (
-                    <div
-                      key={milestone._id}
-                      className="bg-white rounded-lg shadow-sm hover:shadow transition-shadow duration-200 overflow-hidden"
-                    >
-                      <div className={`${theme.headerBg} p-4 text-white`}>
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{theme.icon}</span>
-                          <h3 className="text-lg font-semibold">{milestone.title}</h3>
-                        </div>
-                        <p className="mt-2 text-sm text-white/90">{milestone.description}</p>
+              return (
+                <div
+                  key={milestone._id}
+                  className={`rounded-xl border ${config.colors.border} overflow-hidden transition-all hover:shadow-md`}
+                >
+                  <div className={`p-6 ${config.colors.bg}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${config.colors.bg} ${config.colors.text}`}>
+                        {config.icon}
                       </div>
-
-                      <div className="p-4 space-y-4">
-                        <div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span className="text-gray-600">Progress</span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{milestone.currentCount} / {milestone.nextThreshold}</span>
-                              <span className="text-xs text-gray-500">
-                                ({Math.round(milestone.progress)}%)
-                              </span>
-                            </div>
-                          </div>
-                          <div className="relative h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className={`absolute top-0 left-0 h-full ${theme.progress} transition-all duration-700 ease-in-out`}
-                              style={{ 
-                                width: `${milestone.progress}%`,
-                                boxShadow: milestone.progress > 0 ? '0 0 8px rgba(0,0,0,0.1)' : 'none'
-                              }}
-                            />
-                            {milestone.progress >= 100 && (
-                              <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2">
-                          {MILESTONE_THRESHOLDS[milestone._id.toUpperCase() as keyof typeof MILESTONE_THRESHOLDS]?.map((threshold) => (
-                            <div 
-                              key={threshold.level}
-                              className={`p-3 rounded-md border ${
-                                milestone.currentCount >= threshold.threshold 
-                                  ? theme.badge
-                                  : 'bg-gray-50 border-gray-200 opacity-60'
-                              } transition-all duration-200`}
-                            >
-                              <div className="text-2xl text-center mb-1">{threshold.reward.split(' ')[0]}</div>
-                              <div className="text-xs text-center font-medium">
-                                {threshold.threshold}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      <div>
+                        <h3 className="font-semibold">{milestone.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {milestone.description}
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    {/* Progress Bar */}
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium">
+                          {milestone.currentCount}/{milestone.nextThreshold}
+                        </span>
+                      </div>
+                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className={`h-full ${config.colors.progress} transition-all duration-500 ease-out`}
+                          style={{ width: `${milestone.progress}%` }}
+                        />
+                        {isComplete && (
+                          <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Badges */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">
+                        Achievements
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {milestone.achievedRewards.map((reward) => (
+                          <div
+                            key={reward}
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${config.colors.bg} ${config.colors.text} border ${config.colors.border}`}
+                          >
+                            <BadgeCheck className="mr-1 h-3 w-3" />
+                            {reward}
+                          </div>
+                        ))}
+                        {milestone.achievedRewards.length === 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            No achievements yet
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Next Reward */}
+                    {!isComplete && (
+                      <div className="pt-4 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Next reward at {milestone.nextThreshold} {milestone._id}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );

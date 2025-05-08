@@ -4,6 +4,7 @@ import ResearchPaper from '@/models/ResearchPaper';
 import AdminCategory from '@/models/AdminCategory';
 import connectDB from '@/lib/mongoose';
 import { ObjectId } from 'mongodb';
+import { incrementUserCount } from '@/lib/userCounts';
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -100,6 +101,9 @@ export async function POST(request: Request) {
       status: 'pending'
     });
 
+    // Increment user's upload count
+    await incrementUserCount(authorId, 'uploads');
+
     return NextResponse.json({
       success: true,
       paper: {
@@ -109,7 +113,9 @@ export async function POST(request: Request) {
         categoryId: paper.categoryId.toString(),
         status: paper.status,
         fileUrl: paper.fileUrl
-      }
+      },
+      // Include this flag for the frontend to trigger a refresh
+      shouldRefreshMilestones: true
     }, { status: 201 });
 
   } catch (error: unknown) {
