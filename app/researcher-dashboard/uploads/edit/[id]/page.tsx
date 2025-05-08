@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { toast } from 'sonner';
-import { UploadCloud, X, Check, FileText } from 'react-feather';
+import { UploadCloud, X, Check, FileText, Trash2 } from 'react-feather';
 
 interface Category {
   _id: string;
@@ -16,14 +16,15 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
   const [paper, setPaper] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
-    categoryId: '', // Changed from category to categoryId
+    categoryId: '',
     abstract: '',
     file: null as File | null
   });
-  const [categories, setCategories] = useState<Category[]>([]); // Replaced researchFields
+  const [categories, setCategories] = useState<Category[]>([]);
   const [fileName, setFileName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
         setPaper(paperData);
         setFormData({
           title: paperData.title,
-          categoryId: paperData.categoryId?._id || paperData.categoryId || '', // Handle both populated and raw ID
+          categoryId: paperData.categoryId?._id || paperData.categoryId || '',
           abstract: paperData.abstract || '',
           file: null
         });
@@ -103,7 +104,7 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
     try {
       const formPayload = new FormData();
       formPayload.append('title', formData.title);
-      formPayload.append('category', formData.categoryId); // Now sending category ID
+      formPayload.append('category', formData.categoryId);
       formPayload.append('abstract', formData.abstract);
       if (formData.file) formPayload.append('file', formData.file);
 
@@ -131,84 +132,87 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this research paper? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/researcher/uploads/${params.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete paper');
+      }
+
+      toast.success('Paper deleted successfully!');
+      router.push('/researcher-dashboard/uploads');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete paper');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!user) return <p>Loading...</p>;
 
   return (
     <DashboardLayout user={user} defaultPage="Uploads">
-      <div style={{
-        marginTop: '50px',
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        padding: '40px',
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-      }}>
+      <div style={styles.container}>
         {isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              border: '4px solid #f3f3f3',
-              borderTop: '4px solid #0070f3',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
-            }}></div>
+          <div style={styles.loadingContainer}>
+            <div style={styles.spinner}></div>
           </div>
         ) : !paper ? (
-          <p style={{ color: '#ff0000', textAlign: 'center' }}>Paper not found</p>
+          <p style={styles.notFoundText}>Paper not found</p>
         ) : (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-              <h1 style={{ fontSize: '28px' }}>Edit Research Paper</h1>
+            <div style={styles.header}>
+              <h1 style={styles.title}>Edit Research Paper</h1>
               <button
                 onClick={() => router.push('/researcher-dashboard/uploads')}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#0070f3',
-                  border: '1px solid #0070f3',
-                  borderRadius: '6px',
-                  padding: '10px 20px',
-                  fontSize: '16px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
+                style={styles.cancelButton}
               >
                 <X size={18} />
                 Cancel
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ marginBottom: '40px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Paper Title*</label>
+            <form onSubmit={handleSubmit} style={styles.form}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Paper Title*</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  style={inputStyle}
+                  style={styles.input}
                   placeholder="Enter your paper title"
                   required
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Abstract</label>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Abstract</label>
                 <textarea
                   value={formData.abstract}
                   onChange={(e) => setFormData({...formData, abstract: e.target.value})}
-                  style={{ ...inputStyle, minHeight: '100px' }}
+                  style={{ ...styles.input, ...styles.textarea }}
                   placeholder="Enter paper abstract (optional)"
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Research Category*</label>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Research Category*</label>
                 <select
                   value={formData.categoryId}
                   onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
-                  style={inputStyle}
+                  style={styles.input}
                   required
                   disabled={categories.length === 0}
                 >
@@ -221,14 +225,7 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
                 </select>
               </div>
 
-              <div style={{
-                border: '2px dashed #ccc',
-                borderRadius: '8px',
-                padding: '20px',
-                textAlign: 'center',
-                marginBottom: '20px',
-                backgroundColor: '#f9f9f9'
-              }}>
+              <div style={styles.fileDropzone}>
                 <input
                   type="file"
                   id="paper-upload-edit"
@@ -236,75 +233,76 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
                   style={{ display: 'none' }}
                   onChange={handleFileChange}
                 />
-                <label htmlFor="paper-upload-edit" style={{
-                  display: 'inline-block',
-                  padding: '10px 20px',
-                  backgroundColor: '#0070f3',
-                  color: '#fff',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  marginBottom: '10px',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  width: 'fit-content',
-                  margin: '0 auto'
-                }}>
+                <label htmlFor="paper-upload-edit" style={styles.fileButton}>
                   <UploadCloud size={16} />
                   Choose New File
                 </label>
-                <p style={{ color: '#666', fontSize: '14px' }}>Accepted formats: PDF, DOC, DOCX (Max 10MB)</p>
+                <p style={styles.fileHint}>Accepted formats: PDF, DOC, DOCX (Max 10MB)</p>
                 {fileName ? (
-                  <p style={{ color: '#666', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <p style={styles.fileSelected}>
                     <FileText size={14} />
                     {fileName}
                   </p>
                 ) : (
-                  <p style={{ color: '#666', marginTop: '10px' }}>
+                  <p style={styles.currentFile}>
                     Current file: {paper.fileName} ({Math.round(paper.fileSize / 1024)} KB)
                   </p>
                 )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+              <div style={styles.formActions}>
                 <button
                   type="button"
-                  onClick={() => router.push('/researcher-dashboard/uploads')}
-                  style={secondaryButtonStyle}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
+                  onClick={handleDelete}
+                  disabled={isDeleting}
                   style={{
-                    ...primaryButtonStyle,
-                    opacity: isSubmitting ? 0.7 : 1,
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
+                    ...styles.deleteButton,
+                    opacity: isDeleting ? 0.7 : 1,
+                    cursor: isDeleting ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {isSubmitting ? (
+                  {isDeleting ? (
                     <>
-                      <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTop: '2px solid white',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                      Saving...
+                      <div style={styles.smallSpinner}></div>
+                      Deleting...
                     </>
                   ) : (
                     <>
-                      <Check size={16} />
-                      Save Changes
+                      <Trash2 size={16} />
+                      Delete Paper
                     </>
                   )}
                 </button>
+                <div style={styles.actionGroup}>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/researcher-dashboard/uploads')}
+                    style={styles.secondaryButton}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{
+                      ...styles.primaryButton,
+                      opacity: isSubmitting ? 0.7 : 1,
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div style={styles.smallSpinner}></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </>
@@ -321,29 +319,181 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
   );
 }
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px',
-  borderRadius: '6px',
-  border: '1px solid #ddd',
-  fontSize: '16px',
-  boxSizing: 'border-box' as const,
-};
-
-const primaryButtonStyle = {
-  backgroundColor: '#0070f3',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '6px',
-  padding: '12px 24px',
-  fontSize: '16px',
-};
-
-const secondaryButtonStyle = {
-  backgroundColor: '#f4f4f4',
-  color: '#0070f3',
-  border: '1px solid #0070f3',
-  borderRadius: '6px',
-  padding: '12px 24px',
-  fontSize: '16px',
+const styles = {
+  container: {
+    margin: '24px auto',
+    maxWidth: '1200px',
+    width: '95%',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    padding: '32px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    fontFamily: '"Space Grotesk", sans-serif',
+  },
+  loadingContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '200px'
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #f3f3f3',
+    borderTop: '4px solid #0070f3',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite'
+  },
+  smallSpinner: {
+    width: '16px',
+    height: '16px',
+    border: '2px solid rgba(255,255,255,0.3)',
+    borderTop: '2px solid white',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite'
+  },
+  notFoundText: {
+    color: '#ff0000',
+    textAlign: 'center'
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '32px',
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: '600',
+    color: '#1a1a1a',
+    margin: '0',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    color: '#0070f3',
+    border: '1px solid #0070f3',
+    borderRadius: '8px',
+    padding: '10px 20px',
+    fontSize: '16px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  form: {
+    marginBottom: '40px'
+  },
+  formGroup: {
+    marginBottom: '24px'
+  },
+  label: {
+    display: 'block',
+    marginBottom: '8px',
+    fontWeight: '500',
+    color: '#374151',
+    fontSize: '16px'
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    fontSize: '16px',
+    boxSizing: 'border-box' as const,
+    fontFamily: '"Space Grotesk", sans-serif',
+    backgroundColor: '#fff'
+  },
+  textarea: {
+    minHeight: '120px',
+    resize: 'vertical' as const
+  },
+  fileDropzone: {
+    border: '2px dashed #d1d5db',
+    borderRadius: '12px',
+    padding: '24px',
+    textAlign: 'center' as const,
+    marginBottom: '24px',
+    backgroundColor: '#fff'
+  },
+  fileButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 24px',
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    marginBottom: '12px',
+    fontWeight: '500',
+    fontSize: '16px'
+  },
+  fileHint: {
+    color: '#6b7280',
+    fontSize: '14px',
+    margin: '8px 0 0'
+  },
+  fileSelected: {
+    color: '#374151',
+    marginTop: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    fontWeight: '500'
+  },
+  currentFile: {
+    color: '#666',
+    marginTop: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px'
+  },
+  formActions: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '32px'
+  },
+  actionGroup: {
+    display: 'flex',
+    gap: '16px'
+  },
+  primaryButton: {
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    color: '#4f46e5',
+    border: '1px solid #4f46e5',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  deleteButton: {
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  }
 };

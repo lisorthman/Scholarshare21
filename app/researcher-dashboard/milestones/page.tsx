@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -22,7 +21,6 @@ export default function MilestonePage() {
 
     const fetchData = async () => {
       try {
-        // Verify user
         const authRes = await fetch('/api/verify-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -30,17 +28,11 @@ export default function MilestonePage() {
         });
 
         const userData = await authRes.json();
-        if (!userData.valid) {
-          throw new Error('Invalid token');
-        }
-
+        if (!userData.valid) throw new Error('Invalid token');
         setUser(userData.user);
 
-        // Fetch milestones
         const milestonesRes = await fetch(`/api/milestones?userId=${userData.user._id}`);
-        if (!milestonesRes.ok) {
-          throw new Error('Failed to fetch milestones');
-        }
+        if (!milestonesRes.ok) throw new Error('Failed to fetch milestones');
 
         const milestonesData = await milestonesRes.json();
         setMilestones(milestonesData);
@@ -86,8 +78,8 @@ export default function MilestonePage() {
                   border: '1px solid #e0e0e0',
                 }}
               >
-                <div style={{ 
-                  display: 'flex', 
+                <div style={{
+                  display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   marginBottom: '15px'
