@@ -1,10 +1,11 @@
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import ResearchPaper from '@/models/ResearchPaper';
-import connectToDB from '@/lib/mongoose';
+import AdminCategory from '@/models/AdminCategory';
+import connectDB from '@/lib/mongoose';
 import { ObjectId } from 'mongodb';
 
-// Constants - MUST MATCH YOUR MONGOOSE MODEL EXACTLY
+// Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = [
   'application/pdf',
@@ -12,23 +13,9 @@ const ALLOWED_FILE_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
 
-// These must EXACTLY match your Mongoose model's enum values
-const ALLOWED_CATEGORIES = [
-  'Computer Science',
-  'Biology',
-  'Physics', // Make sure this matches exactly (case-sensitive)
-  'Chemistry',
-  'Engineering',
-  'Mathematics',
-  'Medicine',
-  'Social Sciences',
-  'Other',
-  'Uncategorized'
-];
-
 export async function POST(request: Request) {
   try {
-    await connectToDB();
+    await connectDB();
     const formData = await request.formData();
 
     // Extract and validate fields
@@ -36,30 +23,70 @@ export async function POST(request: Request) {
     const title = formData.get('title') as string;
     const abstract = formData.get('abstract') as string;
     const authorId = formData.get('authorId') as string;
-    const category = formData.get('category') as string;
+    const categoryId = formData.get('category') as string;
 
-    // Validate category first
-    if (!ALLOWED_CATEGORIES.includes(category)) {
+    // Validate file
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file uploaded' },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` },
+        { status: 400 }
+      );
+    }
+
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
       return NextResponse.json(
         { 
-          error: 'Invalid category selected',
-          receivedCategory: category,
-          allowedCategories: ALLOWED_CATEGORIES
+          error: 'Invalid file type',
+          allowedTypes: ALLOWED_FILE_TYPES.map(t => t.split('/').pop())
         },
         { status: 400 }
       );
     }
 
-    // Validate other fields (your existing validation logic)
-    // ...
+    // Validate category exists in database
+    const category = await AdminCategory.findById(categoryId);
+    if (!category) {
+      const allCategories = await AdminCategory.find({}, 'name');
+      return NextResponse.json(
+        { 
+          error: 'Invalid category selected',
+          receivedCategoryId: categoryId,
+          availableCategories: allCategories
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate other required fields
+    if (!title) {
+      return NextResponse.json(
+        { error: 'Title is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!authorId || !ObjectId.isValid(authorId)) {
+      return NextResponse.json(
+        { error: 'Invalid author ID' },
+        { status: 400 }
+      );
+    }
 
     // Upload to blob storage
     const blob = await put(file.name, file, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
+    console.log('Uploaded file URL for plagiarism check:', blob.url); // Debug log for plagiarism check
 
-    // Create paper - now with guaranteed valid category
+    // Create paper
     const paper = await ResearchPaper.create({
       title,
       abstract,
@@ -68,7 +95,8 @@ export async function POST(request: Request) {
       fileSize: file.size,
       fileType: file.type,
       authorId: new ObjectId(authorId),
-      category, // This is now pre-validated
+      category: category.name,
+      categoryId: new ObjectId(categoryId),
       status: 'pending'
     });
 
@@ -78,13 +106,14 @@ export async function POST(request: Request) {
         _id: paper._id.toString(),
         title: paper.title,
         category: paper.category,
+        categoryId: paper.categoryId.toString(),
         status: paper.status,
         fileUrl: paper.fileUrl
       }
     }, { status: 201 });
 
   } catch (error: unknown) {
-    console.error('Database operation failed:', error);
+    console.error('Upload failed:', error);
     
     // Special handling for validation errors
     if (error instanceof Error && error.name === 'ValidationError') {
@@ -99,8 +128,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: 'Validation failed',
-          details: errorDetails,
-          allowedCategories: ALLOWED_CATEGORIES // Helpful for debugging
+          details: errorDetails
         },
         { status: 400 }
       );

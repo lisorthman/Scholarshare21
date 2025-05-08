@@ -1,16 +1,24 @@
-// types/user.ts
-export const UserRoles = ['admin', 'researcher', 'user'] as const;
+export const UserRoles = ["admin", "researcher", "user"] as const;
 export type UserRole = typeof UserRoles[number];
 
-// types/user.ts
+// Define the type for recently viewed papers
+export type RecentlyViewedPaper = {
+  paperId: string;
+  timestamp: string; // Since Date is serialized to string in JSON
+};
+
 export type User = {
   _id: string;
   name: string;
   email: string;
-  role: string;
-  createdAt?: string;    // Make optional if not always present
-  updatedAt?: string;    // Make optional if not always present
-  institution?: string;  // Optional fields
+  role: UserRole;
   researchField?: string;
+  profilePhoto?: string;
+  savedPapers?: string[]; // Array of ObjectId strings
+  recentlyViewed?: RecentlyViewedPaper[]; // Array of recently viewed papers
+  username?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  institution?: string;
   publications?: number;
 };

@@ -8,65 +8,61 @@ export interface ResearchPaperDocument extends Document {
   fileSize: number;
   fileType: string;
   authorId: Types.ObjectId;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'rejected_plagiarism' | 'rejected_ai' | 'passed_checks';
   category: string;
+  categoryId: Types.ObjectId;
+  keywords?: string[];
   readerStats: Map<string, number>;
   createdAt: Date;
   updatedAt: Date;
+  blobKey: string;
+  plagiarismScore?: number;
+  aiScore?: number;
+  rejectionReason?: string;
 }
-
-// Must match exactly with frontend categories
-const ALLOWED_CATEGORIES = [
-  'Computer Science',
-  'Biology',
-  'Physics',
-  'Chemistry',
-  'Engineering',
-  'Mathematics',
-  'Medicine',
-  'Social Sciences', // Note the 's' in Sciences
-  'Other',
-  'Uncategorized'
-] as const;
 
 const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
   {
-    title: { 
-      type: String, 
+    title: {
+      type: String,
       required: [true, 'Title is required'],
       trim: true,
-      maxlength: [200, 'Title cannot exceed 200 characters']
+      maxlength: [200, 'Title cannot exceed 200 characters'],
     },
     abstract: {
       type: String,
       trim: true,
-      maxlength: [2000, 'Abstract cannot exceed 2000 characters']
+      maxlength: [2000, 'Abstract cannot exceed 2000 characters'],
     },
-    fileUrl: { 
-      type: String, 
+    fileUrl: {
+      type: String,
       required: [true, 'File URL is required'],
       validate: {
         validator: (v: string) => /^https?:\/\//.test(v),
-        message: 'Invalid file URL format'
-      }
+        message: 'Invalid file URL format',
+      },
     },
-    fileName: { 
-      type: String, 
+    fileName: {
+      type: String,
       required: [true, 'File name is required'],
-      trim: true
+      trim: true,
     },
-    fileSize: { 
-      type: Number, 
+    fileSize: {
+      type: Number,
       required: [true, 'File size is required'],
-      min: [1, 'File size must be at least 1 byte']
+      min: [1, 'File size must be at least 1 byte'],
     },
-    fileType: { 
-      type: String, 
+    fileType: {
+      type: String,
       required: [true, 'File type is required'],
       enum: {
-        values: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-        message: 'Invalid file type'
-      }
+        values: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+        message: 'Invalid file type',
+      },
     },
     authorId: {
       type: Schema.Types.ObjectId,
@@ -74,55 +70,94 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
       required: [true, 'Author ID is required'],
       validate: {
         validator: (v: any) => Types.ObjectId.isValid(v),
-        message: 'Invalid author ID format'
-      }
+        message: 'Invalid author ID format',
+      },
     },
     status: {
       type: String,
       enum: {
-        values: ['pending', 'approved', 'rejected'],
-        message: 'Invalid status value'
+        values: ['pending', 'approved', 'rejected', 'rejected_plagiarism', 'rejected_ai', 'passed_checks'],
+        message: 'Invalid status value',
       },
-      default: 'pending'
+      default: 'pending',
     },
     category: {
       type: String,
-      required: [true, 'Category is required'],
-      enum: {
-        values: ALLOWED_CATEGORIES, // Using the shared constant
-        message: `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(', ')}`
+      required: [true, 'Category name is required'],
+      trim: true,
+    },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: 'AdminCategory',
+      required: [true, 'Category reference is required'],
+      validate: {
+        validator: (v: any) => Types.ObjectId.isValid(v),
+        message: 'Invalid category ID format',
       },
-      default: 'Uncategorized',
-      trim: true
+    },
+    keywords: {
+      type: [String],
+      trim: true,
+      default: [],
     },
     readerStats: {
       type: Map,
       of: Number,
-      default: () => new Map<string, number>()
-    }
+      default: () => new Map<string, number>(),
+    },
+    blobKey: {
+      type: String,
+    },
+    plagiarismScore: {
+      type: Number,
+    },
+    aiScore: {
+      type: Number,
+    },
+    rejectionReason: {
+      type: String,
+    },
   },
-  { 
+  {
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform: function(doc, ret) {
+      transform: function (doc, ret) {
         ret._id = ret._id.toString();
         ret.authorId = ret.authorId.toString();
+        ret.categoryId = ret.categoryId?.toString();
         delete ret.__v;
         return ret;
-      }
+      },
     },
     toObject: {
-      virtuals: true
-    }
+      virtuals: true,
+    },
   }
 );
+
+// Virtual for author details
+ResearchPaperSchema.virtual('author', {
+  ref: 'User',
+  localField: 'authorId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+// Virtual for category details
+ResearchPaperSchema.virtual('categoryDetails', {
+  ref: 'AdminCategory',
+  localField: 'categoryId',
+  foreignField: '_id',
+  justOne: true,
+});
 
 // Indexes
 ResearchPaperSchema.index({ title: 'text', abstract: 'text' });
 ResearchPaperSchema.index({ authorId: 1 });
 ResearchPaperSchema.index({ status: 1 });
 ResearchPaperSchema.index({ category: 1 });
+ResearchPaperSchema.index({ categoryId: 1 });
 ResearchPaperSchema.index({ createdAt: -1 });
 
 export default models.ResearchPaper || model<ResearchPaperDocument>('ResearchPaper', ResearchPaperSchema);
