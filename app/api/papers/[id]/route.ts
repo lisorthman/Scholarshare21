@@ -1,48 +1,58 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import ResearchPaper from '@/models/ResearchPaper';
+import User from '@/models/user';
 import { ObjectId } from 'mongodb';
 import nodemailer from 'nodemailer';
+import { incrementUserCount } from '@/lib/userCounts';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Connecting to the database...');
     await connectDB();
-    console.log('Database connected successfully.');
 
     console.log('Received ID:', params.id);
     if (!ObjectId.isValid(params.id)) {
-      console.error('Invalid paper ID:', params.id);
-      return NextResponse.json({ error: 'Invalid paper ID' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Invalid paper ID format' },
+        { status: 400 }
+      );
     }
 
     const paper = await ResearchPaper.findById(new ObjectId(params.id))
       .populate('authorId', 'name email')
-      .exec();
-
-    console.log('Fetched paper:', paper);
+      .lean() as { _id: ObjectId, authorId?: { _id: ObjectId, name: string, email: string } } | null;
 
     if (!paper) {
-      console.error('Paper not found for ID:', params.id);
-      return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: 'Paper not found' },
+        { status: 404 }
+      );
     }
 
-    const paperObject = paper.toObject();
-    return NextResponse.json(paperObject);
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...paper,
+        _id: paper ? paper._id.toString() : null,
+        authorId: paper.authorId ? {
+          ...paper.authorId,
+          _id: !Array.isArray(paper) && paper.authorId ? paper.authorId._id.toString() : null
+        } : null
+      }
+    });
+
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error fetching paper:', {
-        message: error.message,
-        stack: error.stack,
-        paramsId: params.id,
-      });
-    } else {
-      console.error('Unknown error fetching paper:', { error, paramsId: params.id });
-    }
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Error fetching paper:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Internal server error'
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -51,111 +61,138 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Connecting to the database...');
     await connectDB();
-    console.log('Database connected successfully.');
 
-    console.log('Received ID:', params.id);
     if (!ObjectId.isValid(params.id)) {
-      console.error('Invalid paper ID:', params.id);
-      return NextResponse.json({ error: 'Invalid paper ID' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Invalid paper ID format' },
+        { status: 400 }
+      );
     }
 
-    const { action } = await request.json();
-    console.log('Received action:', action);
+    const { action, feedback } = await request.json();
 
     if (!['approve', 'reject'].includes(action)) {
-      console.error('Invalid action:', action);
       return NextResponse.json(
-        { error: 'Invalid action. Use "approve" or "reject"' },
+        { 
+          success: false,
+          error: 'Invalid action. Use "approve" or "reject"'
+        },
         { status: 400 }
       );
     }
 
     const paper = await ResearchPaper.findById(new ObjectId(params.id))
-      .populate('authorId', 'name email')
+      .populate('authorId', 'name email counts')
       .exec();
-    console.log('Fetched paper for update:', paper);
 
     if (!paper) {
-      console.error('Paper not found for ID:', params.id);
-      return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: 'Paper not found' },
+        { status: 404 }
+      );
     }
 
     if (paper.status !== 'pending') {
-      console.error('Paper status cannot be changed:', paper.status);
       return NextResponse.json(
-        { error: 'Paper status cannot be changed' },
+        { 
+          success: false,
+          error: 'Paper status cannot be changed'
+        },
         { status: 400 }
       );
     }
 
-    // Configure email transporter
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // Email configuration
+    let emailStatus = {
+      sent: false,
+      error: null as string | null
+    };
 
-    // Prepare email content (only if authorId is populated)
-    let emailSent = false;
-    if (paper.authorId && paper.authorId.email) {
-      const emailContent = {
-        from: process.env.EMAIL_USER,
-        to: paper.authorId.email,
-        subject: `PDF Submission Update: ${paper.title}`,
-        text: `Dear ${paper.authorId.name || 'Researcher'},\n\nYour PDF "${paper.title}" has been ${action}ed by the admin.\n\nBest regards,\nThe ScholarShare Team`,
-      };
-
-      // Send email but don't fail the request if it fails
+    if (paper.authorId?.email && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       try {
-        await transporter.sendMail(emailContent);
-        console.log(`${action} email sent to:`, paper.authorId.email);
-        emailSent = true;
-      } catch (emailError) {
-        console.error('Failed to send email:', {
-          message: emailError.message,
-          stack: emailError.stack,
-          email: paper.authorId.email,
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
         });
+
+        const mailOptions = {
+          from: `"ScholarShare" <${process.env.EMAIL_USER}>`,
+          to: paper.authorId.email,
+          subject: `Your paper "${paper.title}" has been ${action}d`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2d3748;">Dear ${paper.authorId.name || 'Researcher'},</h2>
+              <p>Your paper <strong>"${paper.title}"</strong> has been ${action}d by the admin.</p>
+              ${feedback ? `<div style="background: #f7fafc; padding: 1rem; border-radius: 0.5rem; margin: 1rem 0;">
+                <h3 style="color: #4a5568;">Editor's Feedback:</h3>
+                <p>${feedback}</p>
+              </div>` : ''}
+              <p>Thank you for your contribution.</p>
+              <p style="margin-top: 2rem;">Best regards,<br>The ScholarShare Team</p>
+            </div>
+          `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        emailStatus.sent = true;
+        console.log(`Email sent: ${info.response}`);
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+        emailStatus.error = (emailError as Error).message;
       }
-    } else {
-      console.warn('Author email not found for paper:', params.id);
     }
 
-    // Update or delete paper based on action
+    // Process action
+    let updatedApprovals = 0;
     if (action === 'approve') {
       paper.status = 'approved';
+      paper.approvedAt = new Date();
       await paper.save();
-      console.log('Paper approved:', paper);
-    } else if (action === 'reject') {
-      await paper.deleteOne();
-      console.log('Paper rejected and deleted:', params.id);
+
+      if (paper.authorId) {
+        const updatedUser = await User.findByIdAndUpdate(
+          paper.authorId._id,
+          { $inc: { 'counts.approvals': 1 } },
+          { new: true }
+        ).select('counts');
+        
+        updatedApprovals = updatedUser?.counts?.approvals || 0;
+      }
+    } else {
+      paper.status = 'rejected';
+      paper.rejectedAt = new Date();
+      await paper.save();
     }
 
     return NextResponse.json({
-      message: 'Action completed successfully',
-      emailSent,
+      success: true,
+      message: `Paper ${action}d successfully`,
+      data: {
+        paperId: paper._id.toString(),
+        newStatus: paper.status,
+        authorId: paper.authorId?._id.toString(),
+        approvalsCount: updatedApprovals,
+        emailStatus // Changed from emailSent to emailStatus
+      },
+      shouldRefreshMilestones: true
     });
+
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Error processing action:', {
-        message: error.message,
-        stack: error.stack,
-        paramsId: params.id,
-      });
-      return NextResponse.json(
-        { error: 'Server error', details: error.message },
-        { status: 500 }
-      );
-    } else {
-      console.error('Unknown error processing action:', { error, paramsId: params.id });
-      return NextResponse.json(
-        { error: 'Server error', details: 'Unknown error' },
-        { status: 500 }
-      );
-    }
+    console.error('Error processing paper action:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : undefined
+      },
+      { status: 500 }
+    );
   }
 }

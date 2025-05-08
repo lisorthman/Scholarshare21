@@ -91,9 +91,9 @@ export default function AdminDashboard(): JSX.Element {
       }
       const result = await response.json();
       if (!result.emailSent) {
-        setError("Action completed, but failed to send notification email");
-      } else {
         setError(null);
+      } else {
+        setError("Action completed, but failed to send notification email");
       }
       setIsModalOpen(false);
       setSelectedPaper(null);
