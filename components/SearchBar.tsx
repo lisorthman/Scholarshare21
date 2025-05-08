@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-
-export default function SearchBar({ category }: { category?: string }) {
-=======
 /*
 'use client';
 
@@ -13,7 +5,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function SearchBar() {
->>>>>>> origin/babi
   const [query, setQuery] = useState('');
   const router = useRouter();
 

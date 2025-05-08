@@ -1,19 +1,37 @@
-import connectToDB from '@/lib/mongoose';
-import Milestone from '@/models/Milestone';
 import { NextResponse } from 'next/server';
+import connectToDB from '@/lib/mongoose';
+import Paper from '@/models/paper';
+import { calculateMilestones } from '@/lib/milestoneCalculator';
 
 export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' }, 
+        { status: 400 }
+      );
+    }
+
     await connectToDB();
 
-    // Simulate logged-in researcher ID (replace with actual authentication logic)
-    const researcherId = '12345';
+    // Fetch all papers by the researcher
+    const papers = await Paper.find({ authorId: userId })
+      .select('_id status downloads createdAt')
+      .lean();
 
-    // Fetch milestones for the researcher
-    const milestones = await Milestone.find({ researcherId }).sort({ date: 1 });
+    // Calculate milestones based on papers
+    const milestones = calculateMilestones(papers);
+
     return NextResponse.json(milestones);
+
   } catch (error) {
-    console.error('Error fetching milestones:', error);
-    return NextResponse.json({ error: 'Failed to fetch milestones' }, { status: 500 });
+    console.error('Error in milestones API:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch milestones' },
+      { status: 500 }
+    );
   }
 }
