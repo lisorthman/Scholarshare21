@@ -299,8 +299,10 @@ const VerifyPage = () => {
             cursor: "pointer",
             margin: "0 auto", // Center the button
             display: "block", // Ensure it takes the full width
-          }}
-        />
+            }}
+            >
+              Verify
+            </Button>
 
         {error && (
           <p

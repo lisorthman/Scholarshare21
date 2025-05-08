@@ -1,9 +1,11 @@
-// components/Layout.tsx
+'use client'; // Enables client-side hooks like useRouter
+
 import NavBar from "../../components/Navbar";
 import Image from "next/image";
-import { Poppins } from "next/font/google"; // Import Poppins
+import { Poppins } from "next/font/google";
+import { ReactNode } from "react";
+import { useRouter } from "next/navigation"; // Import useRouter
 
-// Configure Poppins font
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
@@ -11,10 +13,16 @@ const poppins = Poppins({
 });
 
 interface LayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 const FreeAccessSection = () => {
+  const router = useRouter(); // Initialize router
+
+  const handleJoinClick = () => {
+    router.push("/signup"); // Navigate to signup page
+  };
+
   return (
     <div
       style={{
@@ -88,14 +96,14 @@ const FreeAccessSection = () => {
           </p>
           <ul style={{ paddingLeft: "1.2rem" }}>
             <li>
-              ▶ Browse thousands of research papers by title, author, keywords,
-              or field of study.
+              Browse thousands of research papers by title, author, keywords, or
+              field of study.
             </li>
             <li>
-              ▶ Download and cite papers for academic and professional use.
+              Download and cite papers for academic and professional use.
             </li>
-            <li>▶ Bookmark and save research for future reference.</li>
-            <li>▶ Engage with researchers through discussions and reviews.</li>
+            <li>Bookmark and save research for future reference.</li>
+            <li>Engage with researchers through discussions and reviews.</li>
           </ul>
 
           <p style={{ fontWeight: "bold", marginTop: "1rem" }}>
@@ -103,6 +111,7 @@ const FreeAccessSection = () => {
           </p>
 
           <button
+            onClick={handleJoinClick}
             style={{
               backgroundColor: "#5b2a3c",
               color: "white",
@@ -138,10 +147,5 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     </div>
   );
 };
-export default function Feature1Page({
-  children,
-}: {
-  children: ReactNode
-}) {
-  return <>{children}</>;
-}
+
+export default Layout;

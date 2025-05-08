@@ -1,8 +1,10 @@
+'use client';
+
 import React, { ReactNode } from "react";
 import NavBar from "@/components/Navbar";
+import { useRouter } from "next/navigation"; // 🧭 import router
 import { Poppins } from "next/font/google";
 
-// Configure Poppins font (consistent with Layout.tsx)
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
@@ -14,6 +16,12 @@ interface LayoutProps {
 }
 
 const ProfileAnalytics = () => {
+  const router = useRouter(); // ⬅️ Initialize router
+
+  const handleJoinClick = () => {
+    router.push("/signup"); // ⬅️ Redirect to signup
+  };
+
   return (
     <div
       style={{
@@ -67,8 +75,7 @@ const ProfileAnalytics = () => {
           </p>
           <ul style={{ paddingLeft: "1.2rem" }}>
             <li>
-              📄 <strong>Paper Views & Downloads</strong> – Track research
-              access
+              📄 <strong>Paper Views & Downloads</strong> – Track research access
             </li>
             <li>
               ✈️ <strong>Engagement Metrics</strong> – View ratings and reviews
@@ -86,6 +93,7 @@ const ProfileAnalytics = () => {
           </p>
 
           <button
+            onClick={handleJoinClick} // 🖱️ Click handler added
             style={{
               backgroundColor: "#5b2a3c",
               color: "white",
@@ -108,7 +116,7 @@ const ProfileAnalytics = () => {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div
-      className={poppins.className} // Apply Poppins here
+      className={poppins.className}
       style={{
         color: "#000",
         minHeight: "100vh",

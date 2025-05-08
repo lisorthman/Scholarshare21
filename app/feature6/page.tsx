@@ -1,9 +1,11 @@
+'use client';
+
 import React, { ReactNode } from "react";
 import NavBar from "../../components/Navbar";
 import Image from "next/image";
-import { Poppins } from "next/font/google"; // Import Poppins
+import { Poppins } from "next/font/google";
+import { useRouter } from "next/navigation"; // 🧭 import useRouter
 
-// Configure Poppins font
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
@@ -15,6 +17,12 @@ interface LayoutProps {
 }
 
 const AdvancedSearchSection = () => {
+  const router = useRouter(); // ⬅️ initialize router
+
+  const handleJoinClick = () => {
+    router.push("/signup"); // ⬅️ redirect to signup
+  };
+
   return (
     <div
       style={{
@@ -64,18 +72,16 @@ const AdvancedSearchSection = () => {
             our platform ensures global visibility, peer engagement, and
             professional growth.
           </p>
-          <br></br>
-          <p>
-            <strong>Key Features</strong>
-          </p>
+          <br />
+          <p><strong>Key Features</strong></p>
           <ul style={{ paddingLeft: "1.2rem" }}>
             <li>
-              <strong>Free Access to Research</strong> –Browse and download
+              <strong>Free Access to Research</strong> – Browse and download
               research papers without any subscription.
             </li>
             <li>
               <strong>Effortless Publishing</strong> – Publish your work easily
-              and gain worldwide recognitionPeer Review
+              and gain worldwide recognition.
             </li>
             <li>
               <strong>Feedback</strong> – Receive insightful feedback to refine
@@ -92,6 +98,7 @@ const AdvancedSearchSection = () => {
           </p>
 
           <button
+            onClick={handleJoinClick}
             style={{
               backgroundColor: "#5b2a3c",
               color: "white",
@@ -114,7 +121,7 @@ const AdvancedSearchSection = () => {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div
-      className={poppins.className} // Apply Poppins here
+      className={poppins.className}
       style={{
         color: "#000",
         minHeight: "100vh",
