@@ -1,0 +1,197 @@
+$primary-color: #5B4B36;
+$secondary-color: #7B6A57;
+$accent-color: #B4A28C;
+$light-bg: #fdfaf4;
+$card-bg: #ffffff;
+
+.searchPage {
+  min-height: 100vh;
+  background: $light-bg;
+  padding: 2rem 5%;
+  color: $primary-color;
+
+  .searchHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0;
+    }
+  }
+
+  .resultCount {
+    background: $accent-color;
+    color: white;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+  }
+
+  .loadingGrid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .noResults {
+    text-align: center;
+    padding: 4rem 0;
+    max-width: 800px;
+    margin: 0 auto;
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  .didYouMean {
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: rgba($accent-color, 0.1);
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    
+    a {
+      color: $primary-color;
+      font-weight: 600;
+      text-decoration: underline;
+      transition: color 0.2s;
+      
+      &:hover {
+        color: darken($primary-color, 10%);
+      }
+    }
+  }
+
+  .suggestions, .searchTips {
+    text-align: left;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background: rgba($accent-color, 0.05);
+    border-radius: 0.5rem;
+    max-width: 600px;
+
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+
+      li a {
+        color: $accent-color;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s;
+
+        &:hover {
+          color: darken($accent-color, 15%);
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  .searchTips {
+    background: rgba($secondary-color, 0.05);
+    border-left: 3px solid $secondary-color;
+
+    ul li {
+      color: $secondary-color;
+      position: relative;
+      padding-left: 1.25rem;
+
+      &::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: $accent-color;
+      }
+    }
+  }
+
+  .alphabeticalResults {
+    margin-top: 3rem;
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  .lettersNav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba($secondary-color, 0.2);
+
+    .letterButton {
+      background: none;
+      border: none;
+      color: $secondary-color;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      transition: all 0.2s;
+
+      &:hover {
+        color: $primary-color;
+        background: rgba($accent-color, 0.1);
+      }
+
+      &.active {
+        color: white;
+        background: $accent-color;
+      }
+    }
+  }
+
+  .letterSection {
+    margin-bottom: 3rem;
+
+    .letterHeading {
+      font-size: 1.75rem;
+      margin: 1rem 0;
+      color: $accent-color;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid $accent-color;
+    }
+  }
+
+  .papersGrid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+
+    .searchHeader h1 {
+      font-size: 1.5rem;
+    }
+
+    .papersGrid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
