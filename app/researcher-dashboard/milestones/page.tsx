@@ -4,20 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
-
-interface Milestone {
-  _id: string;
-  title: string;
-  description?: string;
-  date: string;
-  progress?: number;
-  status: 'pending' | 'completed';
-}
+import { MilestoneProgress } from '@/types/milestone';
 
 export default function MilestonePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,63 +20,41 @@ export default function MilestonePage() {
       return;
     }
 
-    const verifyTokenAndFetchMilestones = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/verify-token', {
+        // Verify user
+        const authRes = await fetch('/api/verify-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
 
-        const data = await response.json();
-        if (data.valid && data.user.role === 'researcher') {
-          setUser(data.user);
-          fetchMilestones(data.user._id);
-        } else {
-          router.push('/unauthorized');
+        const userData = await authRes.json();
+        if (!userData.valid) {
+          throw new Error('Invalid token');
         }
-      } catch (error) {
-        console.error('Error:', error);
-        router.push('/login');
+
+        setUser(userData.user);
+
+        // Fetch milestones
+        const milestonesRes = await fetch(`/api/milestones?userId=${userData.user._id}`);
+        if (!milestonesRes.ok) {
+          throw new Error('Failed to fetch milestones');
+        }
+
+        const milestonesData = await milestonesRes.json();
+        setMilestones(milestonesData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    verifyTokenAndFetchMilestones();
-  }, [router]);
+    fetchData();
+  }, []);
 
-  const fetchMilestones = async (userId: string) => {
-    try {
-      setIsLoading(true);
-      const res = await fetch(`/api/milestones?userId=${userId}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch milestones');
-      }
-      const data = await res.json();
-      setMilestones(data);
-    } catch (err) {
-      console.error('Error fetching milestones:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load milestones');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRefresh = () => {
-    if (user) {
-      fetchMilestones(user._id);
-    }
-  };
-
-  if (!user) return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh' 
-    }}>
-      <p>Loading...</p>
-    </div>
-  );
+  if (!user) return null;
 
   return (
     <DashboardLayout user={user} defaultPage="Milestones">
@@ -96,71 +66,14 @@ export default function MilestonePage() {
         boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
         width: '100%',
       }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '30px' 
-        }}>
-          <h1 style={{ fontSize: '28px', margin: 0 }}>Research Milestones</h1>
-          <button
-            onClick={handleRefresh}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              backgroundColor: '#f0f0f0',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            Refresh
-          </button>
-        </div>
+        <h1 style={{ fontSize: '28px', marginBottom: '30px', color: '#1a237e' }}>
+          Research Milestones
+        </h1>
 
         {isLoading ? (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px',
-            backgroundColor: '#f9f9f9',
-            borderRadius: '10px' 
-          }}>
-            <p>Loading milestones...</p>
-          </div>
+          <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>
         ) : error ? (
-          <div style={{ 
-            padding: '20px', 
-            backgroundColor: '#fff3f3', 
-            borderRadius: '10px',
-            color: '#d32f2f' 
-          }}>
-            <p>{error}</p>
-            <button 
-              onClick={handleRefresh}
-              style={{
-                marginTop: '10px',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                border: '1px solid #d32f2f',
-                color: '#d32f2f',
-                cursor: 'pointer'
-              }}
-            >
-              Try Again
-            </button>
-          </div>
-        ) : milestones.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '40px',
-            backgroundColor: '#f9f9f9',
-            borderRadius: '10px'
-          }}>
-            <p style={{ color: '#666', marginBottom: '16px' }}>No milestones found.</p>
-          </div>
+          <div style={{ color: 'red', padding: '20px' }}>{error}</div>
         ) : (
           <div style={{ display: 'grid', gap: '20px' }}>
             {milestones.map((milestone) => (
@@ -168,81 +81,67 @@ export default function MilestonePage() {
                 key={milestone._id}
                 style={{
                   padding: '20px',
-                  backgroundColor: '#f9f9f9',
+                  backgroundColor: '#f5f5f5',
                   borderRadius: '10px',
-                  border: '1px solid #eee',
-                  transition: 'transform 0.2s ease',
-                  cursor: 'pointer',
-                  ':hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 12px rgba(0,0,0,0.1)'
-                  }
+                  border: '1px solid #e0e0e0',
                 }}
               >
                 <div style={{ 
                   display: 'flex', 
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '10px'
+                  marginBottom: '15px'
                 }}>
-                  <h3 style={{ margin: 0, fontSize: '18px' }}>{milestone.title}</h3>
-                  <span style={{
-                    padding: '4px 12px',
-                    borderRadius: '15px',
-                    fontSize: '14px',
-                    backgroundColor: milestone.status === 'completed' ? '#e8f5e9' : '#fff3e0',
-                    color: milestone.status === 'completed' ? '#2e7d32' : '#f57c00'
-                  }}>
-                    {milestone.status}
-                  </span>
+                  <h3 style={{ margin: 0, color: '#1a237e' }}>{milestone.title}</h3>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    {milestone.achievedRewards.map((reward, index) => (
+                      <span
+                        key={index}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '15px',
+                          backgroundColor: '#e8f5e9',
+                          color: '#2e7d32',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {reward}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
-                {milestone.description && (
-                  <p style={{ 
-                    margin: '10px 0', 
-                    color: '#666',
-                    fontSize: '14px' 
-                  }}>
-                    {milestone.description}
-                  </p>
-                )}
+                <p style={{ margin: '10px 0', color: '#666' }}>
+                  {milestone.description}
+                </p>
 
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '10px',
-                  fontSize: '14px',
-                  color: '#666'
-                }}>
-                  <span>Date: {new Date(milestone.date).toLocaleDateString()}</span>
-                  {milestone.progress !== undefined && (
-                    <div style={{ flex: 1, marginLeft: '20px' }}>
-                      <div style={{
-                        width: '100%',
-                        height: '6px',
-                        backgroundColor: '#eee',
-                        borderRadius: '3px',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          width: `${milestone.progress}%`,
-                          height: '100%',
-                          backgroundColor: '#4caf50',
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </div>
-                      <span style={{ 
-                        fontSize: '12px',
-                        color: '#666',
-                        marginTop: '5px',
-                        display: 'block',
-                        textAlign: 'right'
-                      }}>
-                        Progress: {milestone.progress}%
-                      </span>
-                    </div>
-                  )}
+                <div style={{ marginTop: '15px' }}>
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#e0e0e0',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div
+                      style={{
+                        width: `${milestone.progress}%`,
+                        height: '100%',
+                        backgroundColor: '#3f51b5',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginTop: '5px',
+                    fontSize: '14px',
+                    color: '#666'
+                  }}>
+                    <span>Progress</span>
+                    <span>{milestone.progress}%</span>
+                  </div>
                 </div>
               </div>
             ))}
