@@ -115,6 +115,7 @@ const HomePage: React.FC = () => {
       <div
         style={{
           width: '100%', // Ensure NavBar spans the full width
+          position: 'sticky',
         }}
       >
         <NavBar />

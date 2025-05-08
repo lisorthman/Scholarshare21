@@ -1,0 +1,111 @@
+// Variables
+$carousel-bg: #F5F1EB;
+$title-color: #5B4B36;
+$card-overlap: 40%;
+$nav-button-bg: rgba(255, 255, 255, 0.8);
+$nav-button-hover: rgba(255, 255, 255, 1);
+
+.carouselContainer {
+  margin: 3rem 0;
+  padding: 0 1rem;
+  position: relative;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: $title-color;
+      margin: 0;
+    }
+  }
+
+  .swiper {
+    padding: 1rem 0 2rem;
+    position: relative;
+    
+    .swiper-slide {
+      transition: transform 0.3s ease, z-index 0.3s ease;
+      width: 60%;
+      transform: scale(0.95);
+      z-index: 1;
+      
+      &:hover {
+        transform: scale(1);
+        width: 100%;
+        z-index: 10;
+      }
+    }
+
+    // Navigation buttons
+    .navButton {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      background: $nav-button-bg;
+      border-radius: 50%;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      border: none;
+
+      &:hover {
+        background: $nav-button-hover;
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      &.prev {
+        left: 5px;
+      }
+
+      &.next {
+        right: 5px;
+      }
+
+      svg {
+        width: 24px;
+        height: 24px;
+      }
+    }
+  }
+
+  // Loading state
+  .loadingState {
+    display: flex;
+    gap: 20px;
+    padding: 1rem 0;
+    overflow: hidden;
+
+    .skeletonCard {
+      width: 60%;
+      flex-shrink: 0;
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 12px;
+      height: 200px;
+    }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .swiper .navButton {
+      display: none; // Hide arrows on mobile
+    }
+  }
+}

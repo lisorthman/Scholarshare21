@@ -5,5 +5,7 @@ export type Paper = {
     author: string;
     keywords: string[];
     category: string;
+    createdAt: Date;
+    downloads?: number; //dynamic
   };
   
