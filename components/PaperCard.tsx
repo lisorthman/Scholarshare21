@@ -1,5 +1,4 @@
 import { Paper } from '@/types';
-import React from 'react';
 import Link from 'next/link';
 import { UserIcon } from 'lucide-react';
 import styles from './PaperCard.module.scss';
@@ -69,3 +68,5 @@ export const PaperCard = ({ paper }: { paper: Paper }) => {
     </Link>
   );
 };
+
+export default PaperCard;

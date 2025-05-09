@@ -1,15 +1,19 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Paper } from '@/types';
 import PaperCarousel from '@/components/PaperCarousel';
-import { PaperCard } from '@/components/PaperCard';
-import { Badge } from '@/components/ui/badge';
+import {PaperCard} from '@/components/PaperCard';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { ArrowUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import styles from './search.module.scss';
-import Link from 'next/link';
+
+const trackEvent = (category: string, action: string, label: string) => {
+  console.log(`Tracking: ${category} - ${action} - ${label}`);
+  // Replace with your analytics implementation
+};
 
 export default function SearchResultsPage() {
   const searchParams = useSearchParams();
@@ -19,60 +23,12 @@ export default function SearchResultsPage() {
   const [didYouMean, setDidYouMean] = useState('');
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
 
-  // Group results by first letter of title
-  const { alphabeticalResults, letters } = useMemo(() => {
-    const grouped: Record<string, Paper[]> = {};
-    
-    const sorted = [...results].sort((a, b) => 
-      a.title.localeCompare(b.title)
-    );
-
-    sorted.forEach(paper => {
-      const firstLetter = paper.title[0].toUpperCase();
-      if (!grouped[firstLetter]) {
-        grouped[firstLetter] = [];
-      }
-      grouped[firstLetter].push(paper);
-    });
-
-    return {
-      alphabeticalResults: grouped,
-      letters: Object.keys(grouped).sort()
-    };
-  }, [results]);
-
-  // Scroll to letter section
-  const scrollToLetter = (letter: string) => {
-    const element = document.getElementById(`letter-${letter}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setActiveLetter(letter);
-    }
-  };
-
   useEffect(() => {
-    const fetchResults = async () => {
-      if (!query) return;
+    if (results.length === 0 && !loading && query) {
+      trackEvent('Search', 'NoResults', query);
+    }
+  }, [results, loading, query]);
 
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setResults(data.results || []);
-      } catch (error) {
-        console.error('Search fetch error:', error);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchResults();
-  }, [query]);
-
-  
-
-  // suggested searches
   const suggestedSearches = useMemo(() => {
     if (!query) return [];
     const baseQuery = query.length > 15 ? query.substring(0, 15) + '...' : query;
@@ -84,21 +40,61 @@ export default function SearchResultsPage() {
     ];
   }, [query]);
 
-  // Filter papers by download count (for popular)
-  const popularPapers = useMemo(() => 
-    [...results]
-      .sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0))
-      .slice(0, 10),
-    [results]
-  );
+  const { alphabeticalResults, letters } = useMemo(() => {
+    const grouped: Record<string, Paper[]> = {};
+    const sorted = [...results].sort((a, b) => a.title.localeCompare(b.title));
+    
+    sorted.forEach(paper => {
+      const firstLetter = paper.title[0].toUpperCase();
+      grouped[firstLetter] = [...(grouped[firstLetter] || []), paper];
+    });
 
-  // Filter papers by date (for recent)
-  const recentPapers = useMemo(() => 
-    [...results]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 10),
-    [results]
-  );
+    return {
+      alphabeticalResults: grouped,
+      letters: Object.keys(grouped).sort()
+    };
+  }, [results]);
+
+  const fetchResults = async () => {
+    if (!query) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      
+      setResults(data.results || []);
+      setDidYouMean(data.suggestedQuery || '');
+      
+    } catch (error) {
+      console.error('Search fetch error:', error);
+      setResults([]);
+      setDidYouMean('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchResults(); }, [query]);
+
+  const scrollToLetter = (letter: string) => {
+    const element = document.getElementById(`letter-${letter}`);
+    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveLetter(letter);
+  };
+
+  if (loading) {
+    return (
+      <div className={styles.searchPage}>
+        <header className={styles.searchHeader}>
+          <h1>Search Results for "{query}"</h1>
+        </header>
+        <div className={styles.loadingGrid}>
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className={styles.skeletonCard} height="320px" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.searchPage}>
@@ -111,16 +107,19 @@ export default function SearchResultsPage() {
         )}
       </header>
 
-      {loading ? (
-        <div className={styles.loadingGrid}>
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className={styles.skeletonCard} />
-          ))}
-        </div>
-      ) : results.length === 0 ? (
+      {results.length === 0 ? (
         <div className={styles.noResults}>
           <h2>No results found for "{query}"</h2>
-          <p>Try different keywords or check your spelling</p>
+          
+          {didYouMean && (
+            <div className={styles.didYouMean}>
+              Did you mean: {' '}
+              <Link href={`/search?q=${encodeURIComponent(didYouMean)}`}>
+                {didYouMean}
+              </Link>?
+            </div>
+          )}
+
           <div className={styles.suggestions}>
             <h3>Try these instead:</h3>
             <ul>
@@ -146,23 +145,17 @@ export default function SearchResultsPage() {
         </div>
       ) : (
         <>
-          <section className={styles.carouselSection}>
-            {popularPapers.length > 0 && (
-              <PaperCarousel 
-                title="Most Popular" 
-                papers={popularPapers} 
-                variant="popular"
-              />
-            )}
+          <PaperCarousel 
+            title="Most Popular" 
+            papers={results.slice().sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0)).slice(0, 10)} 
+            variant="popular" 
+          />
 
-            {recentPapers.length > 0 && (
-              <PaperCarousel 
-                title="Recently Added" 
-                papers={recentPapers} 
-                variant="recent"
-              />
-            )}
-          </section>
+          <PaperCarousel 
+            title="Recently Added" 
+            papers={results.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10)} 
+            variant="recent" 
+          />
 
           <section className={styles.alphabeticalResults}>
             <h2>Browse All Results</h2>
@@ -171,9 +164,7 @@ export default function SearchResultsPage() {
                 <button
                   key={letter}
                   onClick={() => scrollToLetter(letter)}
-                  className={`${styles.letterButton} ${
-                    activeLetter === letter ? styles.active : ''
-                  }`}
+                  className={`${styles.letterButton} ${activeLetter === letter ? styles.active : ''}`}
                 >
                   {letter}
                 </button>
@@ -193,14 +184,6 @@ export default function SearchResultsPage() {
               ))}
             </div>
           </section>
-
-          <button 
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className={styles.backToTop}
-            aria-label="Back to top"
-          >
-            <ArrowUp size={18} />
-          </button>
         </>
       )}
     </div>
