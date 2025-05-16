@@ -7,6 +7,43 @@ import InputField from '../../components/InputField';
 import { Button } from "../../components/ui/Button";
 import NavBar from '../../components/Navbar';
 
+// Password strength checker
+const checkPasswordStrength = (password: string) => {
+  const hasMinLength = password.length >= 8;
+  const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+
+  const strength = [
+    hasMinLength,
+    hasNumber,
+    hasSpecialChar,
+    hasUpperCase,
+    hasLowerCase
+  ].filter(Boolean).length;
+
+  let message = '';
+  let color = '';
+
+  if (password.length === 0) {
+    return { strength: 0, message: '', color: '' };
+  }
+
+  if (strength <= 2) {
+    message = 'Weak password';
+    color = 'red';
+  } else if (strength <= 4) {
+    message = 'Moderate password';
+    color = 'orange';
+  } else {
+    message = 'Strong password!';
+    color = 'green';
+  }
+
+  return { strength, message, color };
+};
+
 const SignupPage = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -18,14 +55,47 @@ const SignupPage = () => {
     role: '',
   });
   const [error, setError] = useState<string>('');
+  const [passwordFeedback, setPasswordFeedback] = useState({
+    strength: 0,
+    message: '',
+    color: ''
+  });
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    length: false,
+    number: false,
+    specialChar: false,
+    upperCase: false,
+    lowerCase: false
+  });
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+
+    // Check password strength in real-time
+    if (name === 'password') {
+      const { strength, message, color } = checkPasswordStrength(value);
+      setPasswordFeedback({ strength, message, color });
+
+      // Update requirements checklist
+      setPasswordRequirements({
+        length: value.length >= 8,
+        number: /\d/.test(value),
+        specialChar: /[!@#$%^&*(),.?":{}|<>]/.test(value),
+        upperCase: /[A-Z]/.test(value),
+        lowerCase: /[a-z]/.test(value)
+      });
+    }
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+  
+    // Check password strength before submission
+    if (passwordFeedback.strength < 3) {
+      setError('Please choose a stronger password');
+      return;
+    }
   
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -52,7 +122,6 @@ const SignupPage = () => {
         alert('Registration Successful! Check your email for the verification code.');
         localStorage.setItem('email', formData.email);
   
-        // 🔁 Call /api/send-otp after registration
         const otpRes = await fetch('/api/send-otp', {
           method: 'POST',
           headers: {
@@ -74,7 +143,7 @@ const SignupPage = () => {
       console.error('Signup error:', error);
       setError('An error occurred. Please try again.');
     }
-  };  
+  };
   
 
   // Handle Google Sign-In
@@ -267,6 +336,56 @@ const SignupPage = () => {
               onChange={handleChange}
             />
             <br />
+
+            {/* Password Strength Feedback */}
+            {formData.password && (
+              <div style={{ width: '100%', marginBottom: '10px' }}>
+                <div style={{ 
+                  height: '5px', 
+                  backgroundColor: '#e0e0e0', 
+                  borderRadius: '5px',
+                  marginBottom: '5px'
+                }}>
+                  <div 
+                    style={{ 
+                      height: '100%', 
+                      width: `${passwordFeedback.strength * 20}%`, 
+                      backgroundColor: passwordFeedback.color,
+                      borderRadius: '5px',
+                      transition: 'all 0.3s ease'
+                    }} 
+                  />
+                </div>
+                <p style={{ 
+                  color: passwordFeedback.color, 
+                  fontSize: '14px',
+                  margin: '5px 0'
+                }}>
+                  {passwordFeedback.message}
+                </p>
+                
+                {/* Password Requirements Checklist */}
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  <p style={{ margin: '2px 0', color: passwordRequirements.length ? 'green' : 'red' }}>
+                    {passwordRequirements.length ? '✓' : '✗'} At least 8 characters
+                  </p>
+                  <p style={{ margin: '2px 0', color: passwordRequirements.number ? 'green' : 'red' }}>
+                    {passwordRequirements.number ? '✓' : '✗'} Contains a number
+                  </p>
+                  <p style={{ margin: '2px 0', color: passwordRequirements.specialChar ? 'green' : 'red' }}>
+                    {passwordRequirements.specialChar ? '✓' : '✗'} Contains a special character
+                  </p>
+                  <p style={{ margin: '2px 0', color: passwordRequirements.upperCase ? 'green' : 'red' }}>
+                    {passwordRequirements.upperCase ? '✓' : '✗'} Contains uppercase letter
+                  </p>
+                  <p style={{ margin: '2px 0', color: passwordRequirements.lowerCase ? 'green' : 'red' }}>
+                    {passwordRequirements.lowerCase ? '✓' : '✗'} Contains lowercase letter
+                  </p>
+                </div>
+              </div>
+            )}
+
+            
             <InputField
               type="password"
               placeholder="Confirm Password"
