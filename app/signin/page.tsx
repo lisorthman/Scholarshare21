@@ -2,7 +2,7 @@
 
 import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react"; // Import signIn from next-auth/react
+import { signIn } from "next-auth/react";
 import InputField from "../../components/InputField";
 import { Button } from "../../components/ui/Button";
 import NavBar from "../../components/Navbar";
@@ -33,7 +33,7 @@ const SigninPage = () => {
       const data = await response.json();
       if (response.ok) {
         alert("Login Successful!");
-        localStorage.setItem("token", data.token); // Store token in local storage
+        localStorage.setItem("token", data.token);
 
         // Redirect based on role
         if (selectedRole === "user") {
@@ -57,12 +57,18 @@ const SigninPage = () => {
 
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
-    await signIn("google", { callbackUrl: "/dashboard" }); // Redirect to dashboard after sign-in
+    await signIn("google", { callbackUrl: "/dashboard" });
   };
 
   // Handle Facebook Sign-In
   const handleFacebookSignIn = async () => {
-    await signIn("facebook", { callbackUrl: "/dashboard" }); // Redirect to dashboard after sign-in
+    await signIn("facebook", { callbackUrl: "/dashboard" });
+  };
+
+  // Handle Forgot Password
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    router.push("/forgot-password");
   };
 
   return (
@@ -80,7 +86,7 @@ const SigninPage = () => {
         <div
           style={{
             gridColumn: 1,
-            backgroundImage: `url('/SignIn.png')`, // Add your background image here
+            backgroundImage: `url('/SignIn.png')`,
             backgroundSize: "500px 500px",
             backgroundPosition: "50% 50%",
             backgroundRepeat: "no-repeat",
@@ -238,14 +244,20 @@ const SigninPage = () => {
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "flex-end",
+                width: "100%",
                 marginBottom: "20px",
               }}
             >
               <a
-                href="#"
-                onClick={() => alert("Forgot password?")}
-                style={{ textDecoration: "none", color: "#634141" }}
+                href="/forgot-password"
+                onClick={handleForgotPassword}
+                style={{ 
+                  textDecoration: "none", 
+                  color: "#634141",
+                  cursor: "pointer",
+                  fontSize: "14px"
+                }}
               >
                 Forgot Password?
               </a>
@@ -253,17 +265,17 @@ const SigninPage = () => {
 
             {/* Submit Button */}
             <Button
-  name="Login"
-  type="submit"
-  variant="default"
-  style={{
-    width: "100%",
-    height: "40px",
-    marginBottom: "20px",
-  }}
->
-  Login
-</Button>
+              name="Login"
+              type="submit"
+              variant="default"
+              style={{
+                width: "100%",
+                height: "40px",
+                marginBottom: "20px",
+              }}
+            >
+              Login
+            </Button>
             <br />
             <br />
 

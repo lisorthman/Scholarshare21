@@ -1,167 +1,159 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
-import { UserRole } from '@/types/user';
 
-export default function ResearcherProfile() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ 
-    name: string; 
-    email: string; 
-    role: string;
-    _id?: string;
-    createdAt?: string;
-    updatedAt?: string;
-    institution?: string;
-    researchField?: string;
-    publications?: number;
-  } | null>(null);
+import { useState, useEffect } from 'react';
+import { updateUserProfile, uploadProfilePicture } from '@/lib/mangodb';
+import { put } from '@vercel/blob';
+import DashboardHeader from '@/components/DashboardHeader';
+
+export default function ResearcherProfilePage() {
+  const [user, setUser] = useState({
+    name: '',
+    email: '',
+    image: '',
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    const verifyToken = async () => {
-      try {
-        const response = await fetch('/api/verify-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await response.json();
-        if (data.valid && data.user.role === 'researcher') {
-          // Add mock research data for demo
-          setUser({
-            _id: data.user._id || 'mock-id',
-            createdAt: data.user.createdAt || new Date().toISOString(),
-            updatedAt: data.user.updatedAt || new Date().toISOString(),
-            name: data.user.name || 'Unknown Name',
-            email: data.user.email || 'unknown@example.com',
-            role: data.user.role as 'admin' | 'researcher' | 'user', // Ensure role matches the User type
-            institution: data.user.institution || 'University of Research',
-            researchField: data.user.researchField || 'Computer Science',
-            publications: data.user.publications || 12,
-          });
-        } else {
-          router.push('/unauthorized');
-        }
-      } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/login');
-      }
+    // Fetch user data
+    const fetchUser = async () => {
+      const response = await fetch('/api/user');
+      const data = await response.json();
+      setUser(data);
+      setNewName(data.name);
     };
+    fetchUser();
+  }, []);
 
-    verifyToken();
-  }, [router]);
+  const handleNameChange = async () => {
+    try {
+      await updateUserProfile({ name: newName });
+      setUser({ ...user, name: newName });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating name:', error);
+    }
+  };
 
-  if (!user) return <p>Loading...</p>;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    
+    setUploading(true);
+    try {
+      // Upload to Vercel Blob
+      const response = await fetch(`/api/researcher/upload?filename=${selectedFile.name}`, {
+        method: 'POST',
+        body: selectedFile,
+      });
+      
+      const { url } = await response.json();
+      
+      // Update user profile with new image URL
+      await updateUserProfile({ image: url });
+      setUser({ ...user, image: url });
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
-    <DashboardLayout user={{
-      _id: user._id || 'default-id', // Provide a default value if undefined
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      // Optional fields can be omitted
-    }} defaultPage="Profile">
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        padding: '40px',
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-        maxWidth: '800px',
-        width: '100%',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-          <div style={{
-            width: '100px',
-            height: '100px',
-            borderRadius: '50%',
-            backgroundColor: '#f0f2f5',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: '30px',
-            fontSize: '36px',
-            color: '#555'
-          }}>
-            {user.name.charAt(0).toUpperCase()}
+    <div className="p-6">
+      <DashboardHeader title="Profile Settings" />
+      
+      <div className="bg-white rounded-lg shadow p-6 mt-6">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="w-full md:w-1/3">
+            <div className="flex flex-col items-center">
+              <img
+                src={user.image || '/default-avatar.png'}
+                alt="Profile"
+                className="w-32 h-32 rounded-full object-cover mb-4"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                id="profile-upload"
+              />
+              <label
+                htmlFor="profile-upload"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer mb-2"
+              >
+                Change Photo
+              </label>
+              {selectedFile && (
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  {uploading ? 'Uploading...' : 'Save Photo'}
+                </button>
+              )}
+            </div>
           </div>
-          <div>
-            <h1 style={{ fontSize: '28px', marginBottom: '5px' }}>{user.name}</h1>
-            <p style={{ color: '#666', marginBottom: '5px' }}>{user.email}</p>
-            <p style={{ color: '#0070f3', fontWeight: '500' }}>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</p>
+          
+          <div className="w-full md:w-2/3">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Personal Information</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <p className="mt-1 p-2 bg-gray-100 rounded">{user.email}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  {isEditing ? (
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="p-2 border rounded flex-1"
+                      />
+                      <button
+                        onClick={handleNameChange}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 mt-1">
+                      <p className="p-2 bg-gray-100 rounded flex-1">{user.name}</p>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: '20px',
-          marginBottom: '30px'
-        }}>
-          <div style={{ 
-            backgroundColor: '#f9f9f9', 
-            padding: '20px', 
-            borderRadius: '8px'
-          }}>
-            <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>Research Information</h2>
-            <p style={{ marginBottom: '10px' }}><strong>Institution:</strong> {user.institution}</p>
-            <p style={{ marginBottom: '10px' }}><strong>Research Field:</strong> {user.researchField}</p>
-            <p><strong>Publications:</strong> {user.publications}</p>
-          </div>
-
-          <div style={{ 
-            backgroundColor: '#f9f9f9', 
-            padding: '20px', 
-            borderRadius: '8px'
-          }}>
-            <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>Account Details</h2>
-            <p style={{ marginBottom: '10px' }}><strong>Email:</strong> {user.email}</p>
-            <p style={{ marginBottom: '10px' }}><strong>Account Type:</strong> Researcher</p>
-            <p><strong>Member Since:</strong> January 2023</p>
-          </div>
-        </div>
-
-        <div style={{ 
-          backgroundColor: '#f9f9f9', 
-          padding: '20px', 
-          borderRadius: '8px'
-        }}>
-          <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>Recent Activity</h2>
-          <div style={{ marginBottom: '10px' }}>
-            <p><strong>Last Login:</strong> 2 hours ago</p>
-            <p><strong>Last Paper Upload:</strong> 3 days ago</p>
-          </div>
-          <button
-            style={{
-              backgroundColor: 'transparent',
-              color: '#0070f3',
-              border: '1px solid #0070f3',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#0070f3';
-              e.currentTarget.style.color = '#fff';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#0070f3';
-            }}
-          >
-            View Full Activity
-          </button>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
