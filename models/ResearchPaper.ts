@@ -1,5 +1,13 @@
 import { Schema, model, models, Types, Document } from 'mongoose';
 
+export interface Review {
+  userId: Types.ObjectId;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+}
+
 export interface ResearchPaperDocument extends Document {
   title: string;
   abstract?: string;
@@ -19,7 +27,19 @@ export interface ResearchPaperDocument extends Document {
   plagiarismScore?: number;
   aiScore?: number;
   rejectionReason?: string;
+  reviews: Review[];
 }
+
+const ReviewSchema = new Schema<Review>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userName: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false } // Embedded subdocuments don't need their own _id
+);
 
 const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
   {
@@ -117,6 +137,12 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     rejectionReason: {
       type: String,
     },
+
+    // ✅ Add this new reviews array
+    reviews: {
+      type: [ReviewSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -126,6 +152,13 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
         ret._id = ret._id.toString();
         ret.authorId = ret.authorId.toString();
         ret.categoryId = ret.categoryId?.toString();
+        if (ret.reviews) {
+          ret.reviews = ret.reviews.map((r: any) => ({
+            ...r,
+            userId: r.userId.toString(),
+            createdAt: r.createdAt?.toISOString(),
+          }));
+        }
         delete ret.__v;
         return ret;
       },

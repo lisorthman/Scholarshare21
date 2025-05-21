@@ -17,7 +17,7 @@ const GenerateCitation: React.FC<GenerateCitationProps> = ({
   };
 
   const generateCitation = () => {
-    const author = formatAuthor(paper.author);
+    const author = formatAuthor(authors?.[0] || "Unknown Author");
     const year = new Date(paper.createdAt).getFullYear();
     const title = paper.title;
     const version = paper.version ? ` (Version ${paper.version})` : '';
