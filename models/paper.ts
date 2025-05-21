@@ -6,7 +6,7 @@ interface IPaper extends Document {
   details: string;
   submittedDate: Date;
   owner: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 const paperSchema: Schema = new mongoose.Schema<IPaper>({
@@ -16,8 +16,8 @@ const paperSchema: Schema = new mongoose.Schema<IPaper>({
   owner: { type: String, required: true },
   status: {
     type: String,
-    enum: ['Pending', 'Approved', 'Rejected'],
-    default: 'Pending',
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
   },
 });
 
