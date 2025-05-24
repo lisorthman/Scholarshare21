@@ -189,33 +189,34 @@ const refreshMilestones = async () => {
   }
 };
 
+  // Update the getMilestoneConfig function with new colors
   const getMilestoneConfig = (type: string) => {
     const configs = {
       uploads: {
-        icon: <UploadCloud className="w-5 h-5" />,
+        icon: <UploadCloud className="w-7 h-7" />,
         colors: {
-          bg: 'bg-blue-100',
-          text: 'text-blue-800',
-          progress: 'bg-blue-500',
-          border: 'border-blue-200'
+          bg: 'bg-[#E0D8C3]/30',
+          text: 'text-[#634141]',
+          progress: 'bg-[#634141]',
+          border: 'border-[#E0D8C3]'
         }
       },
       approvals: {
-        icon: <CheckCircle className="w-5 h-5" />,
+        icon: <CheckCircle className="w-7 h-7" />,
         colors: {
-          bg: 'bg-green-100',
-          text: 'text-green-800',
-          progress: 'bg-green-500',
-          border: 'border-green-200'
+          bg: 'bg-[#E0D8C3]/30',
+          text: 'text-[#634141]',
+          progress: 'bg-[#634141]',
+          border: 'border-[#E0D8C3]'
         }
       },
       downloads: {
-        icon: <Download className="w-5 h-5" />,
+        icon: <Download className="w-7 h-7" />,
         colors: {
-          bg: 'bg-purple-100',
-          text: 'text-purple-800',
-          progress: 'bg-purple-500',
-          border: 'border-purple-200'
+          bg: 'bg-[#E0D8C3]/30',
+          text: 'text-[#634141]',
+          progress: 'bg-[#634141]',
+          border: 'border-[#E0D8C3]'
         }
       }
     };
@@ -237,9 +238,9 @@ const refreshMilestones = async () => {
     <DashboardLayout user={user} activeTab="milestones">
       <div className="space-y-8">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Research Milestones</h1>
-          <p className="text-muted-foreground">
+        <div className="space-y-4 mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-[#634141]">Research Milestones</h1>
+          <p className="text-[#634141]/70">
             Track your research achievements and progress
           </p>
         </div>
@@ -279,7 +280,7 @@ const refreshMilestones = async () => {
             </Button>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-3 gap-8">
             {milestones.map((milestone) => {
               const config = getMilestoneConfig(milestone._id);
               const isComplete = milestone.status === 'completed';
@@ -287,73 +288,60 @@ const refreshMilestones = async () => {
               return (
                 <div
                   key={milestone._id}
-                  className={`rounded-xl border ${config.colors.border} overflow-hidden transition-all hover:shadow-md`}
+                  className={`rounded-2xl border-2 ${config.colors.border} overflow-hidden transition-all duration-300 hover:shadow-xl bg-white/50`}
                 >
-                  <div className={`p-6 ${config.colors.bg}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${config.colors.bg} ${config.colors.text}`}>
-                        {config.icon}
+                  {/* Header section */}
+                  <div className={`p-8 ${config.colors.bg} backdrop-blur-sm`}>
+                    <div className="flex items-center gap-6">
+                      <div className={`p-4 rounded-xl ${config.colors.bg} ${config.colors.text} ring-1 ring-[#634141]/20`}>
+                        <div className="w-10 h-10">
+                          {config.icon}
+                        </div>
                       </div>
                       <div>
-                        <h3 className="font-semibold">{milestone.title}</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <h3 className="text-xl font-semibold text-[#634141] mb-2">{milestone.title}</h3>
+                        <p className="text-base text-[#634141]/70">
                           {milestone.description}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-6 space-y-4">
-                    {/* Progress Bar */}
+                  {/* Content section */}
+                  <div className="p-8 space-y-8">
+                    {/* Progress Bar - larger */}
                     <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium">
+                      <div className="flex justify-between text-base mb-4">
+                        <span className="text-[#634141]/70">Progress</span>
+                        <span className="font-medium text-[#634141]">
                           {milestone.currentCount}/{milestone.nextThreshold}
                         </span>
                       </div>
-                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                      <div className="relative h-4 w-full overflow-hidden rounded-full bg-[#E0D8C3]/30">
                         <div
-                          className={`h-full ${config.colors.progress} transition-all duration-500 ease-out`}
+                          className={`h-full ${config.colors.progress} transition-all duration-500 ease-out rounded-full`}
                           style={{ width: `${milestone.progress}%` }}
                         />
-                        {isComplete && (
-                          <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                        )}
                       </div>
                     </div>
 
-                    {/* Badges */}
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-muted-foreground">
+                    {/* Achievements section - larger badges */}
+                    <div className="space-y-4">
+                      <h4 className="text-base font-medium text-[#634141]/70">
                         Achievements
                       </h4>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-3">
                         {milestone.achievedRewards.map((reward) => (
                           <div
                             key={reward}
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${config.colors.bg} ${config.colors.text} border ${config.colors.border}`}
+                            className={`inline-flex items-center rounded-full px-5 py-2.5 text-base font-medium ${config.colors.bg} ${config.colors.text} border ${config.colors.border} shadow-sm`}
                           >
-                            <BadgeCheck className="mr-1 h-3 w-3" />
+                            <BadgeCheck className="mr-2 h-5 w-5" />
                             {reward}
                           </div>
                         ))}
-                        {milestone.achievedRewards.length === 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            No achievements yet
-                          </p>
-                        )}
                       </div>
                     </div>
-
-                    {/* Next Reward */}
-                    {!isComplete && (
-                      <div className="pt-4 border-t">
-                        <p className="text-sm text-muted-foreground">
-                          Next reward at {milestone.nextThreshold} {milestone._id}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               );
