@@ -1,4 +1,3 @@
-// app/api/update-profile-photo/route.ts
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
@@ -6,7 +5,7 @@ import User from '@/models/user';
 import jwt from 'jsonwebtoken';
 
 export const config = {
-  runtime: 'edge', // Important for Vercel Blob on Edge
+  runtime: 'edge',
 };
 
 export async function POST(request: Request) {
@@ -27,7 +26,17 @@ export async function POST(request: Request) {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "liso2002") as {
       userId: string;
+      role: string;
     };
+    
+    // Check if user has allowed role
+    if (!['admin', 'researcher'].includes(decoded.role)) {
+      return NextResponse.json(
+        { message: "Unauthorized role" },
+        { status: 403 }
+      );
+    }
+
     const userId = decoded.userId;
 
     // Find the user

@@ -119,31 +119,37 @@ const SignupPage = () => {
   
       const data = await response.json();
       if (response.ok) {
-        alert('Registration Successful! Check your email for the verification code.');
-        localStorage.setItem('email', formData.email);
-  
-        const otpRes = await fetch('/api/send-otp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email: formData.email }),
-        });
-  
+      // Save token AND role to storage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role); // Added this line
+      localStorage.setItem("email", formData.email);
+
+      // Set cookies (optional)
+      document.cookie = `token=${data.token}; path=/; max-age=3600`;
+      document.cookie = `role=${data.role}; path=/; max-age=3600`;
+
+      alert('Registration Successful! Check your email for verification.');
+      
+      // Proceed to OTP verification
+      const otpRes = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (otpRes.ok) {
         const otpData = await otpRes.json();
-        if (otpRes.ok && otpData.expiry) {
-          localStorage.setItem('otpExpiryTime', otpData.expiry);
-        }
-  
+        localStorage.setItem("otpExpiryTime", otpData.expiry);
         router.push('/verify');
-      } else {
-        setError(data.message || 'Registration failed');
       }
-    } catch (error) {
-      console.error('Signup error:', error);
-      setError('An error occurred. Please try again.');
+    } else {
+      setError(data.message || 'Registration failed');
     }
-  };
+  } catch (error) {
+    console.error('Signup error:', error);
+    setError('An error occurred. Please try again.');
+  }
+};
   
 
   // Handle Google Sign-In

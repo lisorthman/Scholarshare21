@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongoose";
 import User from "@/models/user";
 import jwt from "jsonwebtoken";
-
-// Optional: Import bcrypt for password hashing (install with `npm install bcrypt`)
 import bcrypt from "bcrypt";
 
 export async function PATCH(request: Request) {
@@ -26,7 +24,12 @@ export async function PATCH(request: Request) {
       iat: number;
       exp: number;
     };
-    console.log("Decoded token:", decoded);
+    
+    // Check if user has allowed role
+    if (!['admin', 'researcher'].includes(decoded.role)) {
+      return NextResponse.json({ message: "Unauthorized role" }, { status: 403 });
+    }
+
     const userId = decoded.userId;
 
     // Find the user
@@ -41,10 +44,9 @@ export async function PATCH(request: Request) {
     user.email = email || user.email;
 
     if (password) {
-      // Hash the password before saving (using bcrypt)
       const saltRounds = 10;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
-      user.password = hashedPassword; // Ensure the User model has a password field
+      user.password = hashedPassword;
     }
 
     await user.save();

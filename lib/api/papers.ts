@@ -1,43 +1,53 @@
-// /lib/api/papers.ts
+import connectToDB from '@/lib/mongoose';
+import ResearchPaper from '@/models/ResearchPaper';
+import { Types } from 'mongoose';
 
-export interface Paper {
-    id: string;
-    title: string;
-    abstract?: string;
-    category: string;
-    // Add other fields as needed
+// Get all approved papers with optional filters
+export const getApprovedPapers = async (filters = {}) => {
+  await connectToDB();
+  
+  return await ResearchPaper.find({ 
+    status: 'approved',
+    ...filters 
+  })
+  .populate('author', 'name email')
+  .populate('categoryDetails', 'name')
+  .sort({ createdAt: -1 });
+};
+
+// Get single paper by ID
+export const getPaperById = async (id: string) => {
+  await connectToDB();
+  
+  if (!Types.ObjectId.isValid(id)) {
+    return null;
   }
+
+  return await ResearchPaper.findById(id)
+    .populate('author', 'name email')
+    .populate('categoryDetails', 'name');
+};
+
+// Increment download count
+export const incrementDownloadCount = async (id: string) => {
+  await connectToDB();
   
-  export interface Pagination {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  }
+  return await ResearchPaper.findByIdAndUpdate(
+    id,
+    { $inc: { downloads: 1 } },
+    { new: true }
+  );
+};
+
+// Other paper-related API functions...
+export const searchPapers = async (query: string) => {
+  await connectToDB();
   
-  export interface ApiResponse {
-    papers: Paper[];
-    pagination: Pagination;
-  }
-  
-  export async function fetchPapers(
-    page = 1,
-    search = '',
-    category = '',
-    limit = 10
-  ): Promise<ApiResponse> {
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (category) params.append('category', category);
-    params.append('page', page.toString());
-    params.append('limit', limit.toString());
-  
-    const res = await fetch(`/api/papers?${params.toString()}`);
-  
-    if (!res.ok) {
-      throw new Error(`Failed to fetch papers: ${res.statusText}`);
-    }
-  
-    return res.json();
-  }
-  
+  return await ResearchPaper.find(
+    { $text: { $search: query }, status: 'approved' },
+    { score: { $meta: "textScore" } }
+  )
+  .sort({ score: { $meta: "textScore" } })
+  .populate('author', 'name')
+  .limit(20);
+};

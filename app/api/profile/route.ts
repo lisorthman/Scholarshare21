@@ -1,9 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import User from '@/models/user'; // Adjust path based on your project structure
-import connectDB from "@/lib/mongoose"; // Assuming you have a DB connection file
+import User from '@/models/user';
+import connectDB from "@/lib/mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await connectDB(); // Connect to MongoDB
+  await connectDB();
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Verify the token (similar to your /api/verify-token logic)
+    // Verify the token
     const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/verify-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -23,19 +23,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const verifyData = await verifyResponse.json();
-    if (!verifyData.valid || verifyData.user.role !== 'admin') {
+    
+    // Allow both admin and researcher roles
+    if (!verifyData.valid || !['admin', 'researcher'].includes(verifyData.user.role)) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // Fetch the user (admin) from the database
-    const admin = await User.findOne({ _id: verifyData.user._id });
-    if (!admin) {
-      return res.status(404).json({ error: 'Admin not found' });
+    // Fetch the user from the database
+    const user = await User.findOne({ _id: verifyData.user._id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    res.status(200).json(admin);
+    res.status(200).json(user);
   } catch (error) {
-    console.error('Error fetching admin profile:', error);
+    console.error('Error fetching profile:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 }

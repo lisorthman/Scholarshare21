@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     console.log('Generated Token:', token);
 
     return NextResponse.json(
-      { message: 'User created. Verification code sent.', token },
+      { message: 'User created. Verification code sent.', token, role: role },
       { status: 201 }
     );
 

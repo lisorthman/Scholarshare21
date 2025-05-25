@@ -61,6 +61,7 @@
       fill: #555; /* Set color */
       margin-right: 10px;
     }
+    
 
     .searchInput {
       border: none;
@@ -71,6 +72,18 @@
       font-family: 'Space Grotesk', sans-serif; /* Apply font */
       letter-spacing: 0.25em; /* 25% spacing */
     }
+
+    .admin-role {
+  color: #75392c !important;
+}
+
+.researcher-role {
+  color: #75392c  !important;
+}
+
+.user-role {
+  color: #75392c  !important;
+}
 
   }
 }
