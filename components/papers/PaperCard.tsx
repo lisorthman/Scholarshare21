@@ -37,7 +37,7 @@ export default function PaperCard({
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow ">
       <div className="p-6">
         <div className="flex justify-between items-start mb-2">
           <span className="inline-block px-3 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full">
@@ -96,7 +96,7 @@ export default function PaperCard({
               href={paper.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-500 hover:text-blue-700 font-medium"
+              className="text-red-900 hover:text-red-700 font-medium"
             >
               View
             </Link>
@@ -104,7 +104,7 @@ export default function PaperCard({
             {/* View Citation Button */}
             <Link
               href={`/papers/${paper._id}`}
-              className="text-green-600 hover:text-green-800 font-medium"
+              className="text-blue-600 hover:text-blue-800 font-medium"
             >
               Citation
             </Link>
