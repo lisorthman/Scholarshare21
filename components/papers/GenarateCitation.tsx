@@ -27,7 +27,7 @@ export default function PapersGenerateCitation({
 
   return (
     <div>
-      <label htmlFor="style">Citation Style:</label>
+      <label htmlFor="style">Select Citation Style:</label>
       <select id="style" value={style} onChange={(e) => setStyle(e.target.value as any)}>
         <option value="APA">APA</option>
         <option value="MLA">MLA</option>

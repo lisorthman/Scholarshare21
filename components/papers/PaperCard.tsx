@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Bookmark, BookmarkCheck } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 interface Paper {
   _id: string;
