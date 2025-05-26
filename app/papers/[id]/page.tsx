@@ -1,4 +1,5 @@
 import GenerateCitation from '@/components/papers/GenarateCitation';
+import CopyCitationButton from '@/components/CopyCitation/CopyCitationButton';
 
 interface Paper {
   _id: string;
@@ -18,70 +19,79 @@ async function getPaper(id: string) {
 export default async function PaperDetailPage({ params }: { params: { id: string } }) {
   const paper: Paper = await getPaper(params.id);
 
-  // Provide fallbacks for missing fields
-  const authors = paper.authors || ["Unknown Author"];
-  const year = paper.year || new Date(paper.createdAt).getFullYear();
-  const publisher = paper.publisher || "Unknown Publisher";
+  // Improved fallbacks with better type checking
+  const authors = paper.authors?.length ? paper.authors : ["Unknown Author"];
+  const year = paper.year || (paper.createdAt ? new Date(paper.createdAt).getFullYear() : "N/A");
+  const publisher = paper.publisher || "Unknown Publisher"; 
+
+  // Convert year to string to avoid NaN in render
+  const yearDisplay = typeof year === 'number' ? year.toString() : year;
+
+  const citation = `${authors.join(', ')}. "${paper.title}". ${publisher}, ${yearDisplay}.`;
 
   return (
     <div style={{
-      backgroundColor: '#f4f4f4',
+      backgroundColor: '#E0D8C3',
       minHeight: '100vh',
       padding: '20px',
+      display: 'flex',          
+      alignItems: 'center',      
+      justifyContent: 'center', 
     }}>
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: '10px',
-        padding: '20px',
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+        borderRadius: '16px',
+        padding: '24px',
+        boxShadow: '0 4px 15px rgba(99, 65, 65, 0.1)',
+        width: '100%',           
         maxWidth: '800px',
-        margin: '0 auto',
+        
       }}>
         <h1 style={{
-          fontSize: '24px',
+          fontSize: '28px',
           fontWeight: '600',
-          marginBottom: '20px',
-          color: '#333',
+          marginBottom: '24px',
+          color: '#634141',
         }}>
           Paper Details
         </h1>
         <table style={{
           width: '100%',
           borderCollapse: 'collapse',
-          marginBottom: '20px',
+          marginBottom: '24px',
         }}>
           <tbody>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Title:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{paper.title}</td>
+              <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141', width: '120px' }}>Title:</td>
+              <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{paper.title}</td>
             </tr>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Authors:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{authors.join(', ')}</td>
+              <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>Authors:</td>
+              <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{authors.join(', ')}</td>
             </tr>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Published:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{year}</td>
+              <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>Published:</td>
+              <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{yearDisplay}</td>
             </tr>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Publisher:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{publisher}</td>
+              <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>Publisher:</td>
+              <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{publisher}</td>
             </tr>
           </tbody>
         </table>
         <div style={{
-          backgroundColor: '#f9f9f9',
-          borderRadius: '10px',
-          padding: '20px',
-          marginBottom: '20px',
+          backgroundColor: '#E0D8C3',
+          borderRadius: '12px',
+          padding: '24px',
+          marginBottom: '24px',
         }}>
           <h2 style={{
-            fontSize: '20px',
+            fontSize: '22px',
             fontWeight: '600',
-            marginBottom: '10px',
-            color: '#333',
+            marginBottom: '16px',
+            color: '#634141',
           }}>
-            Generate Citation
+            Generate Citation of the Research Paper
           </h2>
           <GenerateCitation
             title={paper.title}
@@ -92,33 +102,10 @@ export default async function PaperDetailPage({ params }: { params: { id: string
         </div>
         <div style={{
           display: 'flex',
-          gap: '10px',
+          gap: '12px',
           justifyContent: 'flex-end',
         }}>
-          <button style={{
-            backgroundColor: '#0070f3',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '5px',
-            padding: '10px 20px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease',
-          }}>
-            Download Paper
-          </button>
-          <button style={{
-            backgroundColor: '#4CAF50',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '5px',
-            padding: '10px 20px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease',
-          }}>
-            Share Citation
-          </button>
+          <CopyCitationButton citation={citation} />
         </div>
       </div>
     </div>
