@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Review from "@/models/review";
 import ResearchPaper from "@/models/ResearchPaper";
-import User from "@/models/user";
 import nodemailer from "nodemailer";
 
-// Type safety for expected input
 interface ReviewRequestBody {
   paperId: string;
-  reviewerId: string;
   message: string;
   rating: number;
+  reviewerName?: string;
 }
 
 export async function POST(req: Request) {
@@ -18,10 +16,10 @@ export async function POST(req: Request) {
     await connectDB();
 
     const body: ReviewRequestBody = await req.json();
-    const { paperId, reviewerId, message, rating } = body;
+    const { paperId, message, rating, reviewerName = "Anonymous" } = body;
 
     // Basic validation
-    if (!paperId || !reviewerId || !message || rating == null) {
+    if (!paperId || !message || rating == null) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
@@ -29,55 +27,56 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Rating must be between 1 and 5." }, { status: 400 });
     }
 
-    // Optional: prevent duplicate reviews
-    const existingReview = await Review.findOne({ paperId, reviewerId });
-    if (existingReview) {
-      return NextResponse.json({ error: "You have already reviewed this paper." }, { status: 409 });
-    }
-
-    // Get paper + author details
+    // Get paper details
     const paper = await ResearchPaper.findById(paperId).populate("authorId");
-    if (!paper || !paper.authorId || !paper.authorId.email) {
-      return NextResponse.json({ error: "Paper or author not found." }, { status: 404 });
+    if (!paper) {
+      return NextResponse.json({ error: "Paper not found." }, { status: 404 });
     }
 
-    // Optional: only allow reviews on approved papers
     if (paper.status !== "approved") {
       return NextResponse.json({ error: "Reviews can only be submitted on approved papers." }, { status: 403 });
     }
 
-    // Save review
-    const newReview = await Review.create({ paperId, reviewerId, message, rating });
-
-    // Send email to the author
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
-      },
+    // Save review without reviewerId
+    const newReview = await Review.create({
+      paperId,
+      reviewerName,
+      message,
+      rating,
+      createdAt: new Date()
     });
 
-    try {
-      await transporter.sendMail({
-        from: `"ScholarShare" <${process.env.GMAIL_USER}>`,
-        to: paper.authorId.email,
-        subject: "New Review on Your Research Paper",
-        text: `You received a new review:\n\n"${message}"\n\nRating: ${rating}/5`,
+    // Email notification (optional)
+    if (paper.authorId?.email) {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_PASS,
+        },
       });
-    } catch (emailErr) {
-      console.error("Failed to send email:", emailErr);
-      // Still return success for review creation, email is optional
-      return NextResponse.json({
-        message: "Review submitted, but email notification failed.",
-        emailError: emailErr instanceof Error ? emailErr.message : emailErr,
-      });
+
+      try {
+        await transporter.sendMail({
+          from: `"ScholarShare" <${process.env.GMAIL_USER}>`,
+          to: paper.authorId.email,
+          subject: "New Review on Your Research Paper",
+          text: `You received a new review from ${reviewerName}:\n\n"${message}"\n\nRating: ${rating}/5`,
+        });
+      } catch (emailErr) {
+        console.error("Failed to send email:", emailErr);
+      }
     }
 
-    return NextResponse.json({ message: "Review submitted and email sent." });
+    return NextResponse.json({
+      message: "Review submitted successfully.",
+      review: newReview
+    });
 
   } catch (err) {
     console.error("Error submitting review:", err);
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+    return NextResponse.json({
+      error: "Internal server error."
+    }, { status: 500 });
   }
 }

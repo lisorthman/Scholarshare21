@@ -1,40 +1,49 @@
-// ✅ Correct (using named import)
-import { getPaperById } from '@/lib/api/papers';import PaperMetaData from '@/components/papers/PaperMetaData';
-import GenerateCitation from '@/components/papers/GenarateCitation';
+import { getPaperById } from '@/lib/api/papers';
+import RatingDisplay from '@/components/papers/RatingDisplay';
+import ReviewList from '@/components/papers/ReviewList';
+import ReviewForm from '@/components/papers/ReviewForm';
+import { notFound } from 'next/navigation';
 
-export default async function PaperDetailPage({ params }: { params: { id: string } }) {
-  const paper = await getPaperById(params.id);
-  
+export default async function PaperDetailPage(props: { 
+  params: { id: string },
+  searchParams: any 
+}) {
+  // Access params through props instead
+  const paperId = props.params.id;
+  const paper = await getPaperById(paperId);
+
   if (!paper || paper.status !== 'approved') {
-    return <div>Paper not found or not approved</div>;
+    notFound();
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">{paper.title}</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">Abstract</h2>
-            <p className="text-gray-700">{paper.abstract}</p>
+      <div className="max-w-3xl mx-auto">
+        {/* Paper Title and Description */}
+        <h1 className="text-3xl font-bold mb-4">{paper.title}</h1>
+        {paper.description && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-2">Description</h2>
+            <p className="text-gray-700">{paper.description}</p>
           </div>
-          
-          {/* PDF viewer or download button */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <a 
-              href={paper.fileUrl} 
-              target="_blank"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              View Full Paper
-            </a>
-          </div>
+        )}
+        
+        {/* Rating Display */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Rating</h2>
+          <RatingDisplay paperId={paper._id} />
         </div>
         
-        <div className="lg:col-span-1">
-          <PaperMetaData paper={paper} />
-          <GenerateCitation paper={paper} />
+        {/* Reviews Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Reviews</h2>
+          <ReviewList paperId={paper._id} />
+        </div>
+        
+        {/* Review Form - No auth required */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Add Your Review</h2>
+          <ReviewForm paperId={paper._id} />
         </div>
       </div>
     </div>
