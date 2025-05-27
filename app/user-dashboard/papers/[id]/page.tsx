@@ -20,13 +20,8 @@ export default async function PaperDetailPage(props: {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
         {/* Paper Title and Description */}
-        <h1 className="text-3xl font-bold mb-4">{paper.title}</h1>
-        {paper.description && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-2">Description</h2>
-            <p className="text-gray-700">{paper.description}</p>
-          </div>
-        )}
+        <h1 className="text-3xl font-bold mb-4"><b><u>{paper.title}</u></b></h1>
+       
         
         {/* Rating Display */}
         <div className="mb-8">

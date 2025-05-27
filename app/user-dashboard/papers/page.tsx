@@ -32,7 +32,7 @@ export default async function UserPapersPage() {
               href={`/user-dashboard/papers/${paper._id}`}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium text-center"
             >
-              View full details and reviews →
+              View Rating and Reviews  →
             </a>
           </div>
         ))}
