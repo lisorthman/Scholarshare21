@@ -92,39 +92,38 @@ export default function PaperCard({
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-2">
-          <span className="inline-block px-3 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full capitalize">
-            {paper.category.replace(/-/g, " ")}
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <span style={styles.categoryBadge}>
+          {paper.category.replace(/-/g, " ")}
+        </span>
+
+        {showStatus && paper.status && (
+          <span style={{
+            ...styles.statusBadge,
+            ...(paper.status === "approved" ? styles.statusApproved : 
+                paper.status === "rejected" ? styles.statusRejected : 
+                styles.statusPending)
+          }}>
+            {paper.status}
           </span>
+        )}
+      </div>
 
-          {showStatus && paper.status && (
-            <span
-              className={`inline-block px-3 py-1 text-sm font-semibold rounded-full capitalize ${
-                paper.status === "approved"
-                  ? "text-green-700 bg-green-100"
-                  : paper.status === "rejected"
-                  ? "text-red-700 bg-red-100"
-                  : "text-yellow-700 bg-yellow-100"
-              }`}
-            >
-              {paper.status}
-            </span>
-          )}
-        </div>
-
-        <h3 className="text-xl font-bold mb-2 line-clamp-2">{paper.title}</h3>
+      <div style={styles.cardBody}>
+        <h3 style={styles.title}>{paper.title}</h3>
 
         {paper.abstract && (
-          <p className="text-gray-600 mb-4 line-clamp-3">{paper.abstract}</p>
+          <p style={styles.abstract}>{paper.abstract}</p>
         )}
 
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-500">
-            {paper.author?.name && <span>By {paper.author.name}</span>}
+        <div style={styles.footer}>
+          <div style={styles.metaInfo}>
+            {paper.author?.name && (
+              <span style={styles.author}>By {paper.author.name}</span>
+            )}
             {paper.createdAt && (
-              <span className="block text-xs">
+              <span style={styles.date}>
                 {new Date(paper.createdAt).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'short',
@@ -134,68 +133,238 @@ export default function PaperCard({
             )}
           </div>
 
-          <div className="flex gap-2">
-            {/* Wishlist Button - Now properly showing */}
-            <Button
-              variant="ghost"
-              size="icon"
+          <div style={styles.actions}>
+            <button
+              style={styles.iconButton}
               onClick={handleWishlistClick}
               disabled={isDownloading}
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               {isWishlisted ? (
-                <Heart className="h-5 w-5 text-red-500 fill-red-500" />
+                <Heart style={{...styles.icon, ...styles.wishlistActive}} />
               ) : (
-                <Heart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+                <Heart style={{...styles.icon, ...styles.wishlistInactive}} />
               )}
-            </Button>
+            </button>
 
-            {/* Save Button */}
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
+              style={styles.iconButton}
               onClick={handleSaveClick}
               disabled={isDownloading}
               aria-label={isSaved ? "Unsave paper" : "Save paper"}
             >
               {isSaved ? (
-                <BookmarkCheck className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                <BookmarkCheck style={{...styles.icon, ...styles.saveActive}} />
               ) : (
-                <Bookmark className="h-5 w-5 text-gray-600 hover:text-yellow-500" />
+                <Bookmark style={{...styles.icon, ...styles.saveInactive}} />
               )}
-            </Button>
+            </button>
 
-            {/* Download Button */}
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
+              style={styles.iconButton}
               onClick={handleDownload}
               disabled={isDownloading}
               aria-label="Download paper"
             >
-              <Download className={`h-5 w-5 ${isDownloading ? 'text-gray-400 animate-pulse' : 'text-gray-600 hover:text-blue-500'}`} />
-            </Button>
+              <Download style={{
+                ...styles.icon,
+                ...(isDownloading ? styles.downloading : styles.download)
+              }} />
+            </button>
 
-            {/* View Button */}
-            <Button asChild variant="ghost" size="sm" className="text-red-900 hover:text-red-700">
-              <Link
-                href={paper.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View
-              </Link>
-            </Button>
+            <Link
+              href={paper.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.textButton}
+            >
+              View
+            </Link>
 
-            {/* Citation Button */}
-            <Button asChild variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
-              <Link href={`/papers/${paper._id}`}>
-                Citation
-              </Link>
-            </Button>
+            <Link 
+              href={`/papers/${paper._id}`}
+              style={{...styles.textButton, ...styles.citationButton}}
+            >
+              Citation
+            </Link>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  card: {
+    border: '1px solid #D7CCC8',
+    borderRadius: '12px',
+    padding: '24px',
+    backgroundColor: '#FFF',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
+    transition: 'all 0.3s ease',
+    ':hover': {
+      transform: 'translateY(-4px)',
+      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.08)',
+      borderColor: '#A1887F',
+    },
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+  },
+  categoryBadge: {
+    padding: '6px 12px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#5D4037',
+    backgroundColor: '#EFEBE9',
+    borderRadius: '20px',
+    textTransform: 'capitalize',
+  },
+  statusBadge: {
+    padding: '6px 12px',
+    fontSize: '14px',
+    fontWeight: '600',
+    borderRadius: '20px',
+    textTransform: 'capitalize',
+  },
+  statusApproved: {
+    color: '#2E7D32',
+    backgroundColor: '#E8F5E9',
+  },
+  statusPending: {
+    color: '#F57F17',
+    backgroundColor: '#FFF8E1',
+  },
+  statusRejected: {
+    color: '#C62828',
+    backgroundColor: '#FFEBEE',
+  },
+  cardBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  title: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#3E2723',
+    margin: '0',
+    lineHeight: '1.4',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  },
+  abstract: {
+    fontSize: '15px',
+    color: '#5D4037',
+    margin: '0',
+    lineHeight: '1.6',
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  },
+  footer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '16px',
+    paddingTop: '16px',
+    borderTop: '1px solid #EFEBE9',
+  },
+  metaInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  author: {
+    fontSize: '14px',
+    color: '#5D4037',
+  },
+  date: {
+    fontSize: '12px',
+    color: '#8D6E63',
+  },
+  actions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  iconButton: {
+    background: 'none',
+    border: 'none',
+    padding: '8px',
+    cursor: 'pointer',
+    borderRadius: '6px',
+    transition: 'all 0.2s ease',
+    ':hover': {
+      backgroundColor: '#EFEBE9',
+    },
+    ':disabled': {
+      opacity: 0.6,
+      cursor: 'not-allowed',
+    },
+  },
+  icon: {
+    width: '20px',
+    height: '20px',
+  },
+  wishlistInactive: {
+    color: '#8D6E63',
+    ':hover': {
+      color: '#D32F2F',
+    },
+  },
+  wishlistActive: {
+    color: '#D32F2F',
+    fill: '#D32F2F',
+  },
+  saveInactive: {
+    color: '#8D6E63',
+    ':hover': {
+      color: '#F57C00',
+    },
+  },
+  saveActive: {
+    color: '#F57C00',
+    fill: '#F57C00',
+  },
+  download: {
+    color: '#8D6E63',
+    ':hover': {
+      color: '#0288D1',
+    },
+  },
+  downloading: {
+    color: '#BCAAA4',
+    animation: 'pulse 1.5s infinite',
+  },
+  textButton: {
+    padding: '8px 16px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#5D4037',
+    backgroundColor: 'transparent',
+    border: '1px solid #D7CCC8',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    transition: 'all 0.2s ease',
+    ':hover': {
+      backgroundColor: '#EFEBE9',
+      borderColor: '#A1887F',
+    },
+  },
+  citationButton: {
+    color: '#5D4037',
+    backgroundColor: '#EFEBE9',
+    border: 'none',
+    ':hover': {
+      backgroundColor: '#D7CCC8',
+    },
+  },
+};

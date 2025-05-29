@@ -86,13 +86,13 @@ export default function ReviewForm({ paperId, onReviewSubmitted }: Props) {
       <button
         type="submit"
         disabled={submitting}
-        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:bg-indigo-400"
+        className="bg-orange-900 text-white px-4 py-2 rounded hover:bg-amber-800 disabled:bg-orange-900"
       >
         {submitting ? "Submitting..." : "Submit Review"}
       </button>
       
       {success && (
-        <p className="text-green-600 mt-3">Review submitted successfully!</p>
+        <p className="text-red-900 mt-3">Review submitted successfully!</p>
       )}
     </form>
   );
