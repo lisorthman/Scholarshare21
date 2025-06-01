@@ -1,14 +1,16 @@
 'use client';
 
+import { useSession, signOut } from 'next-auth/react';
 import React, { useState } from 'react'; 
-import Link from 'next/link'; // Import the Link component
-import Image from 'next/image'; // Import the Image component
+import Link from 'next/link'; 
+import Image from 'next/image'; 
 import { useRouter } from 'next/navigation';
-import styles from './Navbar.module.scss';;
+import styles from './Navbar.module.scss';
 
 const NavBar: React.FC = () => {
   const [query, setQuery] = useState('');
   const router = useRouter();
+  const { data: session } = useSession();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,13 +18,25 @@ const NavBar: React.FC = () => {
       router.push(`/search?q=${encodeURIComponent(query)}`);
     }
   };
+
+  // Redirect to /home after successful login
+  React.useEffect(() => {
+    if (session) {
+      router.replace('/home');
+    }
+  }, [session, router]);
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <nav className={styles.navBar}>
       {/* Logo Section */}
       <div className={styles.logo}>
         {/* Render the logo directly without a Link */}
         <Image
-          src="/logo.png" // Ensure this path is correct
+          src="/logo.png" 
           alt="ScholarShare Logo"
           width={250} // Smaller logo size
           height={30}
@@ -30,20 +44,31 @@ const NavBar: React.FC = () => {
         />
       </div>
 
-      {/* Navigation Links */}
+    {/* Navigation Links */}
       <ul className={styles.navLinks}>
         <li>
-          <Link href="/">Home</Link> {/* Link to the homepage */}
+          <Link href={session ? "/home" : "/"}>Home</Link>
         </li>
         <li>
-          <Link href="/about">About</Link> {/* Link to the About page */}
+          <Link href="/about">About</Link>
+        </li>
+        {session ? (
+          <>
+        <li>
+          <Link href="/dashboard">Dashboard</Link>
         </li>
         <li>
-          <Link href="/signin">Signin</Link> {/* Link to the Signup page */}
+          <button onClick={handleSignOut} className={styles.signOutButton}>Sign Out</button>
         </li>
+          </>
+        ) : (
+          <li>
+        <Link href="/signin">Signin</Link>
+          </li>
+        )}
       </ul>
 
-       {/* Functional Search Bar with existing UI */}
+       {/*Search Bar*/}
        <form onSubmit={handleSearch} className={styles.searchBar}>
         <svg className={styles.searchIcon} viewBox="0 0 24 24">
           <path

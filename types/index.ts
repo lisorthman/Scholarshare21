@@ -4,7 +4,7 @@ export type Paper = {
   abstract: string;
   author: string;
   keywords: string[];
-  category?: string;
+  category: string;
   createdAt: Date;
   downloads?: number;
 };
