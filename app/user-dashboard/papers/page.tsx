@@ -1,227 +1,181 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
+import { getApprovedPapers } from '@/lib/api/papers';
 import PaperCard from '@/components/papers/PaperCard';
-import CategoryFilter from '@/components/category/CategoryFilter';
+import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
 
-export default function UserPapersDashboard() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [user, setUser] = useState<User | null>(null);
-  const [papers, setPapers] = useState<any[]>([]);
-  const [savedPapers, setSavedPapers] = useState<any[]>([]);
-  const [recommendedPapers, setRecommendedPapers] = useState<any[]>([]);
-  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'saved' | 'recommended' | 'recent'>('all');
-  const [loading, setLoading] = useState({
-    papers: true,
-    saved: true,
-    recommended: true,
-    recent: true
-  });
-  const [error, setError] = useState('');
+export default async function UserPapersPage() {
+  const papers = await getApprovedPapers();
+  
+  // Convert papers to plain objects and ensure _id is string
+  const plainPapers = papers.map(paper => ({
+    ...paper,
+    _id: paper._id.toString() // Convert ObjectId to string
+  }));
 
-  const category = searchParams.get('category');
-  const searchQuery = searchParams.get('search');
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const res = await fetch('/api/user/me');
-        const data = await res.json();
-
-        if (!data?.user) {
-          router.push('/login');
-          return;
-        }
-
-        const userObj: User = {
-          _id: data.user._id,
-          name: data.user.name || 'Anonymous',
-          email: data.user.email,
-          role: data.user.role,
-          createdAt: data.user.createdAt,
-          updatedAt: data.user.updatedAt
-        };
-
-        setUser(userObj);
-        fetchAllData(userObj._id);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-
-    fetchUserData();
-  }, [router]);
-
-  const fetchAllData = async (userId: string) => {
-    try {
-      const papersParams = new URLSearchParams();
-      if (category) papersParams.append('category', category);
-      if (searchQuery) papersParams.append('search', searchQuery);
-
-      const [papersRes, savedRes, recommendedRes, recentRes] = await Promise.all([
-        fetch(`/api/papers?${papersParams.toString()}`),
-        fetch(`/api/user/saved-papers?userId=${userId}`),
-        fetch(`/api/recommendations?userId=${userId}`),
-        fetch(`/api/user/recently-viewed?userId=${userId}`)
-      ]);
-
-      const [papersData, savedData, recommendedData, recentData] = await Promise.all([
-        papersRes.json(),
-        savedRes.json(),
-        recommendedRes.json(),
-        recentRes.json()
-      ]);
-
-      setPapers(papersData.papers || []);
-      setSavedPapers(savedData.papers || []);
-      setRecommendedPapers(recommendedData.papers || []);
-      setRecentlyViewed(recentData.papers || []);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load data');
-    } finally {
-      setLoading({ papers: false, saved: false, recommended: false, recent: false });
-    }
+  // Mock user data - replace with your actual user fetching logic
+  const user: User = {
+    _id: '1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'user',
+    avatar: '/default-avatar.jpg'
   };
-
-  const handleSavePaper = async (paperId: string) => {
-    try {
-      if (!user?._id) return;
-
-      const res = await fetch('/api/user/save-paper', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user._id, paperId }),
-      });
-
-      if (res.ok) {
-        const savedRes = await fetch(`/api/user/saved-papers?userId=${user._id}`);
-        const savedData = await savedRes.json();
-        setSavedPapers(savedData.papers);
-      }
-    } catch (err) {
-      console.error('Error saving paper:', err);
-    }
-  };
-
-  const getPapersToDisplay = () => {
-    switch (activeTab) {
-      case 'saved': return savedPapers;
-      case 'recommended': return recommendedPapers;
-      case 'recent': return recentlyViewed;
-      default: return papers;
-    }
-  };
-
-  const isLoading = Object.values(loading).some(Boolean);
-
-  if (!user) return <p>Loading user data...</p>;
 
   return (
-    <DashboardLayout user={user}>
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        padding: '40px',
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-        maxWidth: '1200px',
-        margin: '0 auto',
-      }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '20px' }}>
-          Research Papers Collection
-        </h1>
-
-        <CategoryFilter 
-          activeCategory={category || ''}
-          searchQuery={searchQuery || ''}
-        />
-
-        <div style={{
-          display: 'flex',
-          gap: '10px',
-          margin: '20px 0',
-          borderBottom: '1px solid #eee',
-          paddingBottom: '15px'
-        }}>
-          {['all', 'saved', 'recommended', 'recent'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              style={{
-                ...tabButtonStyle,
-                ...(activeTab === tab ? activeTabStyle : {})
-              }}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)} Papers
-            </button>
-          ))}
+    <DashboardLayout user={user} defaultPage="Papers">
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Research Papers</h1>
         </div>
 
-        {error && <div style={{ color: 'red', marginBottom: '20px' }}>{error}</div>}
-
-        {isLoading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            {[...Array(6)].map((_, i) => (
-              <div key={i} style={{ height: '200px', background: '#eee', borderRadius: '8px' }} />
+        {plainPapers.length > 0 ? (
+          <div style={styles.gridContainer}>
+            {plainPapers.map((paper) => (
+              <div key={paper._id} style={styles.paperContainer}>
+                <div style={styles.paperHeader}>
+                  <span style={styles.paperDate}>
+                    {new Date(paper.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
+                  {paper.authorDetails && (
+                    <span style={styles.paperAuthor}>
+                      by {paper.authorDetails.name}
+                    </span>
+                  )}
+                </div>
+                
+                <PaperCard 
+                  paper={paper}
+                  showAdminActions={false}
+                  showResearcherActions={false}
+                />
+                
+                <div style={styles.footer}>
+                  <a
+                    href={`/user-dashboard/papers/${paper._id}`}
+                    style={styles.viewLink}
+                  >
+                    View Rating and Reviews →
+                  </a>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
-          <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-              gap: '20px',
-              marginTop: '30px'
-            }}>
-              {getPapersToDisplay().map((paper) => (
-                <PaperCard 
-                  key={paper._id} 
-                  paper={paper}
-                  isSaved={savedPapers.some(p => p._id === paper._id)}
-                  onSaveToggle={() => handleSavePaper(paper._id)}
-                />
-              ))}
-            </div>
-
-            {getPapersToDisplay().length === 0 && (
-              <div style={{ 
-                gridColumn: '1 / -1',
-                textAlign: 'center',
-                padding: '40px 0',
-                color: '#555'
-              }}>
-                {{
-                  all: 'No papers found matching your criteria',
-                  saved: 'You have no saved papers yet',
-                  recommended: 'No recommendations available yet',
-                  recent: 'No recently viewed papers'
-                }[activeTab]}
-              </div>
-            )}
-          </>
+          <div style={styles.emptyState}>
+            <h3 style={styles.emptyTitle}>No papers available yet</h3>
+            <p style={styles.emptyText}>Check back later for new research papers</p>
+          </div>
         )}
       </div>
     </DashboardLayout>
   );
 }
 
-const tabButtonStyle = {
-  padding: '10px 20px',
-  border: 'none',
-  background: 'none',
-  cursor: 'pointer',
-  fontSize: '16px',
-  borderRadius: '8px',
-  transition: 'all 0.3s ease',
-};
-
-const activeTabStyle = {
-  backgroundColor: '#0070f3',
-  color: '#fff',
-  fontWeight: '600',
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    margin: '24px auto',
+    maxWidth: '1300px',
+    width: '100%',
+    backgroundColor: '#F8F5ED',
+    borderRadius: '12px',
+    padding: '32px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+    fontFamily: '"Space Grotesk", sans-serif',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '32px',
+    borderBottom: '1px solid #E0D8C3',
+    paddingBottom: '16px',
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: '600',
+    color: '#5C4D3D',
+    margin: '0',
+  },
+  gridContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    gap: '24px',
+  },
+  paperContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    border: '1px solid #E0D8C3',
+    borderRadius: '8px',
+    padding: '20px',
+    backgroundColor: '#FFFDF9',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.03)',
+    ':hover': {
+      transform: 'translateY(-3px)',
+      boxShadow: '0 6px 12px rgba(92, 77, 61, 0.1)',
+      borderColor: '#C4B6A0',
+    },
+  },
+  paperHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: '13px',
+    color: '#8C7C68',
+    marginBottom: '8px',
+  },
+  paperDate: {
+    fontWeight: '500',
+  },
+  paperAuthor: {
+    fontStyle: 'italic',
+  },
+  viewLink: {
+    color: '#8C6A3D',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: '500',
+    textAlign: 'center',
+    transition: 'all 0.2s ease',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    backgroundColor: 'rgba(140, 106, 61, 0.1)',
+    ':hover': {
+      color: '#6B4F2A',
+      backgroundColor: 'rgba(140, 106, 61, 0.15)',
+    },
+  },
+  footer: {
+    marginTop: 'auto',
+    paddingTop: '12px',
+    borderTop: '1px dashed #E0D8C3',
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '48px',
+    border: '1px dashed #E0D8C3',
+    borderRadius: '12px',
+    backgroundColor: '#F5F0E6',
+    marginTop: '24px',
+  },
+  emptyTitle: {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#5C4D3D',
+    margin: '0 0 12px',
+  },
+  emptyText: {
+    fontSize: '16px',
+    color: '#8C7C68',
+    margin: '0 0 24px',
+    textAlign: 'center',
+  },
 };

@@ -1,4 +1,7 @@
 import GenerateCitation from '@/components/papers/GenarateCitation';
+import RatingDisplay from "@/components/papers/RatingDisplay";
+import ReviewList from "@/components/papers/ReviewList";
+import ReviewForm from "@/components/papers/ReviewForm";
 
 interface Paper {
   _id: string;
@@ -18,105 +21,53 @@ async function getPaper(id: string) {
 export default async function PaperDetailPage({ params }: { params: { id: string } }) {
   const paper: Paper = await getPaper(params.id);
 
-  // Provide fallbacks for missing fields
   const authors = paper.authors || ["Unknown Author"];
   const year = paper.year || new Date(paper.createdAt).getFullYear();
   const publisher = paper.publisher || "Unknown Publisher";
 
   return (
-    <div style={{
-      backgroundColor: '#f4f4f4',
-      minHeight: '100vh',
-      padding: '20px',
-    }}>
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '10px',
-        padding: '20px',
-        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-        maxWidth: '800px',
-        margin: '0 auto',
-      }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: '600',
-          marginBottom: '20px',
-          color: '#333',
-        }}>
-          Paper Details
-        </h1>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          marginBottom: '20px',
-        }}>
+    <div className="bg-gray-100 min-h-screen p-4">
+      <div className="bg-white rounded-xl p-6 shadow-md max-w-4xl mx-auto">
+        <h1 className="text-2xl font-semibold mb-6 text-gray-800">Paper Details</h1>
+
+        <table className="w-full mb-6 border-collapse">
           <tbody>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Title:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{paper.title}</td>
+              <td className="font-bold py-2 border-b w-1/4">Title:</td>
+              <td className="py-2 border-b">{paper.title}</td>
             </tr>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Authors:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{authors.join(', ')}</td>
+              <td className="font-bold py-2 border-b">Authors:</td>
+              <td className="py-2 border-b">{authors.join(', ')}</td>
             </tr>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Published:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{year}</td>
+              <td className="font-bold py-2 border-b">Published:</td>
+              <td className="py-2 border-b">{year}</td>
             </tr>
             <tr>
-              <td style={{ fontWeight: 'bold', padding: '10px', borderBottom: '1px solid #ddd' }}>Publisher:</td>
-              <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{publisher}</td>
+              <td className="font-bold py-2 border-b">Publisher:</td>
+              <td className="py-2 border-b">{publisher}</td>
             </tr>
           </tbody>
         </table>
-        <div style={{
-          backgroundColor: '#f9f9f9',
-          borderRadius: '10px',
-          padding: '20px',
-          marginBottom: '20px',
-        }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            marginBottom: '10px',
-            color: '#333',
-          }}>
-            Generate Citation
-          </h2>
-          <GenerateCitation
-            title={paper.title}
-            authors={authors}
-            year={year}
-            publisher={publisher}
-          />
+
+        {/* Ratings & Reviews Section */}
+        <div className="bg-gray-50 p-4 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold mb-3 text-gray-700">Ratings & Reviews</h2>
+          <RatingDisplay paperId={paper._id} />
+          <ReviewList paperId={paper._id} />
+
+          {/* Review form always visible */}
+          <div className="mt-6 border-t pt-4">
+            <ReviewForm paperId={paper._id} />
+          </div>
         </div>
-        <div style={{
-          display: 'flex',
-          gap: '10px',
-          justifyContent: 'flex-end',
-        }}>
-          <button style={{
-            backgroundColor: '#0070f3',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '5px',
-            padding: '10px 20px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease',
-          }}>
+
+        <div className="flex gap-3 justify-end">
+          <button className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">
             Download Paper
           </button>
-          <button style={{
-            backgroundColor: '#4CAF50',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '5px',
-            padding: '10px 20px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease',
-          }}>
+          <button className="bg-green-600 text-white rounded px-4 py-2 hover:bg-green-700">
             Share Citation
           </button>
         </div>

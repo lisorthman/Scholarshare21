@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import InputField from "../../components/InputField";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../components/ui/Button";
 import NavBar from "../../components/Navbar";
 
 const SigninPage = () => {
@@ -15,41 +15,49 @@ const SigninPage = () => {
   const [error, setError] = useState<string>("");
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          role: selectedRole,
-        }),
-      });
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, role: selectedRole }),
+    });
 
-      const data = await response.json();
-      if (response.ok) {
-        alert("Login Successful!");
-        localStorage.setItem("token", data.token);
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Save token AND role to storage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role); // Added this line
+      
+      // Set cookies (optional, for SSR compatibility)
+      document.cookie = `token=${data.token}; path=/; max-age=3600`; // 1 hour
+      document.cookie = `role=${data.role}; path=/; max-age=3600`;
 
-        // Redirect based on role
-        if (selectedRole === "user") {
+      alert("Login Successful!");
+      
+      // Redirect based on role
+      switch (data.role) { // Use role from response (not selectedRole)
+        case "user":
           router.push("/user-dashboard");
-        } else if (selectedRole === "admin") {
+          break;
+        case "admin":
           router.push("/admin-dashboard");
-        } else if (selectedRole === "researcher") {
+          break;
+        case "researcher":
           router.push("/researcher-dashboard");
-        }
-      } else {
-        setError(data.message || "Login failed");
+          break;
+        default:
+          router.push("/");
       }
-    } catch (error) {
-      setError("An error occurred. Please try again.");
+    } else {
+      setError(data.message || "Login failed");
     }
-  };
+  } catch (error) {
+    setError("An error occurred. Please try again.");
+  }
+};
 
   const handleRoleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedRole(e.target.value);

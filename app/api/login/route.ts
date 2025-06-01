@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     console.log('Token generated:', token); // Debugging
 
     client.close();
-    return NextResponse.json({ message: 'Login successful!', token }, { status: 200 });
+    return NextResponse.json({ message: 'Login successful!', token ,role: user.role }, { status: 200 });
   } catch (error) {
     console.error('Error:', error); // Debugging
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

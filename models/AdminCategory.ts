@@ -1,19 +1,26 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
-export interface IAdminCategory extends Document {
-  name: string;
-  description: string;
-  parentCategory: mongoose.Types.ObjectId | null;
-  createdAt: Date;
-}
-
-const AdminCategorySchema: Schema = new Schema({
-  name: { type: String, required: true, unique: true },
-  description: { type: String, default: '' },
-  parentCategory: { type: Schema.Types.ObjectId, ref: 'AdminCategory', default: null },
-  createdAt: { type: Date, default: Date.now },
+const AdminCategorySchema = new Schema({
+  name: {
+    type: String,
+    required: [true, 'Category name is required'],
+    unique: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true
 });
 
-const AdminCategory: Model<IAdminCategory> = mongoose.models.AdminCategory || mongoose.model<IAdminCategory>('AdminCategory', AdminCategorySchema);
-
-export default AdminCategory;
+export default models.AdminCategory || model('AdminCategory', AdminCategorySchema);
