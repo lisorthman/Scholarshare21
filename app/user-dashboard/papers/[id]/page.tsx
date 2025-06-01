@@ -1,42 +1,170 @@
-// ✅ Correct (using named import)
-import { getPaperById } from '@/lib/api/papers';import PaperMetaData from '@/components/papers/PaperMetaData';
-import GenerateCitation from '@/components/papers/GenarateCitation';
+import { getPaperById } from '@/lib/api/papers';
+import RatingDisplay from '@/components/papers/RatingDisplay';
+import ReviewList from '@/components/papers/ReviewList';
+import ReviewForm from '@/components/papers/ReviewForm';
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { FiArrowLeft } from 'react-icons/fi';
 
-export default async function PaperDetailPage({ params }: { params: { id: string } }) {
-  const paper = await getPaperById(params.id);
-  
+export default async function PaperDetailPage(props: { 
+  params: { id: string },
+  searchParams: any 
+}) {
+  const paperId = props.params.id;
+  const paper = await getPaperById(paperId);
+
   if (!paper || paper.status !== 'approved') {
-    return <div>Paper not found or not approved</div>;
+    notFound();
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">{paper.title}</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">Abstract</h2>
-            <p className="text-gray-700">{paper.abstract}</p>
+    <div style={styles.container}>
+      <div style={styles.contentWrapper}>
+        {/* Back Button Added Here */}
+        <Link href="/user-dashboard/papers" style={styles.backButton}>
+          <FiArrowLeft size={18} />
+          Back to Papers
+        </Link>
+
+        {/* Paper Title and Description */}
+        <div style={styles.headerSection}>
+          <h1 style={styles.title}>{paper.title}</h1>
+          <p style={styles.abstract}>{paper.abstract}</p>
+        </div>
+        
+        {/* Rating Display */}
+        <div style={styles.ratingSection}>
+          <h2 style={styles.sectionTitle}>Rating</h2>
+          <RatingDisplay paperId={paper._id} />
+        </div>
+        
+        {/* Reviews Section */}
+        <div style={styles.reviewsSection}>
+          <div style={styles.reviewsHeader}>
+            <h2 style={styles.sectionTitle}>Reviews</h2>
           </div>
-          
-          {/* PDF viewer or download button */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <a 
-              href={paper.fileUrl} 
-              target="_blank"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              View Full Paper
-            </a>
+          <div style={styles.reviewsList}>
+            <ReviewList paperId={paper._id} />
           </div>
         </div>
         
-        <div className="lg:col-span-1">
-          <PaperMetaData paper={paper} />
-          <GenerateCitation paper={paper} />
+        {/* Review Form */}
+        <div style={styles.reviewFormSection}>
+          <h2 style={styles.sectionTitle}>Share Your Thoughts</h2>
+          <div style={styles.formContainer}>
+            <ReviewForm 
+              paperId={paper._id} 
+              submitButtonStyle={styles.submitButton}
+            />
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    backgroundColor: '#F9F5F0',
+    minHeight: '100vh',
+    padding: '48px 24px',
+    fontFamily: '"Space Grotesk", sans-serif',
+  },
+  contentWrapper: {
+    maxWidth: '900px',
+    margin: '0 auto',
+    backgroundColor: '#FFF',
+    borderRadius: '12px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+    overflow: 'hidden',
+    padding: '40px',
+  },
+  backButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '20px',
+    color: '#5D4037',
+    textDecoration: 'none',
+    fontWeight: '500',
+    transition: 'color 0.2s ease',
+    ':hover': {
+      color: '#3E2723',
+    }
+  },
+  headerSection: {
+    marginBottom: '48px',
+    paddingBottom: '32px',
+    borderBottom: '1px solid #EFEBE9',
+  },
+  title: {
+    fontSize: '36px',
+    fontWeight: '700',
+    color: '#3E2723',
+    marginBottom: '16px',
+    lineHeight: '1.3',
+  },
+  abstract: {
+    fontSize: '18px',
+    color: '#5D4037',
+    lineHeight: '1.6',
+  },
+  ratingSection: {
+    marginBottom: '48px',
+    padding: '32px',
+    backgroundColor: '#EFEBE9',
+    borderRadius: '12px',
+  },
+  reviewsSection: {
+    marginBottom: '48px',
+  },
+  reviewsHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '24px',
+  },
+  reviewsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+  },
+  reviewFormSection: {
+    padding: '32px',
+    backgroundColor: '#F5F0EB',
+    borderRadius: '12px',
+  },
+  formContainer: {
+    backgroundColor: '#FFF',
+    padding: '24px',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.03)',
+  },
+  sectionTitle: {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#3E2723',
+    marginBottom: '20px',
+  },
+  submitButton: {
+    backgroundColor: '#5D4037',
+    color: '#FFF',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    ':hover': {
+      backgroundColor: '#3E2723',
+      transform: 'translateY(-1px)',
+    },
+    ':active': {
+      transform: 'translateY(0)',
+    },
+    ':disabled': {
+      backgroundColor: '#BCAAA4',
+      cursor: 'not-allowed',
+    },
+  },
+};
