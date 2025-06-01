@@ -9,6 +9,8 @@ export interface IUser extends Document {
   savedPapers: Types.ObjectId[];
   recentlyViewed: { paperId: Types.ObjectId; timestamp: Date }[];
   username?: string;
+  saved: string[]; // Array of paper IDs
+  wishlist: string[]; // Array of paper IDs
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date | null;
@@ -51,6 +53,8 @@ const UserSchema = new Schema<IUser>(
         },
       },
     ],
+    saved: [{ type: Schema.Types.ObjectId, ref: 'Paper' }],
+    wishlist: [{ type: Schema.Types.ObjectId, ref: 'Paper' }],
     username: { type: String, unique: true, sparse: true },
     lastLogin: { type: Date, default: null },
     // Milestone tracking

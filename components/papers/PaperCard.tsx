@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Bookmark, BookmarkCheck, Download, Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface Paper {
@@ -92,98 +91,84 @@ export default function PaperCard({
   };
 
   return (
-    <div style={styles.card}>
-      <div style={styles.cardHeader}>
-        <span style={styles.categoryBadge}>
+    <div className="border border-[#D7CCC8] rounded-xl p-6 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md hover:border-[#A1887F]">
+      <div className="flex justify-between items-center mb-4">
+        <span className="px-3 py-1.5 text-sm font-semibold text-[#5D4037] bg-[#EFEBE9] rounded-full capitalize">
           {paper.category.replace(/-/g, " ")}
         </span>
 
         {showStatus && paper.status && (
-          <span style={{
-            ...styles.statusBadge,
-            ...(paper.status === "approved" ? styles.statusApproved : 
-                paper.status === "rejected" ? styles.statusRejected : 
-                styles.statusPending)
-          }}>
+          <span className={`px-3 py-1.5 text-sm font-semibold rounded-full capitalize ${
+            paper.status === "approved" ? "text-[#2E7D32] bg-[#E8F5E9]" :
+            paper.status === "rejected" ? "text-[#C62828] bg-[#FFEBEE]" :
+            "text-[#F57F17] bg-[#FFF8E1]"
+          }`}>
             {paper.status}
           </span>
         )}
       </div>
 
-      <div style={styles.cardBody}>
-        <h3 style={styles.title}>{paper.title}</h3>
+      <div className="flex flex-col gap-4">
+        <h3 className="text-xl font-semibold text-[#3E2723] line-clamp-2">
+          {paper.title}
+        </h3>
 
         {paper.abstract && (
-          <p style={styles.abstract}>{paper.abstract}</p>
+          <p className="text-[#5D4037] line-clamp-3">{paper.abstract}</p>
         )}
 
-        <div style={styles.footer}>
-          <div style={styles.metaInfo}>
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#EFEBE9]">
+          <div className="flex flex-col gap-1">
             {paper.author?.name && (
-              <span style={styles.author}>By {paper.author.name}</span>
+              <span className="text-sm text-[#5D4037]">By {paper.author.name}</span>
             )}
-            {paper.createdAt && (
-              <span style={styles.date}>
-                {new Date(paper.createdAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric'
-                })}
-              </span>
-            )}
+           
           </div>
 
-          <div style={styles.actions}>
+          <div className="flex items-center gap-2">
             <button
-              style={styles.iconButton}
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
               onClick={handleWishlistClick}
               disabled={isDownloading}
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
-              {isWishlisted ? (
-                <Heart style={{...styles.icon, ...styles.wishlistActive}} />
-              ) : (
-                <Heart style={{...styles.icon, ...styles.wishlistInactive}} />
-              )}
+              <Heart className={`w-5 h-5 ${isWishlisted ? "text-[#D32F2F] fill-[#D32F2F]" : "text-[#8D6E63] hover:text-[#D32F2F]"}`} />
             </button>
 
             <button
-              style={styles.iconButton}
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
               onClick={handleSaveClick}
               disabled={isDownloading}
               aria-label={isSaved ? "Unsave paper" : "Save paper"}
             >
               {isSaved ? (
-                <BookmarkCheck style={{...styles.icon, ...styles.saveActive}} />
+                <BookmarkCheck className="w-5 h-5 text-[#F57C00] fill-[#F57C00]" />
               ) : (
-                <Bookmark style={{...styles.icon, ...styles.saveInactive}} />
+                <Bookmark className="w-5 h-5 text-[#8D6E63] hover:text-[#F57C00]" />
               )}
             </button>
 
             <button
-              style={styles.iconButton}
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
               onClick={handleDownload}
               disabled={isDownloading}
               aria-label="Download paper"
             >
-              <Download style={{
-                ...styles.icon,
-                ...(isDownloading ? styles.downloading : styles.download)
-              }} />
+              <Download className={`w-5 h-5 ${isDownloading ? "text-[#BCAAA4] animate-pulse" : "text-[#8D6E63] hover:text-[#0288D1]"}`} />
             </button>
 
             <Link
               href={paper.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={styles.textButton}
+              className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-transparent border border-[#D7CCC8] rounded-md hover:bg-[#EFEBE9] hover:border-[#A1887F]"
             >
               View
             </Link>
 
             <Link 
               href={`/papers/${paper._id}`}
-              style={{...styles.textButton, ...styles.citationButton}}
+              className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-[#EFEBE9] rounded-md hover:bg-[#D7CCC8]"
             >
               Citation
             </Link>
@@ -193,178 +178,3 @@ export default function PaperCard({
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  card: {
-    border: '1px solid #D7CCC8',
-    borderRadius: '12px',
-    padding: '24px',
-    backgroundColor: '#FFF',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
-    transition: 'all 0.3s ease',
-    ':hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.08)',
-      borderColor: '#A1887F',
-    },
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  categoryBadge: {
-    padding: '6px 12px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#5D4037',
-    backgroundColor: '#EFEBE9',
-    borderRadius: '20px',
-    textTransform: 'capitalize',
-  },
-  statusBadge: {
-    padding: '6px 12px',
-    fontSize: '14px',
-    fontWeight: '600',
-    borderRadius: '20px',
-    textTransform: 'capitalize',
-  },
-  statusApproved: {
-    color: '#2E7D32',
-    backgroundColor: '#E8F5E9',
-  },
-  statusPending: {
-    color: '#F57F17',
-    backgroundColor: '#FFF8E1',
-  },
-  statusRejected: {
-    color: '#C62828',
-    backgroundColor: '#FFEBEE',
-  },
-  cardBody: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  title: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#3E2723',
-    margin: '0',
-    lineHeight: '1.4',
-    display: '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden',
-  },
-  abstract: {
-    fontSize: '15px',
-    color: '#5D4037',
-    margin: '0',
-    lineHeight: '1.6',
-    display: '-webkit-box',
-    WebkitLineClamp: 3,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden',
-  },
-  footer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: '16px',
-    paddingTop: '16px',
-    borderTop: '1px solid #EFEBE9',
-  },
-  metaInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  author: {
-    fontSize: '14px',
-    color: '#5D4037',
-  },
-  date: {
-    fontSize: '12px',
-    color: '#8D6E63',
-  },
-  actions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  iconButton: {
-    background: 'none',
-    border: 'none',
-    padding: '8px',
-    cursor: 'pointer',
-    borderRadius: '6px',
-    transition: 'all 0.2s ease',
-    ':hover': {
-      backgroundColor: '#EFEBE9',
-    },
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
-  },
-  icon: {
-    width: '20px',
-    height: '20px',
-  },
-  wishlistInactive: {
-    color: '#8D6E63',
-    ':hover': {
-      color: '#D32F2F',
-    },
-  },
-  wishlistActive: {
-    color: '#D32F2F',
-    fill: '#D32F2F',
-  },
-  saveInactive: {
-    color: '#8D6E63',
-    ':hover': {
-      color: '#F57C00',
-    },
-  },
-  saveActive: {
-    color: '#F57C00',
-    fill: '#F57C00',
-  },
-  download: {
-    color: '#8D6E63',
-    ':hover': {
-      color: '#0288D1',
-    },
-  },
-  downloading: {
-    color: '#BCAAA4',
-    animation: 'pulse 1.5s infinite',
-  },
-  textButton: {
-    padding: '8px 16px',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#5D4037',
-    backgroundColor: 'transparent',
-    border: '1px solid #D7CCC8',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    transition: 'all 0.2s ease',
-    ':hover': {
-      backgroundColor: '#EFEBE9',
-      borderColor: '#A1887F',
-    },
-  },
-  citationButton: {
-    color: '#5D4037',
-    backgroundColor: '#EFEBE9',
-    border: 'none',
-    ':hover': {
-      backgroundColor: '#D7CCC8',
-    },
-  },
-};
