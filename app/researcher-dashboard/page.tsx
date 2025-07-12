@@ -12,79 +12,21 @@ export default function ResearcherDashboard() {
   const [user, setUser] = useState<{ _id: string; name: string; email: string; role: 'admin' | 'researcher' | 'user'; createdAt: string; updatedAt: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any>(null);
+  const [stats, setStats] = useState<{
+    totalDownloads: number;
+    totalViews: number;
+    uniqueDownloads: number;
+    uniqueViews: number;
+    mostViewedCategory: string;
+    paperCount: number;
+    downloadPercentageChange: number;
+    viewPercentageChange: number;
+  } | null>(null);
 
-  // Mock data for uploads status
-  const [uploads, setUploads] = useState([
-    {
-      id: 1,
-      title: "The Impact of AI on Education",
-      date: "2023-10-15",
-      status: "accepted",
-      comments: "Great research! Published in Volume 12"
-    },
-    {
-      id: 2,
-      title: "Renewable Energy Solutions for Urban Areas",
-      date: "2023-11-02",
-      status: "accepted",
-      comments: "Minor edits suggested"
-    },
-    {
-      id: 3,
-      title: "Blockchain in Healthcare Systems",
-      date: "2023-11-20",
-      status: "pending",
-      comments: "Under review"
-    },
-    {
-      id: 4,
-      title: "Behavioral Economics of Pandemic Responses",
-      date: "2023-12-05",
-      status: "rejected",
-      comments: "Needs more empirical data"
-    },
-    {
-      id: 5,
-      title: "Sustainable Agriculture Practices",
-      date: "2023-12-18",
-      status: "accepted",
-      comments: "Excellent work! Published in Volume 13"
-    }
-  ]);
-
-  // Mock data for recent activities
-  const [activities, setActivities] = useState([
-    {
-      id: 1,
-      type: "upload",
-      title: "Climate Change Impacts",
-      date: "2023-12-20",
-      time: "10:30 AM"
-    },
-    {
-      id: 2,
-      type: "reply",
-      from: "Admin Team",
-      message: "Your paper has been accepted",
-      date: "2023-12-18",
-      time: "2:15 PM"
-    },
-    {
-      id: 3,
-      type: "update",
-      action: "profile picture",
-      date: "2023-12-15",
-      time: "9:45 AM"
-    },
-    {
-      id: 4,
-      type: "reply",
-      from: "Reviewer #2",
-      message: "Please add more data to section 3",
-      date: "2023-12-12",
-      time: "4:30 PM"
-    }
-  ]);
+  // Real data for uploads status
+  const [uploads, setUploads] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -127,17 +69,19 @@ export default function ResearcherDashboard() {
 
   useEffect(() => {
     if (user) {
-      const fetchReaderStats = async () => {
+      const fetchData = async () => {
         try {
-          const response = await fetch('/api/researcher/reader-stats');
-          const data = await response.json();
+          // Fetch reader stats for chart
+          const readerStatsResponse = await fetch(`/api/researcher/reader-stats?researcherId=${user._id}`);
+          const readerStatsData = await readerStatsResponse.json();
 
-          const categories = Object.keys(data);
-          const years = Object.keys(data[categories[0]]);
+          if (Object.keys(readerStatsData).length > 0) {
+            const categories = Object.keys(readerStatsData);
+            const years = Object.keys(readerStatsData[categories[0]] || {});
           
           const datasets = categories.map(category => ({
             label: category,
-            data: years.map(year => data[category][year] || 0),
+              data: years.map(year => readerStatsData[category][year] || 0),
             backgroundColor: '#4e73df',
             borderColor: '#4e73df',
             borderWidth: 1
@@ -147,12 +91,33 @@ export default function ResearcherDashboard() {
             labels: years,
             datasets
           });
+          }
+
+          // Fetch general stats
+          const statsResponse = await fetch(`/api/researcher/stats?researcherId=${user._id}`);
+          const statsData = await statsResponse.json();
+          setStats(statsData);
+
+          // Fetch papers data
+          const papersResponse = await fetch(`/api/researcher/papers?userId=${user._id}`);
+          const papersData = await papersResponse.json();
+          setUploads(papersData.papers || []);
+
+          // Fetch reviews data
+          const reviewsResponse = await fetch(`/api/researcher/reviews?researcherId=${user._id}`);
+          const reviewsData = await reviewsResponse.json();
+          setReviews(reviewsData.reviews || []);
+
+          // Fetch activities data
+          const activitiesResponse = await fetch(`/api/researcher/activities?researcherId=${user._id}`);
+          const activitiesData = await activitiesResponse.json();
+          setActivities(activitiesData.activities || []);
         } catch (error) {
-          console.error('Error fetching reader stats:', error);
+          console.error('Error fetching data:', error);
         }
       };
 
-      fetchReaderStats();
+      fetchData();
     }
   }, [user]);
 
@@ -176,12 +141,28 @@ export default function ResearcherDashboard() {
 
   return (
     <DashboardLayout user={user}>
+      <style jsx>{`
+        .scrollable-container::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollable-container::-webkit-scrollbar-track {
+          background: #F7FAFC;
+          border-radius: 3px;
+        }
+        .scrollable-container::-webkit-scrollbar-thumb {
+          background: #CBD5E0;
+          border-radius: 3px;
+        }
+        .scrollable-container::-webkit-scrollbar-thumb:hover {
+          background: #A0AEC0;
+        }
+      `}</style>
       {/* White full-page container */}
       <div style={{
         width: '100%',
         minHeight: '100vh',
         backgroundColor: '#FFFFFF',
-        padding: '2rem',
+        padding: '1.5rem',
         fontFamily: 'Space Grotesk, sans-serif',
         boxSizing: 'border-box',
       }}>
@@ -192,7 +173,7 @@ export default function ResearcherDashboard() {
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: '2rem',
+          gap: '1.5rem',
         }}>
           {/* Full-width brown welcome box */}
           <div style={{
@@ -257,9 +238,10 @@ export default function ResearcherDashboard() {
               minWidth: '300px',
               borderRadius: "1.5rem",
               backgroundColor: "#F9FAFB",
-              padding: "2rem",
+              padding: "1.5rem",
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
               border: "1px solid #E5E7EB",
+              height: 'fit-content',
             }}>
               <h2 style={{
                 fontSize: "1.25rem",
@@ -326,9 +308,13 @@ export default function ResearcherDashboard() {
               minWidth: '300px',
               borderRadius: "1.5rem",
               backgroundColor: "#F9FAFB",
-              padding: "2rem",
+              padding: "1.5rem",
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
               border: "1px solid #E5E7EB",
+              maxHeight: '600px',
+              display: 'flex',
+              flexDirection: 'column',
+              height: 'fit-content',
             }}>
               <h2 style={{
                 fontSize: "1.25rem",
@@ -340,19 +326,25 @@ export default function ResearcherDashboard() {
                 Your Uploads Status
               </h2>
               
-              <div style={{
+              <div className="scrollable-container" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1.5rem',
+                overflowY: 'auto',
+                flex: 1,
+                paddingRight: '0.5rem',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#CBD5E0 #F7FAFC',
               }}>
-                {uploads.map(upload => (
-                  <div key={upload.id} style={{
+                {uploads.length > 0 ? uploads.map(upload => (
+                  <div key={upload._id} style={{
                     padding: '1rem',
                     borderRadius: '0.75rem',
                     backgroundColor: '#FFFFFF',
-                    border: `1px solid ${
-                      upload.status === 'accepted' ? '#10B981' : 
-                      upload.status === 'rejected' ? '#EF4444' : 
+                    border: `2px solid ${
+                      upload.status === 'passed_checks' ? '#10B981' : 
+                      upload.status === 'rejected' || upload.status === 'rejected_plagiarism' || upload.status === 'rejected_ai' ? '#EF4444' : 
+                      upload.status === 'approved' ? '#10B981' :
                       '#F59E0B'
                     }`,
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
@@ -373,12 +365,13 @@ export default function ResearcherDashboard() {
                       <span style={{
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: upload.status === 'accepted' ? '#10B981' : 
-                              upload.status === 'rejected' ? '#EF4444' : 
+                        color: upload.status === 'passed_checks' ? '#10B981' : 
+                              upload.status === 'rejected' || upload.status === 'rejected_plagiarism' || upload.status === 'rejected_ai' ? '#EF4444' : 
+                              upload.status === 'approved' ? '#10B981' :
                               '#F59E0B',
                         textTransform: 'capitalize',
                       }}>
-                        {upload.status}
+                        {upload.status.replace('_', ' ')}
                       </span>
                     </div>
                     <p style={{
@@ -386,23 +379,163 @@ export default function ResearcherDashboard() {
                       color: '#6B7280',
                       marginBottom: '0.5rem',
                     }}>
-                      Submitted: {new Date(upload.date).toLocaleDateString()}
+                      Submitted: {new Date(upload.createdAt).toLocaleDateString()}
                     </p>
-                    <p style={{
-                      fontSize: '0.875rem',
+                    <div style={{
+                      display: 'flex',
+                      gap: '1rem',
+                      fontSize: '0.75rem',
                       color: '#4B5563',
-                      fontStyle: 'italic',
-                      margin: 0,
                     }}>
-                      {upload.comments}
-                    </p>
+                      <span>Views: {upload.views || 0}</span>
+                      <span>Downloads: {upload.downloads || 0}</span>
+                      <span>Category: {upload.category}</span>
+                    </div>
                   </div>
-                ))}
+                )) : (
+                  <div style={{
+                    padding: '1rem',
+                    borderRadius: '0.75rem',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
+                    textAlign: 'center',
+                    color: '#6B7280',
+                  }}>
+                    No papers uploaded yet
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Bottom section with stats cards and recent activities */}
+          {/* User Reviews Carousel Section */}
+          <div style={{
+            width: '100%',
+            borderRadius: "1.5rem",
+            backgroundColor: "#F9FAFB",
+            padding: "1.5rem",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            border: "1px solid #E5E7EB",
+            maxHeight: '600px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <h2 style={{
+              fontSize: "1.25rem",
+              fontWeight: "700",
+              marginBottom: "1.5rem",
+              color: "#111827",
+              fontFamily: 'Space Grotesk, sans-serif',
+            }}>
+              User Reviews & Ratings
+            </h2>
+            
+            {reviews.length > 0 ? (
+              <div className="scrollable-container" style={{
+                display: 'flex',
+                gap: '1.5rem',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                flex: 1,
+                paddingBottom: '1rem',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#CBD5E0 #F7FAFC',
+              }}>
+                {reviews.map(review => (
+                  <div key={review._id} style={{
+                    minWidth: '300px',
+                    padding: '1.5rem',
+                    borderRadius: '0.75rem',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                  }}>
+                    {/* Paper Title */}
+                    <div style={{
+                      padding: '0.5rem',
+                      backgroundColor: '#F3F4F6',
+                      borderRadius: '0.5rem',
+                    }}>
+                      <h3 style={{
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#374151',
+                        margin: 0,
+                        lineHeight: '1.4',
+                      }}>
+                        {review.paperTitle}
+                      </h3>
+                    </div>
+
+                    {/* Rating Stars */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.25rem',
+                    }}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span key={star} style={{
+                          color: star <= review.rating ? '#F59E0B' : '#D1D5DB',
+                          fontSize: '1.25rem',
+                        }}>
+                          ★
+                        </span>
+                      ))}
+                      <span style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.875rem',
+                        color: '#6B7280',
+                        fontWeight: '500',
+                      }}>
+                        {review.rating}/5
+                      </span>
+                    </div>
+
+                    {/* Review Message */}
+                    <p style={{
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      lineHeight: '1.5',
+                      margin: 0,
+                      flex: 1,
+                    }}>
+                      "{review.message}"
+                    </p>
+
+                    {/* Reviewer Info & Date */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '0.75rem',
+                      color: '#6B7280',
+                      borderTop: '1px solid #E5E7EB',
+                      paddingTop: '0.75rem',
+                    }}>
+                      <span style={{ fontWeight: '500' }}>
+                        {review.reviewerName}
+                      </span>
+                      <span>
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '2rem',
+                color: '#6B7280',
+              }}>
+                No reviews yet. Share your papers to get feedback from the community!
+            </div>
+            )}
+          </div>
+
+          {/* Bottom section with stats cards, recent activities, and quick actions */}
           <div style={{
             display: 'flex',
             flexDirection: 'row',
@@ -410,150 +543,332 @@ export default function ResearcherDashboard() {
             width: '100%',
             flexWrap: 'wrap',
           }}>
-            {/* Stats cards - 2x2 grid */}
+            {/* Left column: Stats cards and Quick Actions */}
             <div style={{
               flex: '2',
               minWidth: '300px',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              display: 'flex',
+              flexDirection: 'column',
               gap: '1.5rem',
             }}>
-              {/* Total Downloads Card */}
+              {/* Stats cards - 2x2 grid */}
               <div style={{
-                borderRadius: "0.75rem",
-                backgroundColor: "rgba(86, 52, 52, 0.83)", // #563434 with 83% opacity
-                padding: "1.25rem",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                color: "#FFFFFF",
-                height: '120px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '1.5rem',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {/* Total Downloads Card */}
+                <div style={{
+                  borderRadius: "0.75rem",
+                  backgroundColor: "rgba(86, 52, 52, 0.83)", // #563434 with 83% opacity
+                  padding: "1.5rem",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  color: "#FFFFFF",
+                  height: '140px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ 
+                      fontSize: '0.875rem', 
+                      color: '#F5F5F5', 
+                      margin: 0,
+                      fontWeight: '500',
+                      opacity: 0.9
+                    }}>Total Downloads</h3>
+                    <div style={{
+                      backgroundColor: stats && stats.downloadPercentageChange >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: stats && stats.downloadPercentageChange >= 0 ? '#22C55E' : '#EF4444',
+                      fontSize: '0.7rem',
+                      fontWeight: '600',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '10px',
+                    }}>
+                      {stats ? (stats.downloadPercentageChange >= 0 ? '+' : '') + stats.downloadPercentageChange + '%' : '...'}
+                    </div>
+                  </div>
+                  <p style={{ 
+                    fontSize: '1.5rem', 
+                    fontWeight: '700', 
+                    margin: '0.25rem 0 0 0',
+                    color: '#FFFFFF'
+                  }}>{stats ? stats.totalDownloads : '...'}</p>
+                </div>
+
+                {/* Most Viewed Category Card */}
+                <div style={{
+                  borderRadius: "0.75rem",
+                  backgroundColor: "rgba(112, 40, 40, 0.32)", // #702828 with 32% opacity
+                  padding: "1.5rem",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  color: "#111827",
+                  height: '140px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
+                  <h3 style={{ 
+                    fontSize: '0.875rem', 
+                    color: '#111827', 
+                    margin: 0,
+                    fontWeight: '500'
+                  }}>Most Viewed Category</h3>
+                  <p style={{ 
+                    fontSize: '1.5rem', 
+                    fontWeight: '700', 
+                    margin: '0.25rem 0 0 0',
+                    color: '#111827'
+                  }}>{stats ? stats.mostViewedCategory : '...'}</p>
+                </div>
+
+                {/* Total Papers Card */}
+                <div style={{
+                  borderRadius: "0.75rem",
+                  backgroundColor: "rgba(86, 52, 52, 0.83)", // #563434 with 83% opacity
+                  padding: "1.5rem",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  color: "#FFFFFF",
+                  height: '140px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
                   <h3 style={{ 
                     fontSize: '0.875rem', 
                     color: '#F5F5F5', 
                     margin: 0,
                     fontWeight: '500',
                     opacity: 0.9
-                  }}>Total Downloads</h3>
-                  <div style={{
-                    backgroundColor: 'rgba(255,255,255,0.15)',
-                    color: '#FFFFFF',
-                    fontSize: '0.7rem',
-                    fontWeight: '600',
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '10px',
-                  }}>
-                    +11%
+                  }}>Total Papers</h3>
+                  <div>
+                    <p style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: '700', 
+                      margin: '0.25rem 0 0 0',
+                      color: '#FFFFFF'
+                  }}>{stats ? stats.paperCount : '...'}</p>
+                    <p style={{ 
+                      fontSize: '0.75rem', 
+                      color: '#F5F5F5', 
+                      margin: '0.1rem 0 0 0',
+                      opacity: 0.8
+                    }}>papers</p>
                   </div>
                 </div>
-                <p style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '700', 
-                  margin: '0.25rem 0 0 0',
-                  color: '#FFFFFF'
-                }}>180</p>
-              </div>
 
-              {/* Most Viewed Category Card */}
-              <div style={{
-                borderRadius: "0.75rem",
-                backgroundColor: "rgba(112, 40, 40, 0.32)", // #702828 with 32% opacity
-                padding: "1.25rem",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                color: "#111827",
-                height: '120px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}>
-                <h3 style={{ 
-                  fontSize: '0.875rem', 
-                  color: '#111827', 
-                  margin: 0,
-                  fontWeight: '500'
-                }}>Most Viewed Category</h3>
-                <p style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '700', 
-                  margin: '0.25rem 0 0 0',
-                  color: '#111827'
-                }}>IT & Computer</p>
-              </div>
-
-              {/* Hours Spent Card */}
-              <div style={{
-                borderRadius: "0.75rem",
-                backgroundColor: "rgba(86, 52, 52, 0.83)", // #563434 with 83% opacity
-                padding: "1.25rem",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                color: "#FFFFFF",
-                height: '120px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}>
-                <h3 style={{ 
-                  fontSize: '0.875rem', 
-                  color: '#F5F5F5', 
-                  margin: 0,
-                  fontWeight: '500',
-                  opacity: 0.9
-                }}>Hours Spent</h3>
-                <div>
+                {/* Total Views Card */}
+                <div style={{
+                  borderRadius: "0.75rem",
+                  backgroundColor: "rgba(112, 40, 40, 0.32)", // #702828 with 32% opacity
+                  padding: "1.5rem",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  color: "#111827",
+                  height: '140px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ 
+                      fontSize: '0.875rem', 
+                      color: '#111827', 
+                      margin: 0,
+                      fontWeight: '500'
+                    }}>Total Views</h3>
+                    <div style={{
+                      backgroundColor: stats && stats.viewPercentageChange >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: stats && stats.viewPercentageChange >= 0 ? '#22C55E' : '#EF4444',
+                      fontSize: '0.7rem',
+                      fontWeight: '600',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '10px',
+                    }}>
+                      {stats ? (stats.viewPercentageChange >= 0 ? '+' : '') + stats.viewPercentageChange + '%' : '...'}
+                    </div>
+                  </div>
                   <p style={{ 
                     fontSize: '1.5rem', 
                     fontWeight: '700', 
                     margin: '0.25rem 0 0 0',
-                    color: '#FFFFFF'
-                  }}>400</p>
-                  <p style={{ 
-                    fontSize: '0.75rem', 
-                    color: '#F5F5F5', 
-                    margin: '0.1rem 0 0 0',
-                    opacity: 0.8
-                  }}>hours</p>
+                    color: '#111827'
+                  }}>{stats ? stats.totalViews : '...'}</p>
                 </div>
               </div>
 
-              {/* Total Views Card */}
+              {/* Quick Actions Section - Same width as stats cards */}
               <div style={{
+                width: '100%',
                 borderRadius: "0.75rem",
-                backgroundColor: "rgba(112, 40, 40, 0.32)", // #702828 with 32% opacity
-                padding: "1.25rem",
+                backgroundColor: "rgba(86, 52, 52, 0.83)",
+                padding: "1.5rem",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                color: "#111827",
-                height: '120px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
+                color: "#FFFFFF",
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ 
-                    fontSize: '0.875rem', 
-                    color: '#111827', 
+                    fontSize: '1rem', 
+                    color: '#F5F5F5', 
                     margin: 0,
-                    fontWeight: '500'
-                  }}>Total Views</h3>
-                  <div style={{
-                    backgroundColor: 'rgba(0,0,0,0.08)',
-                    color: '#111827',
-                    fontSize: '0.7rem',
                     fontWeight: '600',
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '10px',
-                  }}>
-                    +11.01%
-                  </div>
+                    opacity: 0.9
+                  }}>Quick Actions</h3>
                 </div>
-                <p style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '700', 
-                  margin: '0.25rem 0 0 0',
-                  color: '#111827'
-                }}>7,265</p>
+                
+                <div style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                }}>
+                  {/* Upload New Paper Button */}
+                  <button
+                    onClick={() => router.push('/researcher-dashboard/uploads')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1.25rem',
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      justifyContent: 'center',
+                      minWidth: '140px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.125rem' }}>📄</span>
+                    Upload Paper
+                  </button>
+
+                  {/* View All Papers Button */}
+                  <button
+                    onClick={() => router.push('/researcher-dashboard/uploads')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1.25rem',
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      justifyContent: 'center',
+                      minWidth: '140px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.125rem' }}>📚</span>
+                    View All Papers
+                  </button>
+
+                  {/* Edit Profile Button */}
+                  <button
+                    onClick={() => router.push('/researcher-dashboard/profile')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1.25rem',
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      justifyContent: 'center',
+                      minWidth: '140px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.125rem' }}>👤</span>
+                    Edit Profile
+                  </button>
+
+                  {/* Download Report Button */}
+                  <button
+                    onClick={() => {
+                      const reportData = {
+                        totalDownloads: stats?.totalDownloads || 0,
+                        totalViews: stats?.totalViews || 0,
+                        totalPapers: stats?.paperCount || 0,
+                        mostViewedCategory: stats?.mostViewedCategory || 'None',
+                        downloadPercentageChange: stats?.downloadPercentageChange || 0,
+                        viewPercentageChange: stats?.viewPercentageChange || 0,
+                        date: new Date().toLocaleDateString()
+                      };
+                      
+                      const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `research-analytics-${new Date().toISOString().split('T')[0]}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      window.URL.revokeObjectURL(url);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1.25rem',
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      justifyContent: 'center',
+                      minWidth: '140px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.125rem' }}>📊</span>
+                    Download Report
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -563,36 +878,68 @@ export default function ResearcherDashboard() {
               minWidth: '300px',
               borderRadius: "0.75rem",
               backgroundColor: "#F8F9FA",
-              padding: "1.5rem",
+              padding: "1.25rem",
               boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               border: "1px solid #E9ECEF",
+              height: 'fit-content',
+              display: 'flex',
+              flexDirection: 'column',
             }}>
               <h2 style={{
-                fontSize: "1.1rem",
+                fontSize: "1.25rem",
                 fontWeight: "700",
-                marginBottom: "1.25rem",
-                color: "#212529",
+                marginBottom: "1.5rem",
+                color: "#111827",
+                fontFamily: 'Space Grotesk, sans-serif',
               }}>
                 Recent Activities
               </h2>
               
-              <div style={{
+              <div className="scrollable-container" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
+                overflowY: 'auto',
+                flex: 1,
+                paddingRight: '0.5rem',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#CBD5E0 #F7FAFC',
+                maxHeight: '400px',
               }}>
-                {activities.map(activity => (
-                  <div key={activity.id} style={{
+                {activities.length > 0 ? activities.map(activity => (
+                  <div 
+                    key={activity.id} 
+                    onClick={() => {
+                      if (activity.type === 'profile_photo' || activity.type === 'profile_edit') {
+                        // Navigate to profile page
+                        router.push('/researcher-dashboard/profile');
+                      }
+                    }}
+                    style={{
                     padding: '0.9rem',
                     borderRadius: '0.5rem',
                     backgroundColor: '#FFFFFF',
                     borderLeft: `3px solid ${
                       activity.type === "upload" ? '#563434' : 
-                      activity.type === "reply" ? '#702828' : 
+                        activity.type === "edit" ? '#3B82F6' :
+                        activity.type === "admin_response" ? '#10B981' :
+                        activity.type === "user_reply" ? '#F59E0B' :
+                        activity.type === "profile_photo" || activity.type === "profile_edit" ? '#8B5CF6' :
                       '#495057'
                     }`,
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                  }}>
+                      cursor: activity.type === 'profile_photo' || activity.type === 'profile_edit' ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                    }}
+                  >
                     {activity.type === "upload" && (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -625,30 +972,62 @@ export default function ResearcherDashboard() {
                         }}>{activity.title}</p>
                       </>
                     )}
-                    {activity.type === "reply" && (
+                    {activity.type === "edit" && (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <div style={{
                             width: '20px',
                             height: '20px',
                             borderRadius: '4px',
-                            backgroundColor: 'rgba(112, 40, 40, 0.1)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}>
                             <span style={{ 
                               fontSize: '0.7rem',
-                              color: '#702828',
+                              color: '#3B82F6',
                               fontWeight: 'bold'
-                            }}>RP</span>
+                            }}>ED</span>
                           </div>
                           <p style={{ 
                             fontWeight: '600', 
                             margin: 0,
                             fontSize: '0.9rem',
                             color: '#212529'
-                          }}>Reply from {activity.from}</p>
+                          }}>Paper edited</p>
+                        </div>
+                        <p style={{ 
+                          margin: '0.2rem 0 0 0', 
+                          fontSize: '0.8rem',
+                          color: '#495057'
+                        }}>{activity.title}</p>
+                      </>
+                    )}
+                    {activity.type === "admin_response" && (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '4px',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            <span style={{ 
+                              fontSize: '0.7rem',
+                              color: '#10B981',
+                              fontWeight: 'bold'
+                            }}>AD</span>
+                          </div>
+                          <p style={{ 
+                            fontWeight: '600', 
+                            margin: 0,
+                            fontSize: '0.9rem',
+                            color: '#212529'
+                          }}>Admin response</p>
                         </div>
                         <p style={{ 
                           margin: '0.2rem 0 0 0', 
@@ -657,30 +1036,70 @@ export default function ResearcherDashboard() {
                         }}>{activity.message}</p>
                       </>
                     )}
-                    {activity.type === "update" && (
+                    {activity.type === "user_reply" && (
+                      <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{
                           width: '20px',
                           height: '20px',
                           borderRadius: '4px',
-                          backgroundColor: 'rgba(73, 80, 87, 0.1)',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}>
                           <span style={{ 
                             fontSize: '0.7rem',
-                            color: '#495057',
+                              color: '#F59E0B',
                             fontWeight: 'bold'
-                          }}>UP</span>
+                            }}>RV</span>
                         </div>
                         <p style={{ 
                           fontWeight: '600', 
                           margin: 0,
                           fontSize: '0.9rem',
                           color: '#212529'
-                        }}>Updated {activity.action}</p>
+                          }}>New review</p>
                       </div>
+                        <p style={{ 
+                          margin: '0.2rem 0 0 0', 
+                          fontSize: '0.8rem',
+                          color: '#495057'
+                        }}>{activity.replyMessage}</p>
+                        <p style={{ 
+                          margin: '0.1rem 0 0 0', 
+                          fontSize: '0.75rem',
+                          color: '#6B7280',
+                          fontStyle: 'italic'
+                        }}>Paper: {activity.title}</p>
+                      </>
+                    )}
+                    {(activity.type === "profile_photo" || activity.type === "profile_edit") && (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '4px',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            <span style={{ 
+                              fontSize: '0.7rem',
+                              color: '#8B5CF6',
+                              fontWeight: 'bold'
+                            }}>PR</span>
+                          </div>
+                          <p style={{ 
+                            fontWeight: '600', 
+                            margin: 0,
+                            fontSize: '0.9rem',
+                            color: '#212529'
+                          }}>{activity.message}</p>
+                      </div>
+                      </>
                     )}
                     <p style={{ 
                       fontSize: '0.7rem', 
@@ -695,7 +1114,16 @@ export default function ResearcherDashboard() {
                       <span>{activity.time}</span>
                     </p>
                   </div>
-                ))}
+                )) : (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1rem',
+                    color: '#6B7280',
+                    fontSize: '0.875rem',
+                  }}>
+                    No recent activities
+                  </div>
+                )}
               </div>
             </div>
           </div>
