@@ -1,8 +1,10 @@
-// components/Layout.tsx
+'use client';
+
 import React, { ReactNode } from "react";
 import NavBar from "../../components/Navbar";
 import Image from "next/image";
-import { Poppins } from "next/font/google"; // Import Poppins
+import { Poppins } from "next/font/google";
+import { useRouter } from "next/navigation"; // ⬅️ Import useRouter
 
 // Configure Poppins font
 const poppins = Poppins({
@@ -16,6 +18,12 @@ interface LayoutProps {
 }
 
 const AdvancedSearchSection = () => {
+  const router = useRouter(); // ⬅️ Initialize router
+
+  const handleJoinClick = () => {
+    router.push("/signup"); // ⬅️ Navigate to signup page
+  };
+
   return (
     <div
       style={{
@@ -68,20 +76,19 @@ const AdvancedSearchSection = () => {
             <strong>Elasticsearch</strong>, providing fast and accurate results
             even in large datasets.
           </p>
-          <br></br>
+          <br />
           <p>
-            Our search functionality is powered by{" "}
-            <strong>Elasticsearch,</strong> providing fast and accurate results
-            even in large datasets. You can combine multiple filters to refine
-            your search, making it easier to discover groundbreaking research.
+            You can combine multiple filters to refine your search, making it
+            easier to discover groundbreaking research.
           </p>
-          <br></br>
+          <br />
           <p style={{ fontWeight: "bold", marginTop: "1rem" }}>
             Start exploring with Advanced Search today and uncover the knowledge
             you need!
           </p>
 
           <button
+            onClick={handleJoinClick} // ⬅️ Add onClick event
             style={{
               backgroundColor: "#5b2a3c",
               color: "white",
@@ -104,7 +111,7 @@ const AdvancedSearchSection = () => {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div
-      className={poppins.className} // Apply Poppins here
+      className={poppins.className}
       style={{
         color: "#000",
         minHeight: "100vh",

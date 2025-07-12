@@ -39,17 +39,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
     }
 
+    // Update lastLogin
+    const updateResult = await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { lastLogin: new Date() } }
+    );
+    console.log('Updated lastLogin:', updateResult.modifiedCount); // Debugging
+
     // Generate JWT token
-    const token = jwt.sign({ userId: user._id,
-      name: user.name, // Include the name
-      email: user.email,
-      role: user.role, }, process.env.JWT_SECRET!, {
-      expiresIn: '1h',
-    });
+    const token = jwt.sign(
+      { userId: user._id, name: user.name, email: user.email, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' }
+    );
     console.log('Token generated:', token); // Debugging
 
     client.close();
-    return NextResponse.json({ message: 'Login successful!', token }, { status: 200 });
+    return NextResponse.json({ message: 'Login successful!', token ,role: user.role }, { status: 200 });
   } catch (error) {
     console.error('Error:', error); // Debugging
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

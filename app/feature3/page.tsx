@@ -1,10 +1,11 @@
-// components/Layout.tsx
+'use client';
+
 import React, { ReactNode } from "react";
 import NavBar from "../../components/Navbar";
 import Image from "next/image";
-import { Poppins } from "next/font/google"; // Import Poppins
+import { useRouter } from "next/navigation"; // 🧭 Import router
+import { Poppins } from "next/font/google";
 
-// Configure Poppins font
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
@@ -16,6 +17,12 @@ interface LayoutProps {
 }
 
 const AdvancedSearchSection = () => {
+  const router = useRouter(); // ⬅️ Initialize router
+
+  const handleJoinClick = () => {
+    router.push("/signup"); // ⬅️ Navigate on click
+  };
+
   return (
     <div
       style={{
@@ -59,26 +66,27 @@ const AdvancedSearchSection = () => {
 
         <div style={{ flex: 2, textAlign: "left", minWidth: "300px" }}>
           <p>
-            With ScholarShare’s "Wishlist" feature, you can easily save research
-            papers for quick access later. No more searching for the same paper
-            multiple times—simply add it to your personal library and organize
-            your research efficiently.
+            With ScholarShare’s <strong>"Wishlist"</strong> feature, you can
+            easily save research papers for quick access later. No more
+            searching for the same paper multiple times—simply add it to your
+            personal library and organize your research efficiently.
           </p>
-          <br></br>
-          <p>Your Research, Always Within Reach</p>
-          <br></br>
+          <br />
+          <p><em>Your Research, Always Within Reach</em></p>
+          <br />
           <p>
-            The library feature ensures that as researcher your research is
+            The library feature ensures that as a researcher your research is
             always accessible. Whether you're working on a project or compiling
-            references for a paper, you can build your own custom research
-            repository with ease.
+            references for a paper, you can build your own custom research
+            repository with ease.
           </p>
-          <br></br>
+          <br />
           <p style={{ fontWeight: "bold", marginTop: "1rem" }}>
             Start building your research wishlist today!
           </p>
 
           <button
+            onClick={handleJoinClick} // 🖱️ Click handler added
             style={{
               backgroundColor: "#5b2a3c",
               color: "white",
@@ -101,7 +109,7 @@ const AdvancedSearchSection = () => {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div
-      className={poppins.className} // Apply Poppins here
+      className={poppins.className}
       style={{
         color: "#000",
         minHeight: "100vh",

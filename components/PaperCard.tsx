@@ -68,3 +68,5 @@ export const PaperCard = ({ paper }: { paper: Paper }) => {
     </Link>
   );
 };
+
+export default PaperCard;

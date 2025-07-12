@@ -1,4 +1,5 @@
 export type Paper = {
+
   id: string;
   title: string;
   abstract: string;
@@ -8,3 +9,4 @@ export type Paper = {
   createdAt: Date;
   downloads?: number;
 };
+

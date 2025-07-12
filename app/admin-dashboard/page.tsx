@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -90,6 +91,12 @@ export default function AdminDashboard() {
     Rejected: { backgroundColor: "#E5E7EB", color: "#6B7280" },
   };
 
+  const usersByLocation = [
+    { label: "United States", value: 52.1 },
+    { label: "Canada", value: 22.8 },
+    { label: "Mexico", value: 13.9 },
+    { label: "Other", value: 11.2 },
+  ];
   const chartData = {
     "Users by Location": [
       { label: "India", value: 40 },
@@ -115,7 +122,7 @@ export default function AdminDashboard() {
             padding: "1.5rem",
             fontFamily: "sans-serif",
             width: "100%",
-            maxWidth: "1400px",
+            maxWidth: "100%",
             margin: "0 auto",
           }}
         >
@@ -127,7 +134,6 @@ export default function AdminDashboard() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            {/* Existing Fundamental Code Start */}
             {/* Breadcrumb */}
             <div
               style={{
@@ -166,7 +172,7 @@ export default function AdminDashboard() {
                   color: "#000",
                 }}
               >
-                “Welcome, Admin!”
+                "Welcome, Admin!"
               </h1>
               <p
                 style={{
@@ -176,7 +182,7 @@ export default function AdminDashboard() {
                   lineHeight: "1.6",
                 }}
               >
-                Great job! You’ve engaged 85% of visitors, welcomed 120 new
+                Great job! You've engaged 85% of visitors, welcomed 120 new
                 users this month, and boosted active researchers by 30%. Keep up
                 the amazing work in growing the ScholarShare community and
                 making research more accessible!
@@ -404,8 +410,7 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </div>
-            <br></br>
-            <br></br>
+
             {/* Projects Section */}
             <div
               style={{

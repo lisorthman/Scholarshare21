@@ -1,4 +1,3 @@
-// components/DashboardLayout.tsx
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -7,9 +6,23 @@ import Navbar from "./Navbar";
 import DashboardHeader from "./DashboardHeader";
 import { User } from "@/types/user";
 
+// Define prop types for child components
+interface DashboardHeaderProps {
+  onMenuClick: () => void;
+  title: string;
+  role?: "admin" | "researcher" | "user"; // Make role optional
+}
+
+interface SidebarProps {
+  role?: "admin" | "researcher" | "user"; // Make role optional
+  onLogout: () => void;
+  onPageChange: (page: string) => void;
+  isVisible: boolean;
+}
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  user: User; // Now using the User interface
+  user: User | null; // Updated to allow null
   defaultPage?: string;
 }
 
@@ -23,9 +36,33 @@ export default function DashboardLayout({
   const [currentPage, setCurrentPage] = useState(defaultPage);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+    }
     router.push("/signin");
   };
+
+  // Loading state if user is null
+  if (!user) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          backgroundColor: "#f0f2f5",
+        }}
+      >
+        <p>Loading user data...</p>
+      </div>
+    );
+  }
+
+  // Safe role access with fallback
+  const userRole = ["admin", "researcher", "user"].includes(user.role)
+    ? (user.role as "admin" | "researcher" | "user")
+    : "user"; // Default to "user" for both Sidebar and DashboardHeader
 
   return (
     <div
@@ -35,6 +72,7 @@ export default function DashboardLayout({
         height: "auto",
         backgroundColor: "#f0f2f5",
         fontFamily: "Arial, sans-serif",
+        
       }}
     >
       <Navbar />
@@ -50,7 +88,7 @@ export default function DashboardLayout({
         <DashboardHeader
           onMenuClick={() => setIsSidebarVisible(!isSidebarVisible)}
           title={currentPage}
-          role={["admin", "researcher", "user"].includes(user.role) ? (user.role as "admin" | "researcher" | "user") : "user"}
+          role={userRole}
         />
       </div>
 
@@ -77,7 +115,7 @@ export default function DashboardLayout({
           }}
         >
           <Sidebar
-            role={["admin", "researcher", "user"].includes(user.role) ? (user.role as "admin" | "researcher" | "user") : undefined}
+            role={userRole}
             onLogout={handleLogout}
             onPageChange={(page) => setCurrentPage(page)}
             isVisible={isSidebarVisible}
