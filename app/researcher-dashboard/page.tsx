@@ -102,12 +102,12 @@ export default function ResearcherDashboard() {
         });
 
         const data = await response.json();
-        if (data.valid && data.user.role === 'researcher') {
+        if (data.valid && data.user.status === "Active" && data.user.role === "researcher") {
           setUser({
             _id: data.user._id,
             name: data.user.name,
             email: data.user.email,
-            role: data.user.role,
+            role: "researcher", // Explicitly set role for type safety
             createdAt: data.user.createdAt,
             updatedAt: data.user.updatedAt,
           });

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { ObjectId } from "mongodb";
-import connectDB from "@/lib/mongoose"; // Ensure this is imported
-import User from "@/models/user"; // Ensure this is imported
+import connectDB from "@/lib/mongoose";
+import User from "@/models/user";
 
 export async function POST(request: Request) {
-  await connectDB(); // Connect to the database
+  await connectDB();
 
   const { token } = await request.json();
 
@@ -17,16 +17,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: string;
       name: string;
       email: string;
       role: string;
-      _id?: string; // Added for backward compatibility
+      _id?: string;
     };
 
-    // Determine the ID field to use (userId for new tokens, _id for legacy)
     const idField = decoded.userId || decoded._id;
 
     if (!idField) {
@@ -36,7 +34,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate the ID format
     if (!ObjectId.isValid(idField)) {
       return NextResponse.json(
         {
@@ -48,8 +45,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Query the database for the latest user data
-    const user = await User.findById(idField).select("-password"); // Exclude password for security
+    const user = await User.findById(idField).select("-password");
     if (!user) {
       console.log("User not found for ID:", idField);
       return NextResponse.json(
@@ -58,24 +54,36 @@ export async function POST(request: Request) {
       );
     }
 
-    // Return the user data with updated fields
+    // Only require status 'Active' for researchers
+    if (user.role === "researcher" && user.status !== "Active") {
+      return NextResponse.json(
+        { valid: false, error: "Account not activated" },
+        { status: 403 }
+      );
+    }
+
+    // Allow all roles: admin, researcher, user
+    // You can add more granular checks in frontend/dashboard
+
     return NextResponse.json(
       {
         valid: true,
         user: {
           _id: user._id.toString(),
-          userId: user._id.toString(), // Maintain backward compatibility
+          userId: user._id.toString(),
           name: user.name,
           email: user.email,
           role: user.role,
-          profilePhoto: user.profilePhoto, // Include profilePhoto
+          profilePhoto: user.profilePhoto,
           researchField: user.researchField,
           savedPapers: user.savedPapers,
           recentlyViewed: user.recentlyViewed,
           username: user.username,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
-          lastLogin: user.lastLogin, // Added lastLogin field
+          lastLogin: user.lastLogin,
+          joined: user.createdAt.toISOString().split("T")[0], // Mapped to createdAt
+          status: user.status,
         },
       },
       { status: 200 }

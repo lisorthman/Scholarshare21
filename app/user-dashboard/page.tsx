@@ -81,12 +81,12 @@ export default function UserDashboard() {
         });
 
         const data = await response.json();
-        if (data.valid) {
+        if (data.valid && data.user?.role === "user") {
           setUser({
             _id: data.user._id,
             name: data.user.name,
             email: data.user.email,
-            role: data.user.role,
+            role: "user", // Explicitly set role to match expected type
             createdAt: data.user.createdAt,
             updatedAt: data.user.updatedAt,
           });

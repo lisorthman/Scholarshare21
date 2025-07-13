@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import InputField from "../../components/InputField";
-import { Button } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button"; // Make sure this path matches exactly
 import NavBar from "../../components/Navbar";
 
 const SigninPage = () => {
@@ -15,65 +15,62 @@ const SigninPage = () => {
   const [error, setError] = useState<string>("");
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, role: selectedRole }),
-    });
+    try {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role: selectedRole }),
+      });
 
-    const data = await response.json();
-    
-    if (response.ok) {
-      // Save token AND role to storage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role); // Added this line
+      const data = await response.json();
       
-      // Set cookies (optional, for SSR compatibility)
-      document.cookie = `token=${data.token}; path=/; max-age=3600`; // 1 hour
-      document.cookie = `role=${data.role}; path=/; max-age=3600`;
+      if (response.ok) {
+        // Save token AND role to storage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
+        
+        // Set cookies (optional, for SSR compatibility)
+        document.cookie = `token=${data.token}; path=/; max-age=3600`;
+        document.cookie = `role=${data.role}; path=/; max-age=3600`;
 
-      alert("Login Successful!");
-      
-      // Redirect based on role
-      switch (data.role) { // Use role from response (not selectedRole)
-        case "user":
-          router.push("/user-dashboard");
-          break;
-        case "admin":
-          router.push("/admin-dashboard");
-          break;
-        case "researcher":
-          router.push("/researcher-dashboard");
-          break;
-        default:
-          router.push("/");
+        alert("Login Successful!");
+        
+        // Redirect based on role
+        switch (data.role) {
+          case "user":
+            router.push("/user-dashboard");
+            break;
+          case "admin":
+            router.push("/admin-dashboard");
+            break;
+          case "researcher":
+            router.push("/researcher-dashboard");
+            break;
+          default:
+            router.push("/");
+        }
+      } else {
+        setError(data.message || "Login failed");
       }
-    } else {
-      setError(data.message || "Login failed");
+    } catch (error) {
+      setError("An error occurred. Please try again.");
     }
-  } catch (error) {
-    setError("An error occurred. Please try again.");
-  }
-};
+  };
 
   const handleRoleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedRole(e.target.value);
   };
 
-  // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
     await signIn("google", { callbackUrl: "/dashboard" });
   };
 
-  // Handle Facebook Sign-In
   const handleFacebookSignIn = async () => {
     await signIn("facebook", { callbackUrl: "/dashboard" });
   };
 
-  // Handle Forgot Password
   const handleForgotPassword = (e: React.MouseEvent) => {
     e.preventDefault();
     router.push("/forgot-password");
@@ -82,59 +79,27 @@ const SigninPage = () => {
   return (
     <div>
       <NavBar />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "45% 55%",
-          height: "100vh",
-          backgroundColor: "#EBDEDE",
-        }}
-      >
+      <div className="grid grid-cols-[45%_55%] h-screen bg-[#EBDEDE]">
         {/* Left side (background image) */}
         <div
+          className="bg-[url('/SignIn.png')] bg-cover bg-center bg-no-repeat"
           style={{
-            gridColumn: 1,
-            backgroundImage: `url('/SignIn.png')`,
             backgroundSize: "500px 500px",
             backgroundPosition: "50% 50%",
-            backgroundRepeat: "no-repeat",
           }}
         />
 
         {/* Right side (curved box with content) */}
-        <div
-          style={{
-            gridColumn: 2,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 20,
-            backgroundColor: "#fff",
-            borderRadius: "50px 0 0 50px",
-            boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
-          }}
-        >
+        <div className="flex justify-center items-center p-5 bg-white rounded-l-[50px] shadow-md">
           <form
             onSubmit={handleSubmit}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              width: "100%",
-              maxWidth: "500px",
-            }}
+            className="flex flex-col items-center w-full max-w-[500px]"
           >
-            <h2
-              style={{
-                marginBottom: "30px",
-                fontSize: "40px",
-                fontFamily: "Space Grotesk, sans-serif",
-              }}
-            >
+            <h2 className="mb-[30px] text-[40px] font-space-grotesk">
               Login
             </h2>
             {error && (
-              <p style={{ color: "red", marginBottom: "10px" }}>{error}</p>
+              <p className="text-red-500 mb-[10px]">{error}</p>
             )}
 
             {/* Role Selection */}
@@ -142,15 +107,7 @@ const SigninPage = () => {
               name="role"
               value={selectedRole}
               onChange={handleRoleChange}
-              style={{
-                width: "100%",
-                height: "40px",
-                border: "none",
-                borderBottom: "1px solid #C4C4C4",
-                borderRadius: "0px",
-                fontSize: "16px",
-                textAlign: "center",
-              }}
+              className="w-full h-10 border-b border-[#C4C4C4] text-center"
             >
               <option value="">Select a role</option>
               <option value="user">User</option>
@@ -160,74 +117,38 @@ const SigninPage = () => {
             <br />
 
             {/* Social Sign-In Buttons */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "20px",
-                padding: "10px",
-                gap: "20px",
-              }}
-            >
+            <div className="flex justify-between mb-5 p-2 gap-5">
               {/* Google Sign-In Button */}
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                style={{
-                  color: "#5C5C5C",
-                  border: "1px solid black",
-                  backgroundColor: "white",
-                  padding: "10px 20px",
-                  borderRadius: "5px",
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
+                className="text-[#5C5C5C] border border-black bg-white px-5 py-2 rounded flex items-center cursor-pointer"
               >
                 <img
                   src="https://cdn1.iconfinder.com/data/icons/google-s-logo/150/Google_Icons-09-1024.png"
                   alt="Google Logo"
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    marginRight: "10px",
-                    objectFit: "contain",
-                  }}
+                  className="w-6 h-6 mr-2 object-contain"
                 />
-                <span style={{ fontSize: "14px" }}>Sign in with Google</span>
+                <span className="text-sm">Sign in with Google</span>
               </button>
 
               {/* Facebook Sign-In Button */}
               <button
                 type="button"
                 onClick={handleFacebookSignIn}
-                style={{
-                  color: "#5C5C5C",
-                  border: "1px solid black",
-                  backgroundColor: "white",
-                  padding: "10px 20px",
-                  borderRadius: "5px",
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
+                className="text-[#5C5C5C] border border-black bg-white px-5 py-2 rounded flex items-center cursor-pointer"
               >
                 <img
                   src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1024px-Facebook_Logo_%282019%29.png"
                   alt="Facebook Logo"
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    marginRight: "10px",
-                    objectFit: "contain",
-                  }}
+                  className="w-6 h-6 mr-2 object-contain"
                 />
-                <span style={{ fontSize: "14px" }}>Sign in with Facebook</span>
+                <span className="text-sm">Sign in with Facebook</span>
               </button>
             </div>
 
-            <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <span style={{ fontSize: "16px", color: "#666" }}>- or -</span>
+            <div className="text-center mb-5">
+              <span className="text-[#666]">- or -</span>
             </div>
 
             {/* Email and Password Fields */}
@@ -249,23 +170,11 @@ const SigninPage = () => {
             <br />
 
             {/* Forgot Password */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                width: "100%",
-                marginBottom: "20px",
-              }}
-            >
+            <div className="flex justify-end w-full mb-5">
               <a
                 href="/forgot-password"
                 onClick={handleForgotPassword}
-                style={{ 
-                  textDecoration: "none", 
-                  color: "#634141",
-                  cursor: "pointer",
-                  fontSize: "14px"
-                }}
+                className="text-[#634141] cursor-pointer text-sm"
               >
                 Forgot Password?
               </a>
@@ -273,28 +182,21 @@ const SigninPage = () => {
 
             {/* Submit Button */}
             <Button
-              name="Login"
               type="submit"
               variant="default"
-              style={{
-                width: "100%",
-                height: "40px",
-                marginBottom: "20px",
-              }}
+              className="w-full h-10 mb-5"
             >
               Login
             </Button>
-            <br />
-            <br />
 
             {/* Link to Signup Page */}
-            <div style={{ alignContent: "center", textAlign: "center" }}>
+            <div className="text-center">
               <p>
                 <span>
                   Don't have an account?{" "}
                   <a
                     onClick={() => router.push("/signup")}
-                    style={{ cursor: "pointer", color: "blue" }}
+                    className="text-blue-500 cursor-pointer"
                   >
                     Register
                   </a>

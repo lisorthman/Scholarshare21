@@ -12,6 +12,7 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date | null;
+  status: string; // Added for approval workflow
   // Milestone fields
   counts: {
     uploads: number;
@@ -53,13 +54,14 @@ const UserSchema = new Schema<IUser>(
     ],
     username: { type: String, unique: true, sparse: true },
     lastLogin: { type: Date, default: null },
+    status: { type: String, required: true, enum: ["Pending", "Active", "Suspended"], default: "Pending" }, // Added
     // Milestone tracking
     counts: {
       uploads: { type: Number, default: 0 },
       approvals: { type: Number, default: 0 },
-      downloads: { type: Number, default: 0 }
+      downloads: { type: Number, default: 0 },
     },
-    badges: { type: [String], default: [] }
+    badges: { type: [String], default: [] },
   },
   { timestamps: true }
 );
