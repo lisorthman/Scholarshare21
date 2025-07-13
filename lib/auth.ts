@@ -41,6 +41,8 @@ export const tokenUtils = {
   // Clear all authentication data
   clearAuthData: (): void => {
     if (typeof window !== 'undefined') {
+      console.log('🧹 TokenUtils: Clearing all authentication data...');
+      
       localStorage.removeItem('token');
       localStorage.removeItem('role');
       localStorage.removeItem('email');
@@ -49,6 +51,8 @@ export const tokenUtils = {
       // Clear cookies
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       document.cookie = 'role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      
+      console.log('✅ TokenUtils: All authentication data cleared');
     }
   },
 
@@ -73,9 +77,22 @@ export const tokenUtils = {
   cleanupExpiredTokens: (): void => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
-      if (token && !tokenUtils.isTokenValid(token)) {
-        console.log('Cleaning up expired token');
-        tokenUtils.clearAuthData();
+      console.log('🔍 Checking for expired tokens...');
+      console.log('Token exists:', !!token);
+      
+      if (token) {
+        const isValid = tokenUtils.isTokenValid(token);
+        console.log('Token is valid:', isValid);
+        
+        if (!isValid) {
+          console.log('🧹 Cleaning up expired token');
+          tokenUtils.clearAuthData();
+          console.log('✅ Token cleanup completed');
+        } else {
+          console.log('✅ Token is still valid, no cleanup needed');
+        }
+      } else {
+        console.log('ℹ️ No token found, no cleanup needed');
       }
     }
   },
@@ -83,30 +100,41 @@ export const tokenUtils = {
   // Initialize token validation on app startup
   initializeTokenValidation: async (): Promise<{ isValid: boolean; user?: any }> => {
     if (typeof window === 'undefined') {
+      console.log('🚫 Server-side rendering, skipping token validation');
       return { isValid: false };
     }
+
+    console.log('🚀 Initializing token validation...');
 
     // Clean up expired tokens first
     tokenUtils.cleanupExpiredTokens();
 
     const token = localStorage.getItem('token');
     if (!token) {
+      console.log('ℹ️ No token found in localStorage');
       return { isValid: false };
     }
 
+    console.log('🔍 Token found, checking validity...');
+
     // Check if token is valid locally first
     if (!tokenUtils.isTokenValid(token)) {
+      console.log('❌ Token is invalid locally, clearing auth data');
       tokenUtils.clearAuthData();
       return { isValid: false };
     }
+
+    console.log('✅ Token is valid locally, validating with server...');
 
     // Validate with server
     const serverValidation = await tokenUtils.validateTokenWithServer(token);
     if (!serverValidation.valid) {
+      console.log('❌ Server validation failed:', serverValidation.error);
       tokenUtils.clearAuthData();
       return { isValid: false };
     }
 
+    console.log('✅ Server validation successful, user authenticated');
     return { isValid: true, user: serverValidation.user };
   }
 };

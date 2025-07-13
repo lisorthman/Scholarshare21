@@ -6,6 +6,7 @@ import Navbar from "./Navbar";
 import DashboardHeader from "./DashboardHeader";
 import { User } from "@/types/user";
 import { tokenUtils } from "@/lib/auth";
+import { useAuthContext } from "@/components/AuthProvider";
 
 // Define prop types for child components
 interface DashboardHeaderProps {
@@ -35,16 +36,12 @@ export default function DashboardLayout({
   const router = useRouter();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(defaultPage);
+  const { logout } = useAuthContext();
 
   const handleLogout = () => {
-    // Clear all authentication data using the utility function
-    tokenUtils.clearAuthData();
-    
-    // Show logout message
-    console.log('Logged out successfully');
-    
-    // Redirect to signin page
-    router.push("/signin");
+    console.log('🚪 DashboardLayout: Logging out...');
+    // Use the AuthProvider's logout function to ensure proper state management
+    logout();
   };
 
   // Loading state if user is null

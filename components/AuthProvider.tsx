@@ -46,25 +46,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        console.log('Initializing authentication...');
+        console.log('🔐 AuthProvider: Initializing authentication...');
+        
+        // Check if we're in the middle of a logout (tokens were just cleared)
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.log('ℹ️ AuthProvider: No token found, user not authenticated');
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+          return;
+        }
         
         // Use the token utility to validate and clean up tokens
         const validation = await tokenUtils.initializeTokenValidation();
         
         if (validation.isValid && validation.user) {
-          console.log('Token is valid, user authenticated:', validation.user.name);
+          console.log('✅ AuthProvider: Token is valid, user authenticated:', validation.user.name);
           setUser(validation.user);
           setIsAuthenticated(true);
         } else {
-          console.log('Token is invalid or expired, user not authenticated');
+          console.log('❌ AuthProvider: Token is invalid or expired, user not authenticated');
           setUser(null);
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('💥 AuthProvider: Error initializing auth:', error);
         setUser(null);
         setIsAuthenticated(false);
       } finally {
+        console.log('🏁 AuthProvider: Authentication initialization complete');
         setLoading(false);
       }
     };
@@ -72,13 +83,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
+  // Add a listener for storage changes to detect new tokens
+  useEffect(() => {
+    const handleStorageChange = async () => {
+      console.log('🔄 AuthProvider: Storage changed, re-validating token...');
+      const token = localStorage.getItem('token');
+      if (token && !isAuthenticated) {
+        console.log('🆕 AuthProvider: New token detected, validating...');
+        const validation = await tokenUtils.initializeTokenValidation();
+        if (validation.isValid && validation.user) {
+          console.log('✅ AuthProvider: New token is valid, updating state...');
+          setUser(validation.user);
+          setIsAuthenticated(true);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [isAuthenticated]);
+
   // Logout function
   const logout = () => {
-    console.log('Logging out user...');
+    console.log('🚪 AuthProvider: Logging out user...');
     tokenUtils.clearAuthData();
     setUser(null);
     setIsAuthenticated(false);
-    router.push('/signin');
+    
+    // Add a small delay to ensure state updates complete
+    setTimeout(() => {
+      console.log('🔄 AuthProvider: Redirecting to signin...');
+      // Use window.location.href to force a full page reload
+      // This ensures all components re-initialize with the cleared auth state
+      window.location.href = '/signin';
+    }, 100);
   };
 
   // Check if user has specific role

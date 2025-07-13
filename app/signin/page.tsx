@@ -7,9 +7,11 @@ import InputField from "../../components/InputField";
 import { Button } from "../../components/ui/button";
 import NavBar from "../../components/Navbar";
 import { tokenUtils } from "@/lib/auth";
+import { useAuthContext } from "@/components/AuthProvider";
 
 const SigninPage = () => {
   const router = useRouter();
+  const { isAuthenticated, user, loading } = useAuthContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -21,34 +23,11 @@ const SigninPage = () => {
     tokenUtils.cleanupExpiredTokens();
   }, []);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-
-  try {
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, role: selectedRole }),
-    });
-
-    const data = await response.json();
-    
-    if (response.ok) {
-      // Clear any existing tokens first
-      tokenUtils.clearAuthData();
-      
-      // Save token AND role to storage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-      
-      // Set cookies (optional, for SSR compatibility)
-      document.cookie = `token=${data.token}; path=/; max-age=3600`; // 1 hour
-      document.cookie = `role=${data.role}; path=/; max-age=3600`;
-
-      alert("Login Successful!");
-      
-      // Redirect based on role
-      switch (data.role) { // Use role from response (not selectedRole)
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      console.log('🚀 SigninPage: User already authenticated, redirecting to dashboard');
+      switch (user.role) {
         case "user":
           router.push("/user-dashboard");
           break;
@@ -61,13 +40,50 @@ const SigninPage = () => {
         default:
           router.push("/");
       }
-    } else {
-      setError(data.message || "Login failed");
     }
-  } catch (error) {
-    setError("An error occurred. Please try again.");
-  }
-};
+  }, [loading, isAuthenticated, user, router]);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      console.log('🔐 SigninPage: Attempting login...');
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role: selectedRole }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ SigninPage: Login successful, setting tokens...');
+        
+        // Clear any existing tokens first
+        tokenUtils.clearAuthData();
+        
+        // Save token AND role to storage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
+        
+        // Set cookies (optional, for SSR compatibility)
+        document.cookie = `token=${data.token}; path=/; max-age=3600`; // 1 hour
+        document.cookie = `role=${data.role}; path=/; max-age=3600`;
+
+        console.log('🎯 SigninPage: Tokens set, redirecting to dashboard...');
+        
+        // Force a page reload to trigger AuthProvider re-initialization
+        // This ensures the AuthProvider picks up the new token
+        window.location.href = `/${data.role}-dashboard`;
+      } else {
+        console.log('❌ SigninPage: Login failed:', data.message);
+        setError(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error('💥 SigninPage: Login error:', error);
+      setError("An error occurred. Please try again.");
+    }
+  };
 
   const handleRoleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedRole(e.target.value);
