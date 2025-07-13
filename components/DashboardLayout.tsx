@@ -1,10 +1,11 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import DashboardHeader from "./DashboardHeader";
 import { User } from "@/types/user";
+import Link from "next/link";
 
 // Define prop types for child components
 interface DashboardHeaderProps {
@@ -32,6 +33,7 @@ export default function DashboardLayout({
   defaultPage = "Dashboard",
 }: DashboardLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(defaultPage);
 
@@ -72,7 +74,6 @@ export default function DashboardLayout({
         height: "auto",
         backgroundColor: "#f0f2f5",
         fontFamily: "Arial, sans-serif",
-        
       }}
     >
       <Navbar />
