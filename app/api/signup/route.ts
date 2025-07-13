@@ -41,7 +41,8 @@ export async function POST(request: Request) {
     const verificationCode = Math.floor(10000 + Math.random() * 90000).toString();
     const verificationCodeExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Insert user with verification data
+    // Insert user with verification data and status
+    console.log("Inserting user:", { name, email, role, status: "Pending" }); // Debug log
     const result = await usersCollection.insertOne({
       name,
       email,
@@ -53,7 +54,9 @@ export async function POST(request: Request) {
       resendAttempts: 0,
       failedAttempts: 0,
       createdAt: new Date(),
+      status: "Pending", // Explicitly set to Pending
     });
+    console.log("Inserted user ID:", result.insertedId); // Debug log
 
     // Generate JWT token
     const token = jwt.sign(
