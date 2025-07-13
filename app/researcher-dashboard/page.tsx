@@ -4,13 +4,13 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { useAuthContext } from '@/components/AuthProvider';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function ResearcherDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ _id: string; name: string; email: string; role: 'admin' | 'researcher' | 'user'; createdAt: string; updatedAt: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, isAuthenticated, hasRole } = useAuthContext();
   const [chartData, setChartData] = useState<any>(null);
   const [stats, setStats] = useState<{
     totalDownloads: number;
@@ -28,47 +28,23 @@ export default function ResearcherDashboard() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
 
+  // Check authentication and role
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    const verifyToken = async () => {
-      try {
-        const response = await fetch('/api/verify-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await response.json();
-        if (data.valid && data.user.role === 'researcher') {
-          setUser({
-            _id: data.user._id,
-            name: data.user.name,
-            email: data.user.email,
-            role: data.user.role,
-            createdAt: data.user.createdAt,
-            updatedAt: data.user.updatedAt,
-          });
-        } else {
-          router.push('/unauthorized');
-        }
-      } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/login');
-      } finally {
-        setLoading(false);
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.push('/signin');
+        return;
       }
-    };
-
-    verifyToken();
-  }, [router]);
+      
+      if (!hasRole('researcher')) {
+        router.push('/unauthorized');
+        return;
+      }
+    }
+  }, [loading, isAuthenticated, hasRole, router]);
 
   useEffect(() => {
-    if (user) {
+    if (user && isAuthenticated) {
       const fetchData = async () => {
         try {
           // Fetch reader stats for chart

@@ -1,23 +1,50 @@
 import connectToDB from '@/lib/mongoose';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
-import { Wishlist } from '@/models/wishlist';
+import User from '@/models/user';
+import ResearchPaper from '@/models/ResearchPaper';
 
-// GET /api/wishlist → fetch user's wishlist
-export async function GET() {
+// GET /api/wishlist → fetch user's saved papers (wishlist)
+export async function GET(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session?.user?.id) {
+    // Get token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    // Verify token
+    const verifyResponse = await fetch(`${req.nextUrl.origin}/api/verify-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+
+    const verifyData = await verifyResponse.json();
+    if (!verifyData.valid) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' },
         { status: 401 }
       );
     }
 
     await connectToDB();
-    const wishlist = await Wishlist.find({ userId: session.user.id }).lean();
+    
+    // Get user with saved papers
+    const user = await User.findById(verifyData.user._id).populate('savedPapers');
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json(wishlist);
+    return NextResponse.json(user.savedPapers || []);
   } catch (error) {
     console.error('Wishlist fetch error:', error);
     return NextResponse.json(
@@ -27,13 +54,31 @@ export async function GET() {
   }
 }
 
-// POST /api/wishlist → add paper to wishlist
+// POST /api/wishlist → add paper to saved papers
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session?.user?.id) {
+    // Get token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    // Verify token
+    const verifyResponse = await fetch(`${req.nextUrl.origin}/api/verify-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+
+    const verifyData = await verifyResponse.json();
+    if (!verifyData.valid) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' },
         { status: 401 }
       );
     }
@@ -41,16 +86,20 @@ export async function POST(req: NextRequest) {
     const { paperId } = await req.json();
     await connectToDB();
 
-    const existing = await Wishlist.findOne({
-      userId: session.user.id,
-      paperId,
-    });
+    // Check if paper exists
+    const paper = await ResearchPaper.findById(paperId);
+    if (!paper) {
+      return NextResponse.json(
+        { error: 'Paper not found' },
+        { status: 404 }
+      );
+    }
 
-    if (!existing) {
-      await Wishlist.create({
-        userId: session.user.id,
-        paperId,
-      });
+    // Add paper to user's saved papers if not already saved
+    const user = await User.findById(verifyData.user._id);
+    if (!user.savedPapers.includes(paperId)) {
+      user.savedPapers.push(paperId);
+      await user.save();
     }
 
     return NextResponse.json({ success: true });

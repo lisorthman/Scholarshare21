@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, ChangeEvent, FormEvent } from "react";
+import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import InputField from "../../components/InputField";
 import { Button } from "../../components/ui/button";
 import NavBar from "../../components/Navbar";
+import { tokenUtils } from "@/lib/auth";
 
 const SigninPage = () => {
   const router = useRouter();
@@ -13,6 +14,12 @@ const SigninPage = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
+
+  // Clear any existing tokens on component mount
+  useEffect(() => {
+    // Clean up any expired or invalid tokens
+    tokenUtils.cleanupExpiredTokens();
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   e.preventDefault();
@@ -27,9 +34,12 @@ const SigninPage = () => {
     const data = await response.json();
     
     if (response.ok) {
+      // Clear any existing tokens first
+      tokenUtils.clearAuthData();
+      
       // Save token AND role to storage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role); // Added this line
+      localStorage.setItem("role", data.role);
       
       // Set cookies (optional, for SSR compatibility)
       document.cookie = `token=${data.token}; path=/; max-age=3600`; // 1 hour

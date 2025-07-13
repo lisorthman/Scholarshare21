@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react'; // Import signIn from next-auth/react
 import InputField from '../../components/InputField';
 import { Button } from "../../components/ui/button";
 import NavBar from '../../components/Navbar';
+import { tokenUtils } from '@/lib/auth';
 
 // Password strength checker
 const checkPasswordStrength = (password: string) => {
@@ -68,6 +69,12 @@ const SignupPage = () => {
     lowerCase: false
   });
 
+  // Clear any existing tokens on component mount
+  useEffect(() => {
+    // Clean up any expired or invalid tokens
+    tokenUtils.cleanupExpiredTokens();
+  }, []);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -119,14 +126,17 @@ const SignupPage = () => {
   
       const data = await response.json();
       if (response.ok) {
-      // Save token AND role to storage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role); // Added this line
-      localStorage.setItem("email", formData.email);
+        // Clear any existing tokens first
+        tokenUtils.clearAuthData();
+        
+        // Save token AND role to storage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
+        localStorage.setItem("email", formData.email);
 
-      // Set cookies (optional)
-      document.cookie = `token=${data.token}; path=/; max-age=3600`;
-      document.cookie = `role=${data.role}; path=/; max-age=3600`;
+        // Set cookies (optional)
+        document.cookie = `token=${data.token}; path=/; max-age=3600`;
+        document.cookie = `role=${data.role}; path=/; max-age=3600`;
 
       alert('Registration Successful! Check your email for verification.');
       

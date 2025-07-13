@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import DashboardHeader from "./DashboardHeader";
 import { User } from "@/types/user";
+import { tokenUtils } from "@/lib/auth";
 
 // Define prop types for child components
 interface DashboardHeaderProps {
@@ -36,9 +37,13 @@ export default function DashboardLayout({
   const [currentPage, setCurrentPage] = useState(defaultPage);
 
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-    }
+    // Clear all authentication data using the utility function
+    tokenUtils.clearAuthData();
+    
+    // Show logout message
+    console.log('Logged out successfully');
+    
+    // Redirect to signin page
     router.push("/signin");
   };
 
