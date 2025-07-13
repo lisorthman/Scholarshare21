@@ -91,12 +91,26 @@ const SigninPage = () => {
 
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
-    await signIn("google", { callbackUrl: "/dashboard" });
+    try {
+      await signIn("google", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      setError("An error occurred during Google sign-in.");
+    }
   };
 
   // Handle Facebook Sign-In
   const handleFacebookSignIn = async () => {
-    await signIn("facebook", { callbackUrl: "/dashboard" });
+    try {
+      await signIn("facebook", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Facebook sign-in error:", error);
+      setError("An error occurred during Facebook sign-in.");
+    }
   };
 
   // Handle Forgot Password

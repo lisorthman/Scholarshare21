@@ -164,12 +164,26 @@ const SignupPage = () => {
 
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
-    await signIn('google', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
+    try {
+      await signIn("google", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Google sign-up error:", error);
+      setError("An error occurred during Google sign-up.");
+    }
   };
 
   // Handle Facebook Sign-In
   const handleFacebookSignIn = async () => {
-    await signIn('facebook', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
+    try {
+      await signIn("facebook", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Facebook sign-up error:", error);
+      setError("An error occurred during Facebook sign-up.");
+    }
   };
 
   return (

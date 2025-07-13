@@ -3,6 +3,7 @@ import { Schema, model, models, Document, Types } from "mongoose";
 export interface IUser extends Document {
   name: string;
   email: string;
+  password?: string;
   role: string;
   researchField?: string;
   profilePhoto?: string;
@@ -12,6 +13,10 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date | null;
+  isVerified?: boolean;
+  // OAuth fields
+  googleId?: string;
+  facebookId?: string;
   // Milestone fields
   counts: {
     uploads: number;
@@ -25,6 +30,7 @@ const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
+    password: { type: String, required: false }, // Optional for OAuth users
     role: {
       type: String,
       required: true,
@@ -53,6 +59,10 @@ const UserSchema = new Schema<IUser>(
     ],
     username: { type: String, unique: true, sparse: true },
     lastLogin: { type: Date, default: null },
+    isVerified: { type: Boolean, default: false },
+    // OAuth fields
+    googleId: { type: String, sparse: true },
+    facebookId: { type: String, sparse: true },
     // Milestone tracking
     counts: {
       uploads: { type: Number, default: 0 },
