@@ -5,6 +5,7 @@ import AdminCategory from '@/models/AdminCategory';
 import connectDB from '@/lib/mongoose';
 import { ObjectId } from 'mongodb';
 import { incrementUserCount } from '@/lib/userCounts';
+import { Client as ESClient } from '@elastic/elasticsearch';
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -18,6 +19,12 @@ export async function POST(request: Request) {
   try {
     await connectDB();
     const formData = await request.formData();
+    const esClient = new ESClient({
+     node: process.env.ELASTICSEARCH_URL!,
+     auth: {
+       apiKey: process.env.ELASTICSEARCH_API_KEY!,
+     },
+    });
 
     // Extract and validate fields
     const file = formData.get('file') as File;
@@ -85,7 +92,8 @@ export async function POST(request: Request) {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
-    console.log('Uploaded file URL for plagiarism check:', blob.url); // Debug log for plagiarism check
+  
+    
 
     // Create paper
     const paper = await ResearchPaper.create({
@@ -99,7 +107,19 @@ export async function POST(request: Request) {
       category: category.name,
       categoryId: new ObjectId(categoryId),
       status: 'pending'
-    });
+    })
+    await esClient.index({
+      index: 'scholar-share-search',
+     id: paper._id.toString(),
+     document: {
+       title: paper.title,
+       abstract: paper.abstract,
+       author: authorId,
+       category: category.name,
+       keywords: [],
+       uploadedAt: paper.createdAt || new Date(),
+     }
+}) ;
 
     // Increment user's upload count
     await incrementUserCount(authorId, 'uploads');

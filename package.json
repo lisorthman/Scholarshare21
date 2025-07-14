@@ -9,24 +9,34 @@
     "lint": "next lint"
   },
   "dependencies": {
+
+    "@apollo/client": "^3.13.8",
     "@elastic/elasticsearch": "^9.0.2",
+
+    "@elastic/elasticsearch": "^9.0.3",
     "@shadcn/ui": "^0.0.4",
     "@smastrom/react-rating": "^1.5.0",
     "@stripe/stripe-js": "^7.3.0",
     "@types/pdf-parse": "^1.1.5",
     "@types/pdfjs-dist": "^2.10.377",
     "@vercel/blob": "^0.27.3",
+    "aws-sdk": "^2.1692.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.9",
     "class-variance-authority": "^0.7.1",
+
     "dotenv": "^16.5.0",
+    "graphql": "^16.11.0",
+    "graphql-ws": "^6.0.5",
+
+    "dotenv": "^16.6.1",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.483.0",
-    "mongodb": "^6.16.0",
+    "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
     "next": "^15.3.3",
     "next-auth": "^4.24.11",
@@ -52,7 +62,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.8",
+    "@tailwindcss/postcss": "^4.1.11",
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20",
@@ -63,6 +73,7 @@
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
 }

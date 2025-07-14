@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "../../components/ui/button";
+import {Button} from "../../components/ui/button";
+
 
 const VerifyPage = () => {
   const router = useRouter();
@@ -12,6 +13,7 @@ const VerifyPage = () => {
   const [isResending, setIsResending] = useState<boolean>(false);
   const [expiryTime, setExpiryTime] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [approvalMessage, setApprovalMessage] = useState<string>("");
 
   useEffect(() => {
     const storedExpiryTime = localStorage.getItem("otpExpiryTime");
@@ -83,7 +85,9 @@ const VerifyPage = () => {
         if (data.role === "admin") {
           router.push("/admin-dashboard");
         } else if (data.role === "researcher") {
-          router.push("/researcher-dashboard");
+          alert("Registration successful! Please wait for approval email by admin.");
+          router.push("/signin");
+          return;
         } else {
           router.push("/user-dashboard");
         }

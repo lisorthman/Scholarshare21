@@ -23,8 +23,8 @@ export async function POST(request: Request) {
     const db = client.db('scholarshare');
     const usersCollection = db.collection('users');
 
-    // Find user by email and role
-    const user = await usersCollection.findOne({ email, role });
+    // Find user by email (case-insensitive)
+    const user = await usersCollection.findOne({ email: { $regex: `^${email}$`, $options: 'i' } });
     if (!user) {
       console.log('User not found:', email); // Debugging
       client.close();

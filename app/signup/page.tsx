@@ -54,6 +54,7 @@ const SignupPage = () => {
     confirmPassword: '',
     phoneNumber: '',
     role: '',
+    educationQualification: '', // Added
   });
   const [error, setError] = useState<string>('');
   const [passwordFeedback, setPasswordFeedback] = useState({
@@ -68,6 +69,7 @@ const SignupPage = () => {
     upperCase: false,
     lowerCase: false
   });
+  const [approvalMessage, setApprovalMessage] = useState<string>(''); // For researcher approval
 
   // Clear any existing tokens on component mount
   useEffect(() => {
@@ -108,6 +110,11 @@ const SignupPage = () => {
       setError('Passwords do not match');
       return;
     }
+
+    if (formData.role === 'researcher' && !formData.educationQualification) {
+      setError('Education qualification is required for researchers');
+      return;
+    }
   
     try {
       const response = await fetch('/api/signup', {
@@ -121,6 +128,7 @@ const SignupPage = () => {
           phoneNumber: formData.phoneNumber,
           password: formData.password,
           role: formData.role,
+          ...(formData.role === 'researcher' ? { educationQualification: formData.educationQualification } : {}),
         }),
       });
   
@@ -138,28 +146,27 @@ const SignupPage = () => {
         document.cookie = `token=${data.token}; path=/; max-age=3600`;
         document.cookie = `role=${data.role}; path=/; max-age=3600`;
 
-      alert('Registration Successful! Check your email for verification.');
-      
-      // Proceed to OTP verification
-      const otpRes = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
-      });
-
-      if (otpRes.ok) {
-        const otpData = await otpRes.json();
-        localStorage.setItem("otpExpiryTime", otpData.expiry);
-        router.push('/verify');
+        // Remove approvalMessage for researchers. Always proceed to OTP verification for all roles.
+        alert('Registration Successful! Check your email for verification.');
+        // Proceed to OTP verification for all roles
+        const otpRes = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email }),
+        });
+        if (otpRes.ok) {
+          const otpData = await otpRes.json();
+          localStorage.setItem("otpExpiryTime", otpData.expiry);
+          router.push('/verify');
+        }
+      } else {
+        setError(data.message || 'Registration failed');
       }
-    } else {
-      setError(data.message || 'Registration failed');
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError('An error occurred. Please try again.');
     }
-  } catch (error) {
-    console.error('Signup error:', error);
-    setError('An error occurred. Please try again.');
-  }
-};
+  };
   
 
   // Handle Google Sign-In
@@ -241,6 +248,7 @@ const SignupPage = () => {
               Create Account
             </h2>
             {error && <p style={{ color: 'red', marginBottom: '10px' }}>{error}</p>}
+            {approvalMessage && <p style={{ color: 'green', marginBottom: '10px' }}>{approvalMessage}</p>}
             <select
               name="role"
               value={formData.role}
@@ -349,6 +357,19 @@ const SignupPage = () => {
               value={formData.email}
               onChange={handleChange}
             />
+            {formData.role === 'researcher' && (
+              <>
+                <br />
+                <InputField
+                  type="text"
+                  placeholder="Education Qualification"
+                  name="educationQualification"
+                  value={formData.educationQualification}
+                  onChange={handleChange}
+                  required={formData.role === 'researcher'}
+                />
+              </>
+            )}
             <br />
             <InputField
               type="text"

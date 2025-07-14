@@ -17,6 +17,7 @@ export interface IUser extends Document {
   // OAuth fields
   googleId?: string;
   facebookId?: string;
+  status: string; // Added for approval workflow
   // Milestone fields
   counts: {
     uploads: number;
@@ -24,6 +25,7 @@ export interface IUser extends Document {
     downloads: number;
   };
   badges: string[];
+  educationQualification?: string; // Added for researchers
 }
 
 const UserSchema = new Schema<IUser>(
@@ -63,13 +65,15 @@ const UserSchema = new Schema<IUser>(
     // OAuth fields
     googleId: { type: String, sparse: true },
     facebookId: { type: String, sparse: true },
+    status: { type: String, required: true, enum: ["Pending", "Active", "Suspended"], default: "Pending" }, // Added
     // Milestone tracking
     counts: {
       uploads: { type: Number, default: 0 },
       approvals: { type: Number, default: 0 },
-      downloads: { type: Number, default: 0 }
+      downloads: { type: Number, default: 0 },
     },
-    badges: { type: [String], default: [] }
+    badges: { type: [String], default: [] },
+    educationQualification: { type: String, default: null }, // Added for researchers
   },
   { timestamps: true }
 );
