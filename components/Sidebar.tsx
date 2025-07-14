@@ -36,8 +36,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
   const userMenu = [
     { href: '/user-dashboard', label: 'Dashboard' },
     { href: '/user-dashboard/wishlist', label: 'Wishlist' },
-    { href: '/user-dashboard/papers', label: 'Papers' },
-    { href: '/user-dashboard/settings', label: 'Settings' },
     { href: '/user-dashboard/profile', label: 'Profile' },
     {href: '/user-dashboard/papers', label: 'Research Papers'}
   ];

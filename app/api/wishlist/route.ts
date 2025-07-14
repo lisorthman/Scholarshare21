@@ -1,64 +1,47 @@
-import connectToDB from '@/lib/mongoose';
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
-import { Wishlist } from '@/models/wishlist';
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/dbConnect';
+import Wishlist from '@/models/Wishlist';
+import Paper from '@/models/paper';
 
-// GET /api/wishlist → fetch user's wishlist
-export async function GET() {
-  try {
-    const session = await getSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+export async function GET(request: Request) {
+  await dbConnect();
+  
+  const token = request.headers.get('Authorization')?.split(' ')[1];
 
-    await connectToDB();
-    const wishlist = await Wishlist.find({ userId: session.user.id }).lean();
-
-    return NextResponse.json(wishlist);
-  } catch (error) {
-    console.error('Wishlist fetch error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch wishlist' },
-      { status: 500 }
-    );
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-}
 
-// POST /api/wishlist → add paper to wishlist
-export async function POST(req: NextRequest) {
+  // In a real app, you would verify the token and get the user ID
+  const userId = token;
+
   try {
-    const session = await getSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Get all wishlist items for the user
+    const wishlistItems = await Wishlist.find({ userId });
+    
+    // Get all paper IDs from the wishlist
+    const paperIds = wishlistItems.map(item => item.paperId);
+    
+    // Fetch all papers that are in the wishlist
+    const papers = await Paper.find({ _id: { $in: paperIds }, status: 'approved' });
+    
+    // Map to the expected format
+    const formattedPapers = papers.map(paper => ({
+      id: paper._id.toString(),
+      title: paper.title,
+      authors: paper.authors,
+      abstract: paper.abstract,
+      publicationDate: paper.publicationDate,
+      downloadUrl: paper.downloadUrl,
+      thumbnailUrl: paper.thumbnailUrl,
+      rating: paper.rating,
+      averageRating: paper.averageRating,
+      downloadCount: paper.downloadCount
+    }));
 
-    const { paperId } = await req.json();
-    await connectToDB();
-
-    const existing = await Wishlist.findOne({
-      userId: session.user.id,
-      paperId,
-    });
-
-    if (!existing) {
-      await Wishlist.create({
-        userId: session.user.id,
-        paperId,
-      });
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(formattedPapers);
   } catch (error) {
-    console.error('Wishlist add error:', error);
-    return NextResponse.json(
-      { error: 'Failed to add to wishlist' },
-      { status: 500 }
-    );
+    console.error('Error fetching wishlist papers:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
