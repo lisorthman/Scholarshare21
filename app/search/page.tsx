@@ -177,7 +177,7 @@ export default function SearchResultsPage() {
                   <h3 className={styles.letterHeading}>{letter}</h3>
                   <div className={styles.papersGrid}>
                     {alphabeticalResults[letter].map(paper => (
-                      <PaperCard key={paper.id} paper={paper} />
+                      <PaperCard key={paper.id} paper={{ ...paper, author: paper.author }} />
                     ))}
                   </div>
                 </div>

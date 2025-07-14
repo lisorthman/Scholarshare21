@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
   try {
     const { hits } = await client.search({
-      index: 'research-papers',
+      index: 'scholar-share-search',
       query: {
         multi_match: {
           query,
@@ -22,13 +22,23 @@ export async function GET(req: Request) {
       },
     });
 
-    const results = hits.hits.map((hit: any) => ({
-      id: hit._id, // <-- Include the Elasticsearch ID
-      ...hit._source, // <-- Merge the rest of the data
-    }));
+    const results = hits.hits.map((hit: any) => {
+      const source = hit._source;
+
+      return {
+        id: hit._id,
+        title: source.title,
+        abstract: source.abstract,
+        author: source.author || 'Anonymous',
+        category: source.category || 'Uncategorized',
+        keywords: source.keywords || [],
+        createdAt: source.createdAt,
+        uploadedAt: source.uploadedAt,
+      };
+    });
+
     return NextResponse.json({ results });
-  } catch (error) {
-    console.error('Elasticsearch search error:', error);
-    return NextResponse.json({ results: [], error: 'Search failed' }, { status: 500 });
+  } catch {
+    return NextResponse.json({ results: [] }, { status: 500 });
   }
 }
