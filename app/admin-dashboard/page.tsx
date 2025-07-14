@@ -1,11 +1,20 @@
 "use client";
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+} from "recharts";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -17,6 +26,25 @@ export default function AdminDashboard() {
     createdAt: string;
     updatedAt: string;
   } | null>(null);
+  const [analytics, setAnalytics] = useState({
+    views: 0,
+    newUsers: 0,
+    totalDownloads: 0,
+    paperSubmissions: 0,
+    reviewCount: 0,
+    registeredResearchers: 0,
+    changes: {
+      viewsChange: "0.00%",
+      newUsersChange: "0.00%",
+      totalDownloadsChange: "0.00%",
+      paperSubmissionsChange: "0.00%",
+      reviewCountChange: "0.00%",
+      registeredResearchersChange: "0.00%",
+    },
+  });
+  const [notifications, setNotifications] = useState<{ msg: string; time: string; type: string; status?: string }[]>([]);
+  const [userGrowth, setUserGrowth] = useState<{ month: string; users: number }[]>([]);
+  const [recentActivities, setRecentActivities] = useState<{ action: string; time: string }[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -53,27 +81,93 @@ export default function AdminDashboard() {
     };
 
     verifyToken();
+
+    const trackView = async () => {
+      try {
+        await fetch('/api/admin/track-view', { method: 'POST' });
+      } catch (error) {
+        console.error("Error tracking view:", error);
+      }
+    };
+    trackView();
   }, [router]);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      const response = await fetch('/api/admin/analytics');
+      const result = await response.json();
+      setAnalytics(result);
+    } catch (error) {
+      console.error("Error fetching analytics data:", error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch('/api/admin/notifications');
+      const data = await response.json();
+      const pendingNotifications = data.filter((notif: { msg: string; time: string; type: string; status?: string }) => 
+        notif.type === 'paper'
+      );
+      setNotifications(pendingNotifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  const fetchUserGrowth = async () => {
+    try {
+      const response = await fetch('/api/admin/user-growth?role=user', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await response.json();
+      setUserGrowth(data.map((item: any) => ({ month: item.month, users: item.users })));
+    } catch (error) {
+      console.error("Error fetching user growth data:", error);
+    }
+  };
+
+  const fetchRecentActivities = async () => {
+    try {
+      const response = await fetch('/api/admin/recent-activities', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await response.json();
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const recent = data.filter((activity: { action: string; time: string }) => {
+        const activityTime = new Date(activity.time);
+        return activityTime >= oneWeekAgo;
+      });
+      setRecentActivities(recent);
+    } catch (error) {
+      console.error("Error fetching recent activities:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalyticsData();
+    fetchNotifications();
+    fetchUserGrowth();
+    fetchRecentActivities();
+    const analyticsInterval = setInterval(fetchAnalyticsData, 30000);
+    const notificationsInterval = setInterval(fetchNotifications, 10000);
+    const growthInterval = setInterval(fetchUserGrowth, 30000);
+    const activitiesInterval = setInterval(fetchRecentActivities, 10000); // Update every 10 seconds
+    return () => {
+      clearInterval(analyticsInterval);
+      clearInterval(notificationsInterval);
+      clearInterval(growthInterval);
+      clearInterval(activitiesInterval);
+    };
+  }, []);
 
   if (!user)
     return (
-      <p
-        style={{
-          textAlign: "center",
-          paddingTop: "2.5rem",
-          fontSize: "1rem",
-        }}
-      >
+      <p style={{ textAlign: "center", paddingTop: "2.5rem", fontSize: "1rem" }}>
         Loading...
       </p>
     );
-
-  const stats = [
-    { label: "Views", value: "7,265", change: "+11.01%" },
-    { label: "Visits", value: "3,671", change: "-0.03%" },
-    { label: "New Users", value: "256", change: "+15.03%" },
-    { label: "Active Users", value: "2,318", change: "+6.08%" },
-  ];
 
   const projects = [
     { manager: "ByeWind", date: "Jun 24, 2025", status: "In Progress" },
@@ -89,27 +183,6 @@ export default function AdminDashboard() {
     Pending: { backgroundColor: "#FEF3C7", color: "#92400E" },
     Approved: { backgroundColor: "#FDE68A", color: "#854D0E" },
     Rejected: { backgroundColor: "#E5E7EB", color: "#6B7280" },
-  };
-
-  const usersByLocation = [
-    { label: "United States", value: 52.1 },
-    { label: "Canada", value: 22.8 },
-    { label: "Mexico", value: 13.9 },
-    { label: "Other", value: 11.2 },
-  ];
-  const chartData = {
-    "Users by Location": [
-      { label: "India", value: 40 },
-      { label: "USA", value: 30 },
-      { label: "UK", value: 20 },
-      { label: "Others", value: 10 },
-    ],
-    "Users by Age": [
-      { label: "18-24", value: 35 },
-      { label: "25-34", value: 40 },
-      { label: "35-44", value: 15 },
-      { label: "45+", value: 10 },
-    ],
   };
 
   const COLORS = ["#E9D9D4", "#DCD3D0", "#6B4A45", "#713f12"];
@@ -165,16 +238,15 @@ export default function AdminDashboard() {
               }}
             >
               <h1
-  style={{
-    fontSize: "2rem",
-    fontWeight: "800",
-    marginBottom: "0.75rem",
-    color: "#000",
-  }}
->
-  Welcome, {user.name}!
-</h1>
-
+                style={{
+                  fontSize: "2rem",
+                  fontWeight: "800",
+                  marginBottom: "0.75rem",
+                  color: "#000",
+                }}
+              >
+                "Welcome, Admin!"
+              </h1>
               <p
                 style={{
                   color: "#1F2937",
@@ -183,14 +255,12 @@ export default function AdminDashboard() {
                   lineHeight: "1.6",
                 }}
               >
-                Great job! You've engaged 85% of visitors, welcomed 120 new
-                users this month, and boosted active researchers by 30%. Keep up
-                the amazing work in growing the ScholarShare community and
-                making research more accessible!
+                Great job! You've engaged 85% of visitors, welcomed {analytics.newUsers} new
+                users this month, and boosted research activity. Keep up the amazing work in growing the ScholarShare community!
               </p>
             </div>
 
-            {/* Stats Cards */}
+            {/* Analytics Cards */}
             <div
               style={{
                 display: "grid",
@@ -198,7 +268,14 @@ export default function AdminDashboard() {
                 gap: "1.5rem",
               }}
             >
-              {stats.map((stat, idx) => {
+              {[
+                { label: "Views", value: analytics.views, change: analytics.changes.viewsChange },
+                { label: "New Users", value: analytics.newUsers, change: analytics.changes.newUsersChange },
+                { label: "Total Downloads", value: analytics.totalDownloads, change: analytics.changes.totalDownloadsChange },
+                { label: "Paper Submissions", value: analytics.paperSubmissions, change: analytics.changes.paperSubmissionsChange },
+                { label: "Review Count", value: analytics.reviewCount, change: analytics.changes.reviewCountChange },
+                { label: "Registered Researchers", value: analytics.registeredResearchers, change: analytics.changes.registeredResearchersChange },
+              ].map((stat, idx) => {
                 const isPositive = stat.change.startsWith("+");
                 return (
                   <div
@@ -215,7 +292,7 @@ export default function AdminDashboard() {
                       {stat.label}
                     </p>
                     <p style={{ fontSize: "1.75rem", fontWeight: 700 }}>
-                      {stat.value}
+                      {stat.value.toLocaleString()}
                     </p>
                     <div
                       style={{
@@ -250,19 +327,18 @@ export default function AdminDashboard() {
               })}
             </div>
 
-            {/* Chart and Notifications Section */}
+            {/* Chart and Panels Section */}
             <div
               style={{
                 display: "flex",
                 marginTop: "3rem",
-                flexWrap: "wrap",
                 gap: "2rem",
               }}
             >
               {/* Chart Section */}
               <div
                 style={{
-                  flex: "1 1 60%",
+                  flex: "1 1 50%",
                   borderRadius: "1rem",
                   backgroundColor: "#F9FAFB",
                   padding: "1.5rem",
@@ -271,92 +347,77 @@ export default function AdminDashboard() {
               >
                 <div
                   style={{
-                    display: "flex",
-                    gap: "1.5rem",
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                    marginBottom: "1rem",
-                    color: "#A78BFA",
-                    cursor: "pointer",
+                    fontSize: "1.25rem",
+                    fontWeight: 600,
+                    color: "#000000",
+                    marginBottom: "0.75rem",
                   }}
                 >
-                  <span
-                    style={{
-                      borderBottom: "2px solid #A78BFA",
-                      paddingBottom: "0.25rem",
-                    }}
-                  >
-                    Users
-                  </span>
-                  <span style={{ color: "#9CA3AF" }}>Projects</span>
-                  <span style={{ color: "#9CA3AF" }}>Operating Status</span>
+                  Line Chart - Dots
                 </div>
-
-                {/* Line Chart (Mockup) */}
-                <div
-                  style={{
-                    height: "200px",
-                    borderTop: "1px solid #E5E7EB",
-                    borderBottom: "1px solid #E5E7EB",
-                    position: "relative",
-                    marginTop: "1rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-around",
-                  }}
-                >
-                  {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map(
-                    (month, i) => (
-                      <div
-                        key={i}
-                        style={{ textAlign: "center", position: "relative" }}
-                      >
-                        <div
-                          style={{
-                            width: "6px",
-                            height: "6px",
-                            backgroundColor: "#000",
-                            borderRadius: "9999px",
-                            margin: "0 auto",
-                            marginBottom: "0.5rem",
-                            border: "2px solid white",
-                          }}
-                        />
-                        <div style={{ fontSize: "0.75rem", color: "#6B7280" }}>
-                          {month}
-                        </div>
-                      </div>
-                    )
-                  )}
-                  <svg
-                    viewBox="0 0 300 100"
-                    preserveAspectRatio="none"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      height: "100%",
-                      width: "100%",
-                    }}
-                  >
-                    <path
-                      d="M0,80 C50,20 100,60 150,30 C200,80 250,50 300,60"
-                      stroke="#6B4A45"
-                      strokeWidth="2"
-                      fill="none"
-                    />
-                  </svg>
+                <div style={{ fontSize: "0.875rem", color: "#6B7280", marginBottom: "1rem" }}>
+                  January - June 2025
+                </div>
+                <div style={{ height: "300px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={userGrowth}
+                      margin={{
+                        left: 12,
+                        right: 12,
+                      }}
+                    >
+                      <CartesianGrid vertical={false} stroke="#D1D5DB" />
+                      <XAxis
+                        dataKey="month"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                        stroke="#374151"
+                        fontSize="0.875rem"
+                      />
+                      <YAxis
+                        stroke="#374151"
+                        fontSize="0.875rem"
+                        domain={[0, 'auto']}
+                      />
+                      <Tooltip
+                        cursor={false}
+                        contentStyle={{ backgroundColor: "#FFFFFF", border: "1px solid #D1D5DB", borderRadius: "0" }}
+                        itemStyle={{ color: "#374151" }}
+                      />
+                      <Line
+                        type="natural"
+                        dataKey="users"
+                        stroke="#6B7280"
+                        strokeWidth={2}
+                        dot={{ fill: "#6B7280" }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#6B7280" }}>
+                  <div style={{ fontWeight: 500, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    Trending up by {analytics.changes.newUsersChange} this month <ArrowUpRight size={16} />
+                  </div>
+                  <div style={{ marginTop: "0.25rem" }}>
+                    Showing total users for the last 6 months
+                  </div>
                 </div>
               </div>
 
-              {/* Notifications Section */}
+              {/* Notifications Panel */}
               <div
                 style={{
-                  flex: "1 1 30%",
+                  flex: "1 1 25%",
                   borderRadius: "1rem",
                   backgroundColor: "#F3F4F6",
                   padding: "1.5rem",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                  maxHeight: "500px",
+                  overflowY: "auto",
                 }}
               >
                 <h3
@@ -368,181 +429,120 @@ export default function AdminDashboard() {
                 >
                   Notifications
                 </h3>
-                {[
-                  { msg: "You fixed a bug.", time: "Just now" },
-                  { msg: "New user registered.", time: "59 minutes ago" },
-                  { msg: "You fixed a bug.", time: "12 hours ago" },
-                  {
-                    msg: "Andi Lane subscribed to you.",
-                    time: "Today, 11:59 AM",
-                  },
-                ].map((notif, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      marginBottom: "1rem",
-                      fontSize: "0.875rem",
-                    }}
-                  >
+                {notifications.length > 0 ? (
+                  notifications.map((notif, idx) => (
                     <div
+                      key={idx}
                       style={{
-                        width: "1.5rem",
-                        height: "1.5rem",
-                        borderRadius: "9999px",
-                        backgroundColor: "#E5E7EB",
-                        marginRight: "0.75rem",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "0.75rem",
+                        marginBottom: "1rem",
+                        fontSize: "0.875rem",
+                        backgroundColor: "#fff",
+                        padding: "0.75rem",
+                        borderRadius: "0.5rem",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                       }}
                     >
-                      🛠️
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{notif.msg}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#9CA3AF" }}>
-                        {notif.time}
+                      <div
+                        style={{
+                          width: "1.5rem",
+                          height: "1.5rem",
+                          borderRadius: "9999px",
+                          backgroundColor: notif.type === 'paper' ? '#E8F5E9' : '#E0F7FA',
+                          marginRight: "0.75rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        {notif.type === 'paper' ? '📄' : '🔍'}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{notif.msg}</div>
+                        <div style={{ fontSize: "0.75rem", color: "#9CA3AF" }}>
+                          {notif.time}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p style={{ color: "#9CA3AF", textAlign: "center" }}>
+                    No new notifications.
+                  </p>
+                )}
               </div>
-            </div>
 
-            {/* Projects Section */}
-            <div
-              style={{
-                marginBottom: "2rem",
-                backgroundColor: "#fff",
-                padding: "1rem 1rem",
-                borderRadius: "1rem",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              }}
-            >
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 600 }}>Projects</h2>
-              <table
+              {/* Recent Activities Panel */}
+              <div
                 style={{
-                  width: "100%",
-                  marginTop: "1rem",
-                  fontSize: "0.875rem",
-                  textAlign: "center",
+                  flex: "1 1 25%",
+                  borderRadius: "1rem",
+                  backgroundColor: "#F3F4F6",
+                  padding: "1.5rem",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                  maxHeight: "200px",
+                  overflowY: "auto",
                 }}
               >
-                <thead>
-                  <tr style={{ margin: "2rem 2rem", color: "#6B7280" }}>
-                    <th>Manager</th>
-                    <th>Date</th>
-                    <th>Last updated</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((proj, i) => (
-                    <tr
-                      key={i}
-                      style={{
-                        backgroundColor: i % 2 === 0 ? "#E9D9D4" : "#D4BEB8",
-                        borderRadius: "0.75rem",
-                      }}
-                    >
-                      <td style={{ padding: "0.75rem 0.5rem" }}>
-                        {proj.manager}
-                      </td>
-                      <td>{proj.date}</td>
-                      <td>{proj.date}</td>
-                      <td>
-                        <span
-                          style={{
-                            padding: "0.25rem 0.75rem",
-                            borderRadius: "9999px",
-                            fontWeight: 500,
-                            fontSize: "0.75rem",
-                            ...statusStyles[proj.status],
-                          }}
-                        >
-                          {proj.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Charts Section */}
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                gap: "2rem",
-                marginBottom: "4rem",
-              }}
-            >
-              {["Users by Location", "Users by Age"].map((title, idx) => (
-                <div
-                  key={idx}
+                <h3
                   style={{
-                    flex: "1 1 45%",
-                    backgroundColor: "#fff",
-                    borderRadius: "1rem",
-                    padding: "1.5rem",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    marginBottom: "1rem",
                   }}
                 >
-                  <h3 style={{ fontSize: "0.875rem", marginBottom: "1rem" }}>
-                    {title}
-                  </h3>
-
-                  <div
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      height: "200px",
-                      marginBottom: "1rem",
-                    }}
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={chartData[title]}
-                          dataKey="value"
-                          nameKey="label"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={60}
-                          label
-                        >
-                          {chartData[title].map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div style={{ fontSize: "0.75rem", color: "#374151" }}>
-                    {chartData[title].map((item, index) => (
-                      <li key={index} style={{ marginBottom: "0.25rem" }}>
-                        ● {item.label} - {item.value}%
-                      </li>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                  Recent Activities
+                </h3>
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        marginBottom: "1rem",
+                        fontSize: "0.875rem",
+                        backgroundColor: "#fff",
+                        padding: "0.75rem",
+                        borderRadius: "0.5rem",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "1.5rem",
+                          height: "1.5rem",
+                          borderRadius: "9999px",
+                          backgroundColor: "#E0F7FA",
+                          marginRight: "0.75rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        ⚙️
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{activity.action}</div>
+                        <div style={{ fontSize: "0.75rem", color: "#9CA3AF" }}>
+                          {activity.time}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: "#9CA3AF", textAlign: "center" }}>
+                    No recent activities.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </DashboardLayout>
     </div>
   );
-}
+} 
