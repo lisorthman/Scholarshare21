@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import InputField from "../../components/InputField";
-import { Button } from "../../components/ui/Button"; // Make sure this path matches exactly
+import { Button } from "../../components/ui/Button";
 import NavBar from "../../components/Navbar";
 
 const SigninPage = () => {
@@ -182,12 +182,15 @@ const SigninPage = () => {
 
             {/* Submit Button */}
             <Button
+              name="Login"
               type="submit"
               variant="default"
               className="w-full h-10 mb-5"
             >
               Login
             </Button>
+            <br />
+            <br />
 
             {/* Link to Signup Page */}
             <div className="text-center">

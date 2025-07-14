@@ -12,6 +12,16 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   'mathematics': '🧮',
   'medicine': '🏥',
   'social-sciences': '🌐',
+  'statistics': '📊',
+  'geology': '🌍',
+  'psychology': '🧠',
+  'database': '🗄️',
+  'sports': '🏅',
+  'dance': '🩰',
+  'zoology': '🦓',
+  'media': '🎥',
+  'artificial-intelligence': '🤖',
+  'test': '🧪',
   'default': '📄'
 };
 
@@ -24,7 +34,9 @@ export const PaperCard = ({ paper }: { paper: Paper }) => {
       })
     : null;
 
-  const categoryKey = paper.category.toLowerCase().replace(/\s+/g, '-');
+  const categoryKey = paper.category
+    ? paper.category.toLowerCase().replace(/\s+/g, '-')
+    : 'default';
   const emoji = CATEGORY_EMOJIS[categoryKey] || CATEGORY_EMOJIS.default;
 
   return (
@@ -33,7 +45,7 @@ export const PaperCard = ({ paper }: { paper: Paper }) => {
       
       <div className={styles.metaRow}>
         <span className={styles.category}>
-          {emoji} {paper.category}
+          {emoji} {paper.category || 'Uncategorized'}
         </span>
         {formattedDate && (
           <span className={styles.date}>
