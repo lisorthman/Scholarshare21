@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { useAuthContext } from '@/components/AuthProvider';
+import jsPDF from 'jspdf';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -805,16 +806,20 @@ export default function ResearcherDashboard() {
                         viewPercentageChange: stats?.viewPercentageChange || 0,
                         date: new Date().toLocaleDateString()
                       };
-                      
-                      const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `research-analytics-${new Date().toISOString().split('T')[0]}.json`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      window.URL.revokeObjectURL(url);
+
+                      // Generate PDF using jsPDF
+                      const doc = new jsPDF();
+                      doc.setFontSize(18);
+                      doc.text('Research Analytics Report', 14, 20);
+                      doc.setFontSize(12);
+                      doc.text(`Date: ${reportData.date}`, 14, 30);
+                      doc.text(`Total Downloads: ${reportData.totalDownloads}`, 14, 40);
+                      doc.text(`Total Views: ${reportData.totalViews}`, 14, 50);
+                      doc.text(`Total Papers: ${reportData.totalPapers}`, 14, 60);
+                      doc.text(`Most Viewed Category: ${reportData.mostViewedCategory}`, 14, 70);
+                      doc.text(`Download % Change: ${reportData.downloadPercentageChange}%`, 14, 80);
+                      doc.text(`View % Change: ${reportData.viewPercentageChange}%`, 14, 90);
+                      doc.save(`research-analytics-${new Date().toISOString().split('T')[0]}.pdf`);
                     }}
                     style={{
                       display: 'flex',
