@@ -68,27 +68,36 @@ export default function PaperCard({
   };
 
   const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDownloading(true);
-    try {
-      const response = await fetch(paper.fileUrl);
-      if (!response.ok) throw new Error("Failed to fetch file");
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${paper.title.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed:', error);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  e.preventDefault();
+  setIsDownloading(true);
+  try {
+    // 🔁 Increment download count
+    await fetch("/api/paper/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paperId: paper._id }),
+    });
+
+    // ⬇️ Fetch and download the actual file
+    const response = await fetch(paper.fileUrl);
+    if (!response.ok) throw new Error("Failed to fetch file");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${paper.title.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Download failed:', error);
+  } finally {
+    setIsDownloading(false);
+  }
+};
+
 
   return (
     <div className="border border-[#D7CCC8] rounded-xl p-6 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md hover:border-[#A1887F]">
@@ -157,14 +166,26 @@ export default function PaperCard({
               <Download className={`w-5 h-5 ${isDownloading ? "text-[#BCAAA4] animate-pulse" : "text-[#8D6E63] hover:text-[#0288D1]"}`} />
             </button>
 
-            <Link
-              href={paper.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-transparent border border-[#D7CCC8] rounded-md hover:bg-[#EFEBE9] hover:border-[#A1887F]"
-            >
-              View
-            </Link>
+            <a
+  href={paper.fileUrl}
+  target="_blank"
+  rel="noopener noreferrer"
+  onClick={async () => {
+    try {
+      await fetch("/api/paper/view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paperId: paper._id }),
+      });
+    } catch (error) {
+      console.error("Failed to track view:", error);
+    }
+  }}
+  className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-transparent border border-[#D7CCC8] rounded-md hover:bg-[#EFEBE9] hover:border-[#A1887F]"
+>
+  View
+</a>
+
 
             <Link 
               href={`/papers/${paper._id}`}

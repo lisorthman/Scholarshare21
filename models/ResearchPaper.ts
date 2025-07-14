@@ -28,6 +28,10 @@ export interface ResearchPaperDocument extends Document {
   aiScore?: number;
   rejectionReason?: string;
   reviews: Review[];
+  views: number;
+  downloads: number;
+  viewedBy: Types.ObjectId[];
+  downloadedBy: Types.ObjectId[];
 }
 
 const ReviewSchema = new Schema<Review>(
@@ -38,7 +42,7 @@ const ReviewSchema = new Schema<Review>(
     comment: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
   },
-  { _id: false } // Embedded subdocuments don't need their own _id
+  { _id: false }
 );
 
 const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
@@ -125,6 +129,28 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
       of: Number,
       default: () => new Map<string, number>(),
     },
+    views: {
+      type: Number,
+      default: 0,
+    },
+    downloads: {
+      type: Number,
+      default: 0,
+    },
+    viewedBy: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: [],
+      }
+    ],
+    downloadedBy: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: [],
+      }
+    ],
     blobKey: {
       type: String,
     },
@@ -137,8 +163,6 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     rejectionReason: {
       type: String,
     },
-
-    // ✅ Add this new reviews array
     reviews: {
       type: [ReviewSchema],
       default: [],
@@ -152,6 +176,8 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
         ret._id = ret._id.toString();
         ret.authorId = ret.authorId.toString();
         ret.categoryId = ret.categoryId?.toString();
+        ret.viewedBy = ret.viewedBy?.map((id: any) => id.toString());
+        ret.downloadedBy = ret.downloadedBy?.map((id: any) => id.toString());
         if (ret.reviews) {
           ret.reviews = ret.reviews.map((r: any) => ({
             ...r,
@@ -163,13 +189,11 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
         return ret;
       },
     },
-    toObject: {
-      virtuals: true,
-    },
+    toObject: { virtuals: true },
   }
 );
 
-// Virtual for author details
+// Virtuals
 ResearchPaperSchema.virtual('author', {
   ref: 'User',
   localField: 'authorId',
@@ -177,7 +201,6 @@ ResearchPaperSchema.virtual('author', {
   justOne: true,
 });
 
-// Virtual for category details
 ResearchPaperSchema.virtual('categoryDetails', {
   ref: 'AdminCategory',
   localField: 'categoryId',

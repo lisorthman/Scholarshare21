@@ -53,6 +53,8 @@ const NavBar: React.FC = () => {
     authState.role.charAt(0).toUpperCase() + authState.role.slice(1) : 
     null;
 
+
+
   return (
     <nav className={styles.navBar}>
       {/* Logo Section */}

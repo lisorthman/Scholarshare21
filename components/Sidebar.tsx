@@ -28,7 +28,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
     { href: '/researcher-dashboard', label: 'Dashboard' },
     { href: '/researcher-dashboard/uploads', label: 'Uploads' },
     { href: '/researcher-dashboard/milestones', label: 'Milestones' },
-    { href: '/researcher-dashboard/settings', label: 'Settings' },
     { href: '/researcher-dashboard/profile', label: 'Profile' }
   ];
 
@@ -37,7 +36,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
     { href: '/user-dashboard', label: 'Dashboard' },
     { href: '/user-dashboard/wishlist', label: 'Wishlist' },
     { href: '/user-dashboard/papers', label: 'Papers' },
-    { href: '/user-dashboard/settings', label: 'Settings' },
     { href: '/user-dashboard/profile', label: 'Profile' },
     {href: '/user-dashboard/papers', label: 'Research Papers'}
   ];

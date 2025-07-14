@@ -1,75 +1,92 @@
 
 "use client";
 
-import React, { useState, ChangeEvent, FormEvent } from "react";
+import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import InputField from "../../components/InputField";
-import { Button } from "../../components/ui/Button"; // Ensure this path matches exactly
+import { button } from "../../components/ui/button";
 import NavBar from "../../components/Navbar";
+import { tokenUtils } from "@/lib/auth";
+import { useAuthContext } from "@/components/AuthProvider";
 
 const SigninPage = () => {
   const router = useRouter();
+  const { isAuthenticated, user, loading } = useAuthContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role: selectedRole }),
-      });
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, role: selectedRole }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Save token AND role to storage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role); // Added this line
       
-      if (response.ok) {
-        // Save token AND role to storage
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role);
-        
-        // Set cookies (optional, for SSR compatibility)
-        document.cookie = `token=${data.token}; path=/; max-age=3600`;
-        document.cookie = `role=${data.role}; path=/; max-age=3600`;
+      // Set cookies (optional, for SSR compatibility)
+      document.cookie = `token=${data.token}; path=/; max-age=3600`; // 1 hour
+      document.cookie = `role=${data.role}; path=/; max-age=3600`;
 
-        alert("Login Successful!");
-        
-        // Redirect based on role
-        switch (data.role) {
-          case "user":
-            router.push("/user-dashboard");
-            break;
-          case "admin":
-            router.push("/admin-dashboard");
-            break;
-          case "researcher":
-            router.push("/researcher-dashboard");
-            break;
-          default:
-            router.push("/");
-        }
-      } else {
-        setError(data.message || "Login failed");
+      alert("Login Successful!");
+      
+      // Redirect based on role
+      switch (data.role) { // Use role from response (not selectedRole)
+        case "user":
+          router.push("/user-dashboard");
+          break;
+        case "admin":
+          router.push("/admin-dashboard");
+          break;
+        case "researcher":
+          router.push("/researcher-dashboard");
+          break;
+        default:
+          router.push("/");
       }
-    } catch (error) {
-      setError("An error occurred. Please try again.");
+    } else {
+      setError(data.message || "Login failed");
     }
-  };
+  } catch (error) {
+    setError("An error occurred. Please try again.");
+  }
+};
 
   const handleRoleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelectedRole(e.target.value);
   };
 
   const handleGoogleSignIn = async () => {
-    await signIn("google", { callbackUrl: "/dashboard" });
+    try {
+      await signIn("google", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      setError("An error occurred during Google sign-in.");
+    }
   };
 
   const handleFacebookSignIn = async () => {
-    await signIn("facebook", { callbackUrl: "/dashboard" });
+    try {
+      await signIn("facebook", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Facebook sign-in error:", error);
+      setError("An error occurred during Facebook sign-in.");
+    }
   };
 
   const handleForgotPassword = (e: React.MouseEvent) => {

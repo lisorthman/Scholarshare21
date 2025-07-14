@@ -16,11 +16,14 @@ export async function POST(request: Request) {
   let client;
 
   try {
-    const { name, email, password, role } = await request.json();
+    const { name, email, password, role, educationQualification } = await request.json();
 
     // Basic validation
     if (!name || !email || !password || !role) {
       return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
+    }
+    if (role === 'researcher' && !educationQualification) {
+      return NextResponse.json({ message: 'Education qualification is required for researchers' }, { status: 400 });
     }
 
     // Connect to MongoDB
@@ -54,7 +57,6 @@ export async function POST(request: Request) {
       resendAttempts: 0,
       failedAttempts: 0,
       createdAt: new Date(),
-      status: "Pending", // Explicitly set to Pending
     });
     console.log("Inserted user ID:", result.insertedId); // Debug log
 

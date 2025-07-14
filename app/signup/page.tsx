@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react'; // Import signIn from next-auth/react
 import InputField from '../../components/InputField';
 import { Button } from "../../components/ui/Button";
 import NavBar from '../../components/Navbar';
+import { tokenUtils } from '@/lib/auth';
 
 // Password strength checker
 const checkPasswordStrength = (password: string) => {
@@ -53,6 +54,7 @@ const SignupPage = () => {
     confirmPassword: '',
     phoneNumber: '',
     role: '',
+    educationQualification: '', // Added
   });
   const [error, setError] = useState<string>('');
   const [passwordFeedback, setPasswordFeedback] = useState({
@@ -67,6 +69,13 @@ const SignupPage = () => {
     upperCase: false,
     lowerCase: false
   });
+  const [approvalMessage, setApprovalMessage] = useState<string>(''); // For researcher approval
+
+  // Clear any existing tokens on component mount
+  useEffect(() => {
+    // Clean up any expired or invalid tokens
+    tokenUtils.cleanupExpiredTokens();
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -101,6 +110,11 @@ const SignupPage = () => {
       setError('Passwords do not match');
       return;
     }
+
+    if (formData.role === 'researcher' && !formData.educationQualification) {
+      setError('Education qualification is required for researchers');
+      return;
+    }
   
     try {
       const response = await fetch('/api/signup', {
@@ -114,52 +128,69 @@ const SignupPage = () => {
           phoneNumber: formData.phoneNumber,
           password: formData.password,
           role: formData.role,
+          ...(formData.role === 'researcher' ? { educationQualification: formData.educationQualification } : {}),
         }),
       });
   
       const data = await response.json();
       if (response.ok) {
-      // Save token AND role to storage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role); // Added this line
-      localStorage.setItem("email", formData.email);
+        // Clear any existing tokens first
+        tokenUtils.clearAuthData();
+        
+        // Save token AND role to storage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
+        localStorage.setItem("email", formData.email);
 
-      // Set cookies (optional)
-      document.cookie = `token=${data.token}; path=/; max-age=3600`;
-      document.cookie = `role=${data.role}; path=/; max-age=3600`;
+        // Set cookies (optional)
+        document.cookie = `token=${data.token}; path=/; max-age=3600`;
+        document.cookie = `role=${data.role}; path=/; max-age=3600`;
 
-      alert('Registration Successful! Check your email for verification.');
-      
-      // Proceed to OTP verification
-      const otpRes = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
-      });
-
-      if (otpRes.ok) {
-        const otpData = await otpRes.json();
-        localStorage.setItem("otpExpiryTime", otpData.expiry);
-        router.push('/verify');
+        // Remove approvalMessage for researchers. Always proceed to OTP verification for all roles.
+        alert('Registration Successful! Check your email for verification.');
+        // Proceed to OTP verification for all roles
+        const otpRes = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email }),
+        });
+        if (otpRes.ok) {
+          const otpData = await otpRes.json();
+          localStorage.setItem("otpExpiryTime", otpData.expiry);
+          router.push('/verify');
+        }
+      } else {
+        setError(data.message || 'Registration failed');
       }
-    } else {
-      setError(data.message || 'Registration failed');
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError('An error occurred. Please try again.');
     }
-  } catch (error) {
-    console.error('Signup error:', error);
-    setError('An error occurred. Please try again.');
-  }
-};
+  };
   
 
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
-    await signIn('google', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
+    try {
+      await signIn("google", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Google sign-up error:", error);
+      setError("An error occurred during Google sign-up.");
+    }
   };
 
   // Handle Facebook Sign-In
   const handleFacebookSignIn = async () => {
-    await signIn('facebook', { callbackUrl: '/dashboard' }); // Redirect to dashboard after sign-in
+    try {
+      await signIn("facebook", { 
+        callbackUrl: "/oauth-callback"
+      });
+    } catch (error) {
+      console.error("Facebook sign-up error:", error);
+      setError("An error occurred during Facebook sign-up.");
+    }
   };
 
   return (
@@ -217,6 +248,7 @@ const SignupPage = () => {
               Create Account
             </h2>
             {error && <p style={{ color: 'red', marginBottom: '10px' }}>{error}</p>}
+            {approvalMessage && <p style={{ color: 'green', marginBottom: '10px' }}>{approvalMessage}</p>}
             <select
               name="role"
               value={formData.role}
@@ -325,6 +357,19 @@ const SignupPage = () => {
               value={formData.email}
               onChange={handleChange}
             />
+            {formData.role === 'researcher' && (
+              <>
+                <br />
+                <InputField
+                  type="text"
+                  placeholder="Education Qualification"
+                  name="educationQualification"
+                  value={formData.educationQualification}
+                  onChange={handleChange}
+                  required={formData.role === 'researcher'}
+                />
+              </>
+            )}
             <br />
             <InputField
               type="text"

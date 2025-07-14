@@ -3,6 +3,7 @@ import { Schema, model, models, Document, Types } from "mongoose";
 export interface IUser extends Document {
   name: string;
   email: string;
+  password?: string;
   role: string;
   researchField?: string;
   profilePhoto?: string;
@@ -12,7 +13,6 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date | null;
-  status: string; // Added for approval workflow
   // Milestone fields
   counts: {
     uploads: number;
@@ -20,12 +20,14 @@ export interface IUser extends Document {
     downloads: number;
   };
   badges: string[];
+  educationQualification?: string; // Added for researchers
 }
 
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
+    password: { type: String, required: false }, // Optional for OAuth users
     role: {
       type: String,
       required: true,
@@ -54,14 +56,13 @@ const UserSchema = new Schema<IUser>(
     ],
     username: { type: String, unique: true, sparse: true },
     lastLogin: { type: Date, default: null },
-    status: { type: String, required: true, enum: ["Pending", "Active", "Suspended"], default: "Pending" }, // Added
     // Milestone tracking
     counts: {
       uploads: { type: Number, default: 0 },
       approvals: { type: Number, default: 0 },
       downloads: { type: Number, default: 0 },
     },
-    badges: { type: [String], default: [] },
+    badges: { type: [String], default: [] }
   },
   { timestamps: true }
 );

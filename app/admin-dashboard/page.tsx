@@ -165,15 +165,16 @@ export default function AdminDashboard() {
               }}
             >
               <h1
-                style={{
-                  fontSize: "2rem",
-                  fontWeight: "800",
-                  marginBottom: "0.75rem",
-                  color: "#000",
-                }}
-              >
-                "Welcome, Admin!"
-              </h1>
+  style={{
+    fontSize: "2rem",
+    fontWeight: "800",
+    marginBottom: "0.75rem",
+    color: "#000",
+  }}
+>
+  Welcome, {user.name}!
+</h1>
+
               <p
                 style={{
                   color: "#1F2937",

@@ -82,7 +82,11 @@ export async function POST(request: Request) {
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
           lastLogin: user.lastLogin,
+<<<<<<< HEAD
           joined: user.createdAt.toISOString().split("T")[0], // Mapped to createdAt
+=======
+          joined: user.createdAt ? user.createdAt.toISOString().split("T")[0] : null,
+>>>>>>> faa4fc9ec916dfd2863c00f1cd77d7c04b1886fc
           status: user.status,
         },
       },
