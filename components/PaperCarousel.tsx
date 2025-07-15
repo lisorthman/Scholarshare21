@@ -12,12 +12,14 @@ interface PaperCarouselProps {
   title: string;
   papers: Paper[];
   variant?: 'category' | 'recent' | 'popular';
+  onCardClick?: (paper: Paper) => void;
 }
 
 export default function PaperCarousel({ 
   title, 
   papers, 
-  variant = 'category' 
+  variant = 'category' ,
+  onCardClick
 }: PaperCarouselProps) {
   if (papers.length < 2) {
     return (
@@ -27,7 +29,14 @@ export default function PaperCarousel({
         </div>
         <div className="flex gap-4 flex-wrap">
           {papers.map((paper) => (
-            <PaperCard key={paper.id} paper={paper} />
+            <SwiperSlide key={paper.id}>
+            <div
+              onClick={() => onCardClick?.(paper)}
+              style={{ cursor: 'pointer' }}
+            >
+              <PaperCard paper={paper} />
+            </div>
+          </SwiperSlide>
           ))}
         </div>
       </div>

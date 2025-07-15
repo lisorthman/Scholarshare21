@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       query: {
         multi_match: {
           query,
-          fields: ['title^3', 'abstract', 'keywords', 'author'],
+          fields: ['title^3', 'abstract', 'keywords', 'author', 'category'],
           fuzziness: 'AUTO',
         },
       },
@@ -34,6 +34,10 @@ export async function GET(req: Request) {
         keywords: source.keywords || [],
         createdAt: source.createdAt,
         uploadedAt: source.uploadedAt,
+        fileType: source.fileType || null,
+        fileUrl: source.fileUrl || null,
+        fileSize: source.fileSize || null,
+        downloads: source.downloads || 0,
       };
     });
 

@@ -9,10 +9,11 @@ import {PaperCard} from '@/components/PaperCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Badge } from '@/components/ui/badge';
 import styles from './search.module.scss';
+import PaperModal from '@/components/PaperModal';
+import { usePaperModal } from '@/app/hook/usePaperModal';
 
 const trackEvent = (category: string, action: string, label: string) => {
   console.log(`Tracking: ${category} - ${action} - ${label}`);
-  // Replace with your analytics implementation
 };
 
 export default function SearchResultsPage() {
@@ -22,6 +23,7 @@ export default function SearchResultsPage() {
   const [loading, setLoading] = useState(true);
   const [didYouMean, setDidYouMean] = useState('');
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
+  const { selectedPaper, openModal, closeModal } = usePaperModal();
 
   useEffect(() => {
     if (results.length === 0 && !loading && query) {
@@ -149,12 +151,14 @@ export default function SearchResultsPage() {
             title="Most Popular" 
             papers={results.slice().sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0)).slice(0, 10)} 
             variant="popular" 
+            onCardClick={openModal}
           />
 
           <PaperCarousel 
             title="Recently Added" 
             papers={results.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10)} 
-            variant="recent" 
+            variant="recent"
+            onCardClick={openModal}
           />
 
           <section className={styles.alphabeticalResults}>
@@ -177,7 +181,15 @@ export default function SearchResultsPage() {
                   <h3 className={styles.letterHeading}>{letter}</h3>
                   <div className={styles.papersGrid}>
                     {alphabeticalResults[letter].map(paper => (
-                      <PaperCard key={paper.id} paper={{ ...paper, author: paper.author }} />
+                      <div
+                        key={paper.id}
+                        onClick={() => openModal(paper)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <PaperCard 
+                          paper={{ ...paper, author: paper.author }}  
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -186,6 +198,7 @@ export default function SearchResultsPage() {
           </section>
         </>
       )}
+      <PaperModal paper={selectedPaper} open={!!selectedPaper} onClose={closeModal} />
     </div>
   );
 }
