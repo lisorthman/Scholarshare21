@@ -45,7 +45,7 @@ export default function PaperCarousel({
         freeMode={true}
         mousewheel={{ forceToAxis: true }}
         slidesPerView={'auto'}
-        spaceBetween={-40}
+        spaceBetween={12}
         grabCursor={true}
         className={styles.swiper}
       >
