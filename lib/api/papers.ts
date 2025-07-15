@@ -71,7 +71,7 @@ export const getApprovedPapers = async (filters = {}): Promise<PlainPaper[]> => 
     status: "approved",
     ...filters 
   })
-  .populate('author', 'name email')
+  .populate('author', 'name')
   .populate('categoryId', 'name')
   .sort({ createdAt: -1 })
   .lean<PaperDocument[]>();

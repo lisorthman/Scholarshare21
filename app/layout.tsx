@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import SessionWrapper from "../components/SessionWrapper";
 
 import "./globals.css";
+import { AuthProvider } from "@/components/AuthProvider";
+import SessionProvider from "@/components/SessionProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -22,9 +24,53 @@ export default function RootLayout({
 }>) {
    return (
       <html lang="en">
-         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-            <SessionWrapper>{children}</SessionWrapper>
-         </body>
-      </html>
+         <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+       >
+         <SessionProvider>
+           <AuthProvider>
+             {children}
+           </AuthProvider>
+         </SessionProvider>
+         <script
+           dangerouslySetInnerHTML={{
+             __html: `
+               // Token utility functions for debugging
+               window.clearAllTokens = function() {
+                 console.log('🧹 Clearing all authentication tokens...');
+                 localStorage.removeItem('token');
+                 localStorage.removeItem('role');
+                 localStorage.removeItem('email');
+                 localStorage.removeItem('otpExpiryTime');
+                 document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                 document.cookie = 'role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                 console.log('✅ All tokens cleared!');
+                 if (window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
+                   window.location.href = '/signin';
+                 }
+               };
+               
+               window.checkTokenStatus = function() {
+                 const token = localStorage.getItem('token');
+                 console.log('🔍 Token exists:', !!token);
+                 if (token) {
+                   try {
+                     const payload = JSON.parse(atob(token.split('.')[1]));
+                     const currentTime = Math.floor(Date.now() / 1000);
+                     const isExpired = payload.exp && payload.exp < currentTime;
+                     console.log('Token expired:', isExpired);
+                     console.log('Expires:', new Date(payload.exp * 1000));
+                   } catch (error) {
+                     console.log('Error parsing token:', error);
+                   }
+                 }
+               };
+               
+               console.log('🔧 Token utilities available: clearAllTokens(), checkTokenStatus()');
+             `
+           }}
+         />
+      </body>
+     </html>
    );
 }

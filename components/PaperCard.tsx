@@ -1,5 +1,4 @@
 import { Paper } from '@/types';
-import Link from 'next/link';
 import { UserIcon } from 'lucide-react';
 import styles from './PaperCard.module.scss';
 
@@ -12,6 +11,16 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   'mathematics': '🧮',
   'medicine': '🏥',
   'social-sciences': '🌐',
+  'statistics': '📊',
+  'geology': '🌍',
+  'psychology': '🧠',
+  'database': '🗄️',
+  'sports': '🏅',
+  'dance': '🩰',
+  'zoology': '🦓',
+  'media': '🎥',
+  'artificial-intelligence': '🤖',
+  'test': '🧪',
   'default': '📄'
 };
 
@@ -24,16 +33,18 @@ export const PaperCard = ({ paper }: { paper: Paper }) => {
       })
     : null;
 
-  const categoryKey = paper.category.toLowerCase().replace(/\s+/g, '-');
+  const categoryKey = paper.category
+    ? paper.category.toLowerCase().replace(/\s+/g, '-')
+    : 'default';
   const emoji = CATEGORY_EMOJIS[categoryKey] || CATEGORY_EMOJIS.default;
 
   return (
-    <Link href={`/paper/${paper.id}`} className={styles.paperCard}>
+    <div className={styles.paperCard}>
       <h3 className={styles.title}>{paper.title}</h3>
       
       <div className={styles.metaRow}>
         <span className={styles.category}>
-          {emoji} {paper.category}
+          {emoji} {paper.category || 'Uncategorized'}
         </span>
         {formattedDate && (
           <span className={styles.date}>
@@ -65,7 +76,7 @@ export const PaperCard = ({ paper }: { paper: Paper }) => {
           )}
         </div>
       )}
-    </Link>
+    </div>
   );
 };
 

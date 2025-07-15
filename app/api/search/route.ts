@@ -12,23 +12,37 @@ export async function GET(req: Request) {
 
   try {
     const { hits } = await client.search({
-      index: 'research-papers',
+      index: 'scholar-share-search',
       query: {
         multi_match: {
           query,
-          fields: ['title^3', 'abstract', 'keywords', 'author'],
+          fields: ['title^3', 'abstract', 'keywords', 'author', 'category'],
           fuzziness: 'AUTO',
         },
       },
     });
 
-    const results = hits.hits.map((hit: any) => ({
-      id: hit._id, // <-- Include the Elasticsearch ID
-      ...hit._source, // <-- Merge the rest of the data
-    }));
+    const results = hits.hits.map((hit: any) => {
+      const source = hit._source;
+
+      return {
+        id: hit._id,
+        title: source.title,
+        abstract: source.abstract,
+        author: source.author || 'Anonymous',
+        category: source.category || 'Uncategorized',
+        keywords: source.keywords || [],
+        createdAt: source.createdAt,
+        uploadedAt: source.uploadedAt,
+        fileType: source.fileType || null,
+        fileUrl: source.fileUrl || null,
+        fileSize: source.fileSize || null,
+        downloads: source.downloads || 0,
+      };
+    });
+
     return NextResponse.json({ results });
-  } catch (error) {
-    console.error('Elasticsearch search error:', error);
-    return NextResponse.json({ results: [], error: 'Search failed' }, { status: 500 });
+  } catch {
+    return NextResponse.json({ results: [] }, { status: 500 });
   }
 }

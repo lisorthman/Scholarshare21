@@ -8,5 +8,8 @@ export type Paper = {
   category: string;
   createdAt: Date;
   downloads?: number;
+  fileUrl: string;
+  fileType: string; 
+  fileSize: number;
 };
 

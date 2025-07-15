@@ -1,8 +1,8 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
-import { User } from '@/types/user';
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import DashboardLayout from "@/components/DashboardLayout";
+import { FiSearch, FiEdit2 } from "react-icons/fi";
 
 interface AdminUser extends User {
   id: string;
@@ -12,70 +12,97 @@ interface AdminUser extends User {
 
 export default function UserManagement() {
   const router = useRouter();
-  const [admin, setAdmin] = useState<User | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [error, setError] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  const fetchUsers = async (token: string) => {
+    try {
+      const response = await fetch(`/api/admin/fetch-users?t=${Date.now()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch users");
+      const data = await response.json();
+      setUsers(data.users || []);
+      setError((data.users || []).length === 0 ? "No users found" : "");
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setError("Failed to load users. Please try again.");
+    }
+  };
+
+  const handleStatusChange = async (userId: string, newStatus: string, reason?: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("No token found, please sign in again.");
+        router.push("/signin");
+        return;
+      }
+
+      const response = await fetch("/api/admin/update-user-status-with-email", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId, status: newStatus, reason }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update user status");
+      const data = await response.json();
+
+      setUsers((prevUsers) =>
+        prevUsers.map((u) =>
+          u._id === userId ? { ...u, status: newStatus } : u
+        )
+      );
+
+      await fetchUsers(token);
+      setSelectedUser(null);
+      setRejectionReason("");
+      alert(data.message);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      alert("Failed to update status. Please try again.");
+    }
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      router.push('/login');
+      setIsAuthenticated(false);
+      router.push("/signin");
       return;
     }
 
     const verifyToken = async () => {
       try {
-        const response = await fetch('/api/verify-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/verify-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
         });
 
+        if (!response.ok) throw new Error("Token verification failed");
         const data = await response.json();
-        if (data.valid && data.user.role === 'admin') {
-          setAdmin(data.user);
-          // Mock users data
-          setUsers([
-            {
-              id: '1',
-              name: 'John Researcher',
-              email: 'john@research.edu',
-              role: 'researcher',
-              joinDate: '2023-01-15',
-              status: 'active',
-              _id: '',
-              createdAt: '',
-              updatedAt: ''
-            },
-            {
-              id: '2',
-              name: 'Sarah Author',
-              email: 'sarah@university.edu',
-              role: 'researcher',
-              joinDate: '2023-03-22',
-              status: 'active',
-              _id: '',
-              createdAt: '',
-              updatedAt: ''
-            },
-            {
-              id: '3',
-              name: 'Mike Student',
-              email: 'mike@college.edu',
-              role: 'user',
-              joinDate: '2023-05-10',
-              status: 'suspended',
-              _id: '',
-              createdAt: '',
-              updatedAt: ''
-            }
-          ]);
+        if (data.valid && data.user?.role === "admin") {
+          setUser(data.user);
+          setIsAuthenticated(true);
+          fetchUsers(token);
         } else {
-          router.push('/unauthorized');
+          setIsAuthenticated(false);
+          router.push("/unauthorized");
         }
       } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/login');
+        console.error("Error verifying token:", error);
+        setIsAuthenticated(false);
+        router.push("/signin");
       }
     };
 
@@ -96,31 +123,99 @@ export default function UserManagement() {
     ));
   };
 
-  if (!admin) return <p>Loading...</p>;
+  if (isAuthenticated === null) return <p>Loading...</p>;
+  if (!isAuthenticated) return null;
 
   return (
-    <DashboardLayout user={admin} defaultPage="User Management">
-      <div style={{ marginTop: '20px', width: '100%' }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '30px'
-        }}>
-          <h1 style={{ fontSize: '28px' }}>User Management</h1>
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+    <DashboardLayout user={user}>
+      <div
+        style={{
+          backgroundColor: "#D8CBB0",
+          minHeight: "100vh",
+          padding: "1rem",
+          width: "100%",
+          fontFamily: "'Poppins', sans-serif",
+          boxSizing: "border-box",
+          "@media (min-width: 768px)": {
+            padding: "2rem"
+          }
+        }}
+      >
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+          rel="stylesheet"
+        />
+
+        <h1
+          style={{
+            fontSize: "1.25rem",
+            fontWeight: "600",
+            marginBottom: "1rem",
+            "@media (min-width: 768px)": {
+              fontSize: "1.5rem"
+            }
+          }}
+        >
+          User Management
+        </h1>
+        <div
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: "10px",
+            padding: "1rem",
+            minHeight: "calc(100vh - 4rem)",
+            boxSizing: "border-box",
+            "@media (min-width: 768px)": {
+              padding: "2rem"
+            }
+          }}
+        >
+          <div
             style={{
-              padding: '10px 15px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              width: '300px'
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "1.5rem",
+              flexDirection: "column",
+              gap: "1rem",
+              "@media (min-width: 768px)": {
+                flexDirection: "row",
+                gap: "0"
+              }
             }}
-          />
-        </div>
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                border: "1px solid #ccc",
+                padding: "0.5rem 1rem",
+                borderRadius: "10px",
+                width: "100%",
+                "@media (min-width: 768px)": {
+                  width: "60%"
+                }
+              }}
+            >
+              <FiSearch
+                size={20}
+                style={{ marginRight: "0.5rem", color: "#777" }}
+              />
+              <input
+                type="text"
+                placeholder="Search Here"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  border: "none",
+                  outline: "none",
+                  width: "100%",
+                  fontSize: "14px",
+                  fontWeight: "400",
+                }}
+              />
+            </div>
+          </div>
 
         <div style={{
           backgroundColor: '#ffffff',
@@ -192,24 +287,3 @@ export default function UserManagement() {
     </DashboardLayout>
   );
 }
-
-const tableHeaderStyle: React.CSSProperties = {
-  padding: '12px 16px',
-  textAlign: 'left',
-  fontWeight: '600',
-  color: '#555'
-};
-
-const tableCellStyle = {
-  padding: '12px 16px',
-  color: '#333'
-};
-
-const secondaryButtonStyle = {
-  padding: '6px 12px',
-  backgroundColor: 'transparent',
-  color: '#1976d2',
-  border: '1px solid #1976d2',
-  borderRadius: '4px',
-  cursor: 'pointer'
-};

@@ -494,9 +494,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'background-color 0.2s ease',
-    ':hover': {
-      backgroundColor: '#dc2626',
-    },
   },
   confirmModal: {
     position: 'fixed',
@@ -545,9 +542,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'background-color 0.2s ease',
-    ':hover': {
-      backgroundColor: '#e5e7eb',
-    },
+
   },
   deleteConfirmButton: {
     padding: '10px 20px',
@@ -559,9 +554,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'background-color 0.2s ease',
-    ':hover': {
-      backgroundColor: '#dc2626',
-    },
   },
   title: {
     fontSize: '28px',
