@@ -1,77 +1,134 @@
 import GenerateCitation from '@/components/papers/GenarateCitation';
-import RatingDisplay from "@/components/papers/RatingDisplay";
-import ReviewList from "@/components/papers/ReviewList";
-import ReviewForm from "@/components/papers/ReviewForm";
+import CopyCitationButton from '@/components/CopyCitation/CopyCitationButton';
+import Navbar from '@/components/Navbar'; 
 
+// Move interface to top level
 interface Paper {
   _id: string;
   title: string;
-  authors?: string[];
-  year?: number;
-  publisher?: string;
+  authorId: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  abstract: string;
+  fileUrl: string;
+  fileName: string;
+  category: string;
   createdAt: string;
+  updatedAt: string;
+  status: string;
 }
 
 async function getPaper(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/papers/${id}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch paper');
-  return res.json();
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/papers/${id}`, { 
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to fetch paper:', await res.text());
+      throw new Error('Failed to fetch paper');
+    }
+
+    const data = await res.json();
+    console.log('Fetched paper data:', data); // Debug log
+    return data;
+  } catch (error) {
+    console.error('Error fetching paper:', error);
+    throw error;
+  }
 }
 
 export default async function PaperDetailPage({ params }: { params: { id: string } }) {
   const paper: Paper = await getPaper(params.id);
 
-  const authors = paper.authors || ["Unknown Author"];
-  const year = paper.year || new Date(paper.createdAt).getFullYear();
-  const publisher = paper.publisher || "Unknown Publisher";
+  // Debug raw data first
+  console.log('Raw paper data:', paper);
+
+  if (!paper) {
+    throw new Error('Paper not found');
+  }
+
+  // Extract data with strict type checking
+  const title = typeof paper.title === 'string' && paper.title.trim() 
+    ? paper.title.trim() 
+    : 'Untitled';
+
+  const authorName = paper.authorId && typeof paper.authorId.name === 'string' 
+    ? paper.authorId.name.trim() 
+    : 'Unknown Author';
+
+  const year = paper.createdAt 
+    ? new Date(paper.createdAt).getFullYear() 
+    : new Date().getFullYear();
+
+  const publisher = "ScholarShare Platform";
+
+  // Debug extracted data
+  console.log('Processed Data:', {
+    title,
+    authorName,
+    year,
+    publisher,
+    rawAuthorId: paper.authorId
+  });
+
+  const citation = `${authorName}. "${title}". ${publisher}, ${year}.`;
 
   return (
-    <div className="bg-gray-100 min-h-screen p-4">
-      <div className="bg-white rounded-xl p-6 shadow-md max-w-4xl mx-auto">
-        <h1 className="text-2xl font-semibold mb-6 text-gray-800">Paper Details</h1>
+    <>
+      <Navbar />
+      <div style={{ backgroundColor: '#E0D8C3', minHeight: '100vh', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 15px rgba(99, 65, 65, 0.1)', width: '100%', maxWidth: '800px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: '600', marginBottom: '24px', color: '#634141' }}>
+            Paper Details
+          </h1>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141', width: '120px' }}>Title:</td>
+                <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{title}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>Author:</td>
+                <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{authorName}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>Published:</td>
+                <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{year}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: '600', padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>Publisher:</td>
+                <td style={{ padding: '12px', borderBottom: '1px solid #E0D8C3', color: '#634141' }}>{publisher}</td>
+              </tr>
+            
+            </tbody>
+          </table>
 
-        <table className="w-full mb-6 border-collapse">
-          <tbody>
-            <tr>
-              <td className="font-bold py-2 border-b w-1/4">Title:</td>
-              <td className="py-2 border-b">{paper.title}</td>
-            </tr>
-            <tr>
-              <td className="font-bold py-2 border-b">Authors:</td>
-              <td className="py-2 border-b">{authors.join(', ')}</td>
-            </tr>
-            <tr>
-              <td className="font-bold py-2 border-b">Published:</td>
-              <td className="py-2 border-b">{year}</td>
-            </tr>
-            <tr>
-              <td className="font-bold py-2 border-b">Publisher:</td>
-              <td className="py-2 border-b">{publisher}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Ratings & Reviews Section */}
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <h2 className="text-xl font-semibold mb-3 text-gray-700">Ratings & Reviews</h2>
-          <RatingDisplay paperId={paper._id} />
-          <ReviewList paperId={paper._id} />
-
-          {/* Review form always visible */}
-          <div className="mt-6 border-t pt-4">
-            <ReviewForm paperId={paper._id} />
+          <div style={{ backgroundColor: '#E0D8C3', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '16px', color: '#634141' }}>
+              Generate Citation of the Research Paper
+            </h2>
+            <GenerateCitation
+              title={title}
+              authors={[authorName]}
+              year={year} 
+              publisher={publisher}
+            />
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'flex-end',
+          }}>
+            <CopyCitationButton citation={citation} />
           </div>
         </div>
-
-        <div className="flex gap-3 justify-end">
-          <button className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">
-            Download Paper
-          </button>
-          <button className="bg-green-600 text-white rounded px-4 py-2 hover:bg-green-700">
-            Share Citation
-          </button>
-        </div>
       </div>
-    </div>
+    </>
   );
 }
