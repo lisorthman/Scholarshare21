@@ -2,6 +2,7 @@
 import { JSX, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
+import axios from "axios";
 
 interface Paper {
   _id: string;
@@ -10,6 +11,13 @@ interface Paper {
   createdAt: string;
   authorId: { _id: string; name: string; email: string };
   status: "pending" | "approved" | "rejected";
+  rejectionDetails?: {
+    grammarIssues?: string[];
+    metadataIssues?: string[];
+    reason?: string;
+    comments?: string;
+    rejectedAt?: Date;
+  };
 }
 
 export default function AdminDashboard(): JSX.Element {
@@ -24,6 +32,12 @@ export default function AdminDashboard(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [grammarIssues, setGrammarIssues] = useState<string[]>([]);
+  const [grammarScore, setGrammarScore] = useState<number | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionComments, setRejectionComments] = useState("");
+  const [canSubmit, setCanSubmit] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -78,12 +92,37 @@ export default function AdminDashboard(): JSX.Element {
     }
   }, [user, searchQuery]);
 
+  const handleCheckGrammar = async () => {
+    setIsChecking(true);
+    try {
+      const response = await axios.post("/api/check-grammar", { text: selectedPaper?.abstract || "" });
+      const { issues, score } = response.data;
+      setGrammarIssues(issues);
+      setGrammarScore(score);
+      setCanSubmit(true);
+    } catch (error) {
+      console.error("Grammar check failed:", error);
+      setGrammarIssues(["Error checking grammar"]);
+      setGrammarScore(null);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   const handleAction = async (id: string, action: "approve" | "reject") => {
     try {
       const response = await fetch(`/api/papers/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({
+          action,
+          rejectionDetails: action === "reject" ? {
+            grammarIssues,
+            reason: rejectionReason,
+            comments: rejectionComments,
+            rejectedAt: new Date(),
+          } : undefined,
+        }),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -97,6 +136,11 @@ export default function AdminDashboard(): JSX.Element {
       }
       setIsModalOpen(false);
       setSelectedPaper(null);
+      setGrammarIssues([]);
+      setGrammarScore(null);
+      setRejectionReason("");
+      setRejectionComments("");
+      setCanSubmit(false);
       await fetchPapers();
     } catch (err) {
       console.error("Error updating paper:", err);
@@ -107,6 +151,11 @@ export default function AdminDashboard(): JSX.Element {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedPaper(null);
+    setGrammarIssues([]);
+    setGrammarScore(null);
+    setRejectionReason("");
+    setRejectionComments("");
+    setCanSubmit(false);
   };
 
   if (!user) return <p>Loading...</p>;
@@ -275,22 +324,56 @@ export default function AdminDashboard(): JSX.Element {
                 {selectedPaper.abstract || "N/A"}
               </div>
             </div>
-            <div className="modal-actions">
-              <button
-                className="approve-button"
-                onClick={() => handleAction(selectedPaper._id, "approve")}
-                disabled={selectedPaper.status !== "pending"}
-              >
-                Approve
-              </button>
-              <button
-                className="reject-button"
-                onClick={() => handleAction(selectedPaper._id, "reject")}
-                disabled={selectedPaper.status !== "pending"}
-              >
-                Reject
+            <div className="modal-field">
+              <button onClick={handleCheckGrammar} disabled={isChecking}>
+                {isChecking ? "Checking..." : "Check Grammar"}
               </button>
             </div>
+            {grammarIssues.length > 0 && (
+              <div className="modal-field">
+                <h3>Grammar Check Results</h3>
+                <p><strong>Issues:</strong> {grammarIssues.join(", ") || "None"}</p>
+                <p><strong>Score:</strong> {grammarScore !== null ? `${grammarScore}%` : "N/A"}</p>
+              </div>
+            )}
+            {canSubmit && (
+              <div className="modal-actions">
+                <button
+                  className="approve-button"
+                  onClick={() => handleAction(selectedPaper._id, "approve")}
+                  disabled={selectedPaper.status !== "pending"}
+                >
+                  Approve
+                </button>
+                <button
+                  className="reject-button"
+                  onClick={() => handleAction(selectedPaper._id, "reject")}
+                  disabled={selectedPaper.status !== "pending"}
+                >
+                  Reject
+                </button>
+                {selectedPaper.status === "rejected" && (
+                  <div>
+                    <select
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      style={{ marginTop: "10px", display: "block", width: "100%" }}
+                    >
+                      <option value="">Select Reason</option>
+                      <option value="Poor Grammar Quality">Poor Grammar Quality</option>
+                      <option value="Metadata Issues">Metadata Issues</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <textarea
+                      value={rejectionComments}
+                      onChange={(e) => setRejectionComments(e.target.value)}
+                      placeholder="Comments (optional)"
+                      style={{ marginTop: "10px", display: "block", width: "100%" }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -458,6 +541,7 @@ export default function AdminDashboard(): JSX.Element {
           justify-content: center;
           gap: 1rem;
           margin-top: 1.5rem;
+          flex-direction: column;
         }
 
         .approve-button,

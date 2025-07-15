@@ -353,7 +353,7 @@ export default function AdminDashboard() {
                     marginBottom: "0.75rem",
                   }}
                 >
-                  Line Chart - Dots
+                  General User Growth
                 </div>
                 <div style={{ fontSize: "0.875rem", color: "#6B7280", marginBottom: "1rem" }}>
                   January - June 2025

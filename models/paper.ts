@@ -7,6 +7,13 @@ interface IPaper extends Document {
   submittedDate: Date;
   owner: string;
   status: 'pending' | 'approved' | 'rejected';
+  rejectionDetails: {
+    reason?: string;
+    comments?: string;
+    rejectedAt?: Date;
+    grammarIssues?: string[];
+    metadataIssues?: string[];
+  };
 }
 
 const paperSchema: Schema = new mongoose.Schema<IPaper>({
@@ -18,6 +25,13 @@ const paperSchema: Schema = new mongoose.Schema<IPaper>({
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
+  },
+  rejectionDetails: {
+    reason: { type: String, default: null },
+    comments: { type: String, default: null },
+    rejectedAt: { type: Date, default: null },
+    grammarIssues: { type: [String], default: [] },
+    metadataIssues: { type: [String], default: [] },
   },
 });
 
