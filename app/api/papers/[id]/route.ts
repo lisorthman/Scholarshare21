@@ -50,6 +50,12 @@ export async function GET(
       );
     }
 
+    // Increment the views count
+    await ResearchPaper.findByIdAndUpdate(
+      params.id,
+      { $inc: { views: 1 } }
+    );
+
     return NextResponse.json({
       success: true,
       data: {
