@@ -83,7 +83,6 @@ export async function POST(request: Request) {
           updatedAt: user.updatedAt,
           lastLogin: user.lastLogin,
           joined: user.createdAt ? user.createdAt.toISOString().split("T")[0] : null,
-
           status: user.status,
         },
       },

@@ -4,10 +4,14 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FiSearch, FiEdit2 } from "react-icons/fi";
 
-interface AdminUser extends User {
-  id: string;
-  joinDate: string;
-  status: 'active' | 'suspended';
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: "user" | "researcher" | "admin";
+  joined: string;
+  status: string;
+  educationQualification?: string; // Add this field
 }
 
 export default function UserManagement() {
@@ -109,19 +113,14 @@ export default function UserManagement() {
     verifyToken();
   }, [router]);
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const toggleUserStatus = (id: string) => {
-    setUsers(users.map(user =>
-      user.id === id ? {
-        ...user,
-        status: user.status === 'active' ? 'suspended' : 'active'
-      } : user
-    ));
-  };
+  const filteredUsers = users
+    .filter((user) => user.role === "researcher")
+    .filter((user) =>
+      [user.name, user.email, user.role, user.status, user.educationQualification || ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    );
 
   if (isAuthenticated === null) return <p>Loading...</p>;
   if (!isAuthenticated) return null;
@@ -217,71 +216,234 @@ export default function UserManagement() {
             </div>
           </div>
 
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '10px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          overflow: 'hidden'
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f5f5f5' }}>
-                <th style={tableHeaderStyle}>Name</th>
-                <th style={tableHeaderStyle}>Email</th>
-                <th style={tableHeaderStyle}>Role</th>
-                <th style={tableHeaderStyle}>Joined</th>
-                <th style={tableHeaderStyle}>Status</th>
-                <th style={tableHeaderStyle}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={tableCellStyle}>{user.name}</td>
-                  <td style={tableCellStyle}>{user.email}</td>
-                  <td style={tableCellStyle}>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      backgroundColor: user.role === 'admin' ? '#e3f2fd' : 
-                                      user.role === 'researcher' ? '#e8f5e9' : '#f5f5f5',
-                      color: user.role === 'admin' ? '#1976d2' : 
-                            user.role === 'researcher' ? '#2e7d32' : '#616161'
-                    }}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td style={tableCellStyle}>{user.joinDate}</td>
-                  <td style={tableCellStyle}>
-                    <span style={{
-                      color: user.status === 'active' ? '#2e7d32' : '#d32f2f'
-                    }}>
-                      {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                    </span>
-                  </td>
-                  <td style={tableCellStyle}>
+          {filteredUsers.length > 0 ? (
+            <div>
+              {/* Desktop Table */}
+              <div
+                style={{
+                  display: "none",
+                  "@media (min-width: 768px)": {
+                    display: "block"
+                  }
+                }}
+              >
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: "14px",
+                    fontWeight: "400"
+                  }}
+                >
+                  <thead>
+                    <tr style={{ backgroundColor: "#EFEFEF", textAlign: "left" }}>
+                      <th style={{ padding: "0.75rem", fontWeight: "600" }}>Name</th>
+                      <th style={{ padding: "0.75rem", fontWeight: "600" }}>Email</th>
+                      <th style={{ padding: "0.75rem", fontWeight: "600" }}>Role</th>
+                      <th style={{ padding: "0.75rem", fontWeight: "600" }}>Joined</th>
+                      <th style={{ padding: "0.75rem", fontWeight: "600" }}>Status</th>
+                      <th style={{ padding: "0.75rem", fontWeight: "600" }}>Education Qualification</th>
+                      <th style={{ padding: "0.75rem", fontWeight: "600" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((user) => (
+                      <tr key={user._id} style={{ borderBottom: "1px solid #ddd" }}>
+                        <td style={{ padding: "1rem" }}>{user.name}</td>
+                        <td style={{ padding: "1rem" }}>{user.email}</td>
+                        <td style={{ padding: "1rem" }}>{user.role}</td>
+                        <td style={{ padding: "1rem" }}>{user.joined}</td>
+                        <td style={{ padding: "1rem" }}>{user.status}</td>
+                        <td style={{ padding: "1rem" }}>{user.educationQualification || "-"}</td>
+                        <td style={{ padding: "1rem", display: "flex", gap: "0.75rem" }}>
+                          <FiEdit2
+                            style={{ cursor: "pointer", color: "#4682b4" }}
+                            onClick={() => alert(`Edit user: ${user.name}`)}
+                          />
+                          <button
+                            onClick={() => setSelectedUser(user)}
+                            style={{
+                              backgroundColor: "#4682b4",
+                              color: "white",
+                              border: "none",
+                              padding: "0.25rem 0.75rem",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                  "@media (min-width: 768px)": {
+                    display: "none"
+                  }
+                }}
+              >
+                {filteredUsers.map((user) => (
+                  <div
+                    key={user._id}
+                    style={{
+                      border: "1px solid #ddd",
+                      borderRadius: "10px",
+                      padding: "1rem",
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <p><strong>Name:</strong> {user.name}</p>
+                    <p><strong>Email:</strong> {user.email}</p>
+                    <p><strong>Role:</strong> {user.role}</p>
+                    <p><strong>Joined:</strong> {user.joined}</p>
+                    <p><strong>Status:</strong> {user.status}</p>
+                    <p><strong>Education Qualification:</strong> {user.educationQualification || "-"}</p>
+                    <div style={{ padding: "1rem 0", display: "flex", gap: "0.75rem" }}>
+                      <FiEdit2
+                        style={{ cursor: "pointer", color: "#4682b4" }}
+                        onClick={() => alert(`Edit user: ${user.name}`)}
+                      />
+                      <button
+                        onClick={() => setSelectedUser(user)}
+                        style={{
+                          backgroundColor: "#D8CBB0",
+                          color: "black",
+                          border: "none",
+                          padding: "0.25rem 0.75rem",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: "1.5rem" }}>
+              {searchQuery ? "No matching users found" : error || "No users found"}
+            </div>
+          )}
+
+          {/* Modal for User Details */}
+          {selectedUser && (
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1000,
+                padding: "1rem",
+                boxSizing: "border-box"
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#fff",
+                  padding: "1.5rem",
+                  borderRadius: "10px",
+                  width: "100%",
+                  maxWidth: "500px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                  boxSizing: "border-box"
+                }}
+              >
+                <h2 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem" }}>User Details</h2>
+                <p><strong>Name:</strong> {selectedUser.name}</p>
+                <p><strong>Email:</strong> {selectedUser.email}</p>
+                <p><strong>Role:</strong> {selectedUser.role}</p>
+                <p><strong>Joined:</strong> {selectedUser.joined}</p>
+                <p><strong>Status:</strong> {selectedUser.status}</p>
+                {selectedUser.status === "Pending" && (
+                  <>
                     <button
-                      onClick={() => toggleUserStatus(user.id)}
+                      onClick={() => handleStatusChange(selectedUser._id, "Active")}
                       style={{
-                        padding: '6px 12px',
-                        backgroundColor: user.status === 'active' ? '#ffebee' : '#e8f5e9',
-                        color: user.status === 'active' ? '#d32f2f' : '#2e7d32',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        marginRight: '8px'
+                        backgroundColor: "#90ee90",
+                        color: "white",
+                        border: "none",
+                        padding: "0.5rem 1rem",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        marginTop: "1rem",
+                        width: "100%"
                       }}
                     >
-                      {user.status === 'active' ? 'Suspend' : 'Activate'}
+                      Approve
                     </button>
-                    <button style={secondaryButtonStyle}>
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <div style={{ marginTop: "1rem" }}>
+                      <textarea
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="Enter rejection reason"
+                        style={{
+                          width: "100%",
+                          height: "100px",
+                          padding: "0.5rem",
+                          borderRadius: "5px",
+                          border: "1px solid #ccc",
+                          resize: "vertical",
+                        }}
+                      />
+                      <button
+                        onClick={() => handleStatusChange(selectedUser._id, "Suspended", rejectionReason)}
+                        style={{
+                          backgroundColor: "#ff6347",
+                          color: "white",
+                          border: "none",
+                          padding: "0.5rem 1rem",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          marginTop: "0.5rem",
+                          width: "100%",
+                          opacity: !rejectionReason.trim() ? 0.5 : 1
+                        }}
+                        disabled={!rejectionReason.trim()}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setRejectionReason("");
+                  }}
+                  style={{
+                    backgroundColor: "#4682b4",
+                    color: "white",
+                    border: "none",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    marginTop: "1rem",
+                    width: "100%"
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

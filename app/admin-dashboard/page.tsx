@@ -245,7 +245,7 @@ export default function AdminDashboard() {
                   color: "#000",
                 }}
               >
-                "Welcome, Admin!"
+                "Welcome, {user.name}!"
               </h1>
               <p
                 style={{

@@ -46,6 +46,9 @@ export async function POST(request: Request) {
     );
     console.log('Updated lastLogin:', updateResult.modifiedCount); // Debugging
 
+    // Debug: Log user._id type and value before token generation
+    console.log('User _id type:', typeof user._id, 'value:', user._id);
+
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, name: user.name, email: user.email, role: user.role },

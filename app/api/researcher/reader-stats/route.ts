@@ -41,4 +41,4 @@ export async function GET(req: Request) {
     console.error('[READER STATS ERROR]', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
-} 
+}

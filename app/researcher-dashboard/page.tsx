@@ -31,43 +31,18 @@ export default function ResearcherDashboard() {
 
   // Check authentication and role
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    const verifyToken = async () => {
-      try {
-        const response = await fetch('/api/verify-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await response.json();
-        if (data.valid && data.user.role === 'researcher') {
-          setUser({
-            _id: data.user._id,
-            name: data.user.name,
-            email: data.user.email,
-            role: data.user.role,
-            createdAt: data.user.createdAt,
-            updatedAt: data.user.updatedAt,
-          });
-        } else {
-          router.push('/unauthorized');
-        }
-      } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/login');
-      } finally {
-        setLoading(false);
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.push('/signin');
+        return;
       }
-    };
-
-    verifyToken();
-  }, [router]);
+      
+      if (!hasRole('researcher')) {
+        router.push('/unauthorized');
+        return;
+      }
+    }
+  }, [loading, isAuthenticated, hasRole, router]);
 
   useEffect(() => {
     if (user && isAuthenticated) {
