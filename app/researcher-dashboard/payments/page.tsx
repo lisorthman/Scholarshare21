@@ -1,11 +1,41 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Wallet, Building2, Clock, AlertCircle, TrendingUp } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar'; // Add this import
-import { Button } from '@/components/ui/button';
+import { 
+  DollarSign, 
+  TrendingUp, 
+  Download, 
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  FileText,
+  CreditCard,
+  XCircle,
+  RefreshCw
+} from 'lucide-react';
+import Navbar from '@/components/Navbar';
+
+interface PaperReward {
+  paperId: string;
+  paperTitle: string;
+  submittedAt: string;
+  approvedAt?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rewardAmount: number;
+  rewardPaid: boolean;
+}
+
+interface Withdrawal {
+  id: string;
+  amount: number;
+  currency: string;
+  status: 'completed' | 'failed';
+  requestedAt: string;
+  processedAt: string;
+  bankDetails: {
+    accountNumber: string;
+    bankName: string;
+  };
+}
 
 interface PaymentData {
   _id: string;
@@ -328,24 +358,43 @@ export default function ResearcherEarningsPage() {
   const pendingPapers = paymentData?.paperRewards?.filter(p => p.status === 'pending') || [];
   const rejectedPapers = paymentData?.paperRewards?.filter(p => p.status === 'rejected') || [];
 
-  if (loading) {
+  if (loading || !user) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
-        <div className="bg-[#E0D8C3] min-h-screen flex items-center justify-center">
-          <div className="text-center">
+      <DashboardLayout user={user} defaultPage="Earnings">
+        <div
+          className="min-h-screen flex items-center justify-center"
+          style={{ minHeight: '100vh', width: '100%' }}
+        >
+          <div
+            className="shadow-lg flex flex-col items-center justify-center"
+            style={{
+              background: '#fff',
+              borderRadius: '2.5rem',
+              maxWidth: '1200px', // increased width
+              width: '100%',
+              minHeight: '80vh',
+              padding: '3rem 2.5rem',
+              boxSizing: 'border-box',
+              boxShadow: '0 8px 32px rgba(99,65,65,0.10)',
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2.5rem',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#634141] mx-auto mb-4"></div>
-            <p className="text-[#634141]">Loading earnings data...</p>
+            <p className="text-[#634141] text-lg font-semibold">Loading earnings data...</p>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (error || !paymentData) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <DashboardLayout user={user} defaultPage="Earnings">
         <div className="bg-[#E0D8C3] min-h-screen p-6">
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-xl p-8 shadow-lg text-center">
@@ -361,15 +410,33 @@ export default function ResearcherEarningsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <div className="bg-[#E0D8C3] min-h-screen p-6">
-        <div className="max-w-6xl mx-auto">
+    <DashboardLayout user={user} defaultPage="Earnings">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ minHeight: '100vh', width: '100%' }}
+      >
+        <div
+          className="shadow-lg"
+          style={{
+            background: '#fff',
+            borderRadius: '2.5rem', // more curve
+            maxWidth: '1200px', // balanced width
+            width: '100%',
+            minHeight: '80vh',
+            padding: '3rem 2.5rem', // more padding
+            boxSizing: 'border-box',
+            boxShadow: '0 8px 32px rgba(99,65,65,0.10)',
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2.5rem',
+          }}
+        >
           {/* Header */}
           <div className="mb-8">
             <div className="flex justify-between items-center">
@@ -762,6 +829,6 @@ export default function ResearcherEarningsPage() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
