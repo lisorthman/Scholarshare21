@@ -64,6 +64,5 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-console.log("User model file loaded");
 const User = models.User || model<IUser>("User", UserSchema);
 export default User;

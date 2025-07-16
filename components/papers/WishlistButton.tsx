@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { FiHeart } from 'react-icons/fi';
 import { FaHeart } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 
 interface WishlistButtonProps {
   paperId: string;
@@ -10,80 +12,106 @@ interface WishlistButtonProps {
 }
 
 export default function WishlistButton({ paperId, style }: WishlistButtonProps) {
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const checkWishlistStatus = async () => {
+    const checkSavedStatus = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const response = await fetch(`/api/wishlist/check?paperId=${paperId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const response = await fetch(`/api/user/saved-papers/check?paperId=${paperId}`, {
+          credentials: 'include'
         });
 
         if (response.ok) {
           const data = await response.json();
-          setIsInWishlist(data.isInWishlist);
+          setIsSaved(data.isSaved);
         }
       } catch (error) {
-        console.error('Error checking wishlist status:', error);
+        console.error('Error checking saved status:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    checkWishlistStatus();
+    checkSavedStatus();
   }, [paperId]);
 
-  const toggleWishlist = async () => {
+  const toggleSavedPaper = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        // Handle case where user is not logged in
-        // You might want to redirect to login or show a message
+      setLoading(true);
+      
+      // First update the saved papers status
+      const response = await fetch('/api/user/saved-papers', {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          paperId,
+          action: isSaved ? 'remove' : 'add'
+        })
+      });
+
+      if (response.status === 401) {
+        toast.info('Please login to save papers');
+        router.push('/login');
         return;
       }
 
-      setLoading(true);
-      const method = isInWishlist ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/wishlist/${paperId}`, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
-
       if (response.ok) {
-        setIsInWishlist(!isInWishlist);
+        const data = await response.json();
+        setIsSaved(data.isSaved);
+        toast.success(
+          data.isSaved 
+            ? 'Added to your saved papers' 
+            : 'Removed from your saved papers'
+        );
+        
+        // Update bookshelf status based on the new saved state
+        const bookshelfAction = data.isSaved ? 'addToReadingList' : 'remove';
+        const bookshelfResponse = await fetch('/api/bookshelf', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            paperId,
+            action: bookshelfAction
+          })
+        });
+
+        if (!bookshelfResponse.ok) {
+          const errorData = await bookshelfResponse.json();
+          console.error('Failed to update bookshelf status:', errorData.error);
+        }
+      } else {
+        throw new Error('Failed to update saved papers');
       }
     } catch (error) {
-      console.error('Error toggling wishlist:', error);
+      console.error('Error toggling saved paper:', error);
+      toast.error('Failed to update saved papers');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <button style={style} disabled>
-        <FiHeart size={24} color="#5D4037" />
-      </button>
-    );
-  }
-
   return (
     <button 
-      onClick={toggleWishlist}
+      onClick={toggleSavedPaper}
       style={style}
-      aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+      disabled={loading}
+      aria-label={isSaved ? "Remove from saved papers" : "Add to saved papers"}
+      className={`hover:opacity-80 transition-opacity ${loading ? 'cursor-wait' : 'cursor-pointer'}`}
     >
-      {isInWishlist ? (
-        <FaHeart size={24} color="#D32F2F" />
+      {loading ? (
+        <FiHeart size={24} className="animate-pulse text-gray-500" />
+      ) : isSaved ? (
+        <FaHeart size={24} className="text-red-500" />
       ) : (
-        <FiHeart size={24} color="#5D4037" />
+        <FiHeart size={24} className="text-gray-700" />
       )}
     </button>
   );

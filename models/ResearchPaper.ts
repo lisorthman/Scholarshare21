@@ -1,5 +1,6 @@
 import { Schema, model, models, Types, Document } from 'mongoose';
 
+
 export interface Review {
   userId: Types.ObjectId;
   userName: string;
@@ -28,6 +29,9 @@ export interface ResearchPaperDocument extends Document {
   aiScore?: number;
   rejectionReason?: string;
   reviews: Review[];
+  downloadCount: number;
+  viewCount: number;
+  averageRating?: number;
 }
 
 const ReviewSchema = new Schema<Review>(
@@ -38,7 +42,7 @@ const ReviewSchema = new Schema<Review>(
     comment: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
   },
-  { _id: false } // Embedded subdocuments don't need their own _id
+  { _id: false }
 );
 
 const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
@@ -88,17 +92,10 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Author ID is required'],
-      validate: {
-        validator: (v: any) => Types.ObjectId.isValid(v),
-        message: 'Invalid author ID format',
-      },
     },
     status: {
       type: String,
-      enum: {
-        values: ['pending', 'approved', 'rejected', 'rejected_plagiarism', 'rejected_ai', 'passed_checks'],
-        message: 'Invalid status value',
-      },
+      enum: ['pending', 'approved', 'rejected', 'rejected_plagiarism', 'rejected_ai', 'passed_checks'],
       default: 'pending',
     },
     category: {
@@ -110,10 +107,6 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
       type: Schema.Types.ObjectId,
       ref: 'AdminCategory',
       required: [true, 'Category reference is required'],
-      validate: {
-        validator: (v: any) => Types.ObjectId.isValid(v),
-        message: 'Invalid category ID format',
-      },
     },
     keywords: {
       type: [String],
@@ -137,11 +130,22 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     rejectionReason: {
       type: String,
     },
-
-    // ✅ Add this new reviews array
     reviews: {
       type: [ReviewSchema],
       default: [],
+    },
+    downloadCount: {
+      type: Number,
+      default: 0,
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
+    averageRating: {
+      type: Number,
+      min: 0,
+      max: 5,
     },
   },
   {
@@ -149,9 +153,20 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     toJSON: {
       virtuals: true,
       transform: function (doc, ret) {
-        ret._id = ret._id.toString();
+        ret.id = ret._id.toString();
         ret.authorId = ret.authorId.toString();
         ret.categoryId = ret.categoryId?.toString();
+        
+        // Handle readerStats Map conversion safely
+        if (ret.readerStats instanceof Map) {
+          ret.readerStats = Object.fromEntries(ret.readerStats.entries());
+        } else if (ret.readerStats && typeof ret.readerStats === 'object') {
+          // Already a plain object
+          ret.readerStats = ret.readerStats;
+        } else {
+          ret.readerStats = {};
+        }
+        
         if (ret.reviews) {
           ret.reviews = ret.reviews.map((r: any) => ({
             ...r,
@@ -159,6 +174,17 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
             createdAt: r.createdAt?.toISOString(),
           }));
         }
+        if (ret.authorId) {
+    ret.authorId = ret.authorId.toString();
+  } else {
+    ret.authorId = null; // or ret.authorId = undefined;
+  }
+   ret.categoryId = ret.categoryId?.toString();
+   if (ret.readerStats && ret.readerStats instanceof Map) {
+    ret.readerStats = Object.fromEntries(ret.readerStats);
+  }
+  
+        delete ret._id;
         delete ret.__v;
         return ret;
       },
@@ -169,28 +195,44 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
   }
 );
 
-// Virtual for author details
+// Virtuals
 ResearchPaperSchema.virtual('author', {
   ref: 'User',
   localField: 'authorId',
   foreignField: '_id',
   justOne: true,
+  options: { select: 'name email avatar' }
 });
 
-// Virtual for category details
 ResearchPaperSchema.virtual('categoryDetails', {
   ref: 'AdminCategory',
   localField: 'categoryId',
   foreignField: '_id',
   justOne: true,
+  options: { select: 'name description' }
 });
 
 // Indexes
-ResearchPaperSchema.index({ title: 'text', abstract: 'text' });
+ResearchPaperSchema.index({ title: 'text', abstract: 'text', keywords: 'text' });
 ResearchPaperSchema.index({ authorId: 1 });
 ResearchPaperSchema.index({ status: 1 });
 ResearchPaperSchema.index({ category: 1 });
 ResearchPaperSchema.index({ categoryId: 1 });
 ResearchPaperSchema.index({ createdAt: -1 });
+ResearchPaperSchema.index({ averageRating: -1 });
+ResearchPaperSchema.index({ downloadCount: -1 });
 
-export default models.ResearchPaper || model<ResearchPaperDocument>('ResearchPaper', ResearchPaperSchema);
+// Pre-save hook to calculate average rating
+ResearchPaperSchema.pre('save', function (next) {
+  if (this.reviews && this.reviews.length > 0) {
+    const total = this.reviews.reduce((sum, review) => sum + review.rating, 0);
+    this.averageRating = parseFloat((total / this.reviews.length).toFixed(1));
+  } else {
+    this.averageRating = undefined;
+  }
+  next();
+});
+
+const ResearchPaper = models.ResearchPaper || model<ResearchPaperDocument>('ResearchPaper', ResearchPaperSchema);
+
+export default ResearchPaper;

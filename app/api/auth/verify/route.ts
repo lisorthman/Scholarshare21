@@ -1,81 +1,78 @@
-// app/api/auth/verify/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import User from '@/models/user';
-import connectToDB from '@/lib/mongoose';
-import { seedMilestoneConfig } from '@/lib/seedMilestoneConfig';
+import connectDB from '@/lib/dbConnect';
 
-// Call this once when your app starts
-seedMilestoneConfig();
+export async function GET(request: NextRequest) {
+  return handleTokenVerification(request);
+}
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  return handleTokenVerification(request);
+}
+
+async function handleTokenVerification(request: NextRequest) {
+  await connectDB();
+  
   try {
-    const { token } = await request.json();
-
+    const token = extractToken(request);
+    
     if (!token) {
-      return NextResponse.json(
-        { valid: false, error: 'Token is required' },
-        { status: 400 }
-      );
+      return unauthorizedResponse("Authorization token required");
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET not configured');
-    }
-
-    await connectToDB();
-
-    // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
-      userId: string;
-      email: string;
-      role: string;
-    };
-
-    // Find user without password
-    const user = await User.findById(decoded.userId)
-      .select('-password')
-      .lean() as { _id: string; name: string; email: string; role: string; counts?: { uploads: number; approvals: number; downloads: number }; badges?: string[] } | null;
+    const decoded = verifyJWT(token);
+    const user = await getUser(decoded.userId);
 
     if (!user) {
-      return NextResponse.json(
-        { valid: false, error: 'User not found' },
-        { status: 404 }
-      );
+      return notFoundResponse("User not found");
     }
 
-    return NextResponse.json({
-      valid: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        counts: user.counts || { uploads: 0, approvals: 0, downloads: 0 },
-        badges: user.badges || []
-      }
-    });
-
+    return successResponse(user);
   } catch (error) {
-    console.error('Token verification error:', error);
-    
-    if (error instanceof jwt.TokenExpiredError) {
-      return NextResponse.json(
-        { valid: false, error: 'Token expired' },
-        { status: 401 }
-      );
-    }
-    
-    if (error instanceof jwt.JsonWebTokenError) {
-      return NextResponse.json(
-        { valid: false, error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    return NextResponse.json(
-      { valid: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return unauthorizedResponse("Invalid or expired token");
   }
+}
+
+// Helper functions
+function extractToken(request: NextRequest): string | null {
+  return request.headers.get('Authorization')?.split(' ')[1] || 
+         request.cookies.get('token')?.value ||
+         null;
+}
+
+function verifyJWT(token: string): { userId: string; email: string } {
+  return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; email: string };
+}
+
+async function getUser(userId: string) {
+  return await User.findById(userId).select('-password');
+}
+
+function successResponse(user: any) {
+  return NextResponse.json({
+    valid: true,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      savedPapers: user.savedPapers // Include saved papers if needed
+    }
+  });
+}
+
+function unauthorizedResponse(message: string) {
+  return NextResponse.json(
+    { valid: false, error: message },
+    { status: 401 }
+  );
+}
+
+function notFoundResponse(message: string) {
+  return NextResponse.json(
+    { valid: false, error: message },
+    { status: 404 }
+  );
 }

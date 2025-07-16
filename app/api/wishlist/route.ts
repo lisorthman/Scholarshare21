@@ -1,47 +1,48 @@
+// app/api/wishlist/route.ts
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Wishlist from '@/models/Wishlist';
-import Paper from '@/models/paper';
+import ResearchPaper from '@/models/ResearchPaper';
 
 export async function GET(request: Request) {
   await dbConnect();
   
   const token = request.headers.get('Authorization')?.split(' ')[1];
-
   if (!token) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // In a real app, you would verify the token and get the user ID
-  const userId = token;
-
   try {
-    // Get all wishlist items for the user
-    const wishlistItems = await Wishlist.find({ userId });
+    // In a real app, verify token and get user ID
+    const userId = token; // Replace with actual user ID from token
     
-    // Get all paper IDs from the wishlist
-    const paperIds = wishlistItems.map(item => item.paperId);
-    
-    // Fetch all papers that are in the wishlist
-    const papers = await Paper.find({ _id: { $in: paperIds }, status: 'approved' });
-    
-    // Map to the expected format
-    const formattedPapers = papers.map(paper => ({
-      id: paper._id.toString(),
-      title: paper.title,
-      authors: paper.authors,
-      abstract: paper.abstract,
-      publicationDate: paper.publicationDate,
-      downloadUrl: paper.downloadUrl,
-      thumbnailUrl: paper.thumbnailUrl,
-      rating: paper.rating,
-      averageRating: paper.averageRating,
-      downloadCount: paper.downloadCount
+    // Get wishlist items with populated paper details
+    const wishlistItems = await Wishlist.find({ userId })
+      .populate({
+        path: 'paperId',
+        model: ResearchPaper,
+        select: 'title authors abstract publicationDate downloadUrl thumbnailUrl downloadCount'
+      });
+
+    // Transform the data to match your frontend interface
+    const papers = wishlistItems.map(item => ({
+      id: item.paperId._id.toString(),
+      title: item.paperId.title,
+      authors: item.paperId.authors,
+      abstract: item.paperId.abstract,
+      publicationDate: item.paperId.publicationDate,
+      downloadUrl: item.paperId.downloadUrl,
+      thumbnailUrl: item.paperId.thumbnailUrl,
+      downloadCount: item.paperId.downloadCount,
+      // Add any other fields you need
     }));
 
-    return NextResponse.json(formattedPapers);
+    return NextResponse.json(papers);
   } catch (error) {
-    console.error('Error fetching wishlist papers:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching wishlist:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
