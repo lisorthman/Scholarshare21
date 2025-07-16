@@ -1,3 +1,4 @@
+
 $carousel-bg: #F5F1EB;
 $title-color: #5B4B36;
 $card-overlap: 40%;
@@ -21,20 +22,55 @@ $card-overlap: 40%;
     }
   }
 
-  .swiper {
-    padding: 1rem 0 2rem;
+  .flexCarousel {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-end;
+    height: 350px;
     position: relative;
+    padding: 48px 48px 0 48px;
+    width: 100%;
+    min-width: 600px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: thin;
+  }
+
+  .flexCard {
+    flex: 0 0 120px;
+    height: 100%;
+    border-radius: 0.75rem;
+    transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(30, 14, 62, 0.12), 0 1.5px 6px rgba(30, 14, 62, 0.08);
+    position: relative;
+    overflow: visible;
+    margin-right: -36px;
+    background: #fff;
+    border: 1px solid #ececec;
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
     
-    .swiper-slide {
-      transition: transform 0.3s ease, z-index 0.3s ease;
-      width: 60%;
-      transform: scale(0.95);
-      z-index: 1;
-      
-      &:hover {
-        transform: scale(1.03);
-        z-index: 10;
-      }
+    &:first-child {
+      margin-right: 0;
+    }
+
+    &:hover {
+      flex: 0 0 250px;
+      box-shadow: 0 8px 32px #7645d833, 0 2px 8px #7645d822;
+      z-index: 10;
+      transform: translateY(-18px) scale(1.04);
+      border-color: #7645d8;
+    }
+
+    // Ensure PaperCard fills the card
+    > * {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      align-items: stretch;
     }
   }
 

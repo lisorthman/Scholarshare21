@@ -1,9 +1,6 @@
 'use client';
 
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Mousewheel, FreeMode } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/free-mode';
+// Swiper imports removed
 import { Paper } from '@/types';
 import { PaperCard } from './PaperCard';
 import styles from './PaperCarousel.module.scss';
@@ -27,16 +24,16 @@ export default function PaperCarousel({
         <div className={styles.header}>
           <h2>{title}</h2>
         </div>
-        <div className="flex gap-4 flex-wrap">
-          {papers.map((paper) => (
-            <SwiperSlide key={paper.id}>
+        <div className={styles.flexCarousel}>
+          {papers.map((paper, idx) => (
             <div
+              key={paper.id}
+              className={styles.flexCard}
               onClick={() => onCardClick?.(paper)}
-              style={{ cursor: 'pointer' }}
+              style={{ zIndex: idx }}
             >
               <PaperCard paper={paper} />
             </div>
-          </SwiperSlide>
           ))}
         </div>
       </div>
@@ -48,22 +45,19 @@ export default function PaperCarousel({
       <div className={styles.header}>
         <h2>{title}</h2>
       </div>
-      
-      <Swiper
-        modules={[Mousewheel, FreeMode]}
-        freeMode={true}
-        mousewheel={{ forceToAxis: true }}
-        slidesPerView={'auto'}
-        spaceBetween={12}
-        grabCursor={true}
-        className={styles.swiper}
-      >
-        {papers.map((paper) => (
-          <SwiperSlide key={paper.id}>
+      <div className={styles.flexCarousel}>
+        {papers.map((paper, idx) => (
+          <div
+            key={paper.id}
+            className={styles.flexCard}
+            onClick={() => onCardClick?.(paper)}
+            style={{ zIndex: papers.length - idx }}
+          >
             <PaperCard paper={paper} />
-          </SwiperSlide>
+          </div>
         ))}
-      </Swiper>
+      </div>
     </div>
   );
 }
+
