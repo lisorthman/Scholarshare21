@@ -1,109 +1,228 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]/route';
 import connectDB from '@/lib/mongoose';
-import ResearcherEarnings from '@/models/ResearcherEarnings';
-import User from '@/models/user';
+import ResearchPaper from '@/models/ResearchPaper';
+import AdminCategory from '@/models/AdminCategory'; // Add this import
+import Payment from '@/models/payment';
+import { getServerSession } from 'next-auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    await connectDB();
     
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Get researcher ID from session or query params
+    const { searchParams } = new URL(request.url);
+    let researcherId = searchParams.get('researcherId');
+    
+    // If no researcherId in params, try to get from session
+    if (!researcherId) {
+      return NextResponse.json({ error: 'Researcher ID is required' }, { status: 400 });
     }
 
-    await connectDB();
+    console.log('Fetching earnings for researcher:', researcherId);
 
-    const earnings = await ResearcherEarnings.findOne({
-      userId: session.user.id
-    }).sort({ createdAt: -1 });
+    // Ensure AdminCategory model is loaded before the populate call
+    await AdminCategory.find().limit(1);
 
-    return NextResponse.json({
-      bankAccount: earnings?.bankAccount || null,
-      paymentHistory: earnings?.paymentHistory || []
+    // Get all papers by this researcher from the CORRECT ResearchPaper model
+    const papers = await ResearchPaper.find({ authorId: researcherId })
+      .populate('categoryId', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log(`Found ${papers.length} papers for researcher ${researcherId}`);
+
+    // Filter papers by status
+    const approvedPapers = papers.filter(paper => paper.status === 'approved');
+    const pendingPapers = papers.filter(paper => paper.status === 'pending');
+    const rejectedPapers = papers.filter(paper => 
+      paper.status === 'rejected' || 
+      paper.status === 'rejected_plagiarism' || 
+      paper.status === 'rejected_ai'
+    );
+
+    console.log('Paper stats:', {
+      total: papers.length,
+      approved: approvedPapers.length,
+      pending: pendingPapers.length,
+      rejected: rejectedPapers.length
     });
 
-  } catch (error) {
-    console.error('Payments fetch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+    // Calculate earnings from approved papers only
+    const totalEarnings = approvedPapers.length * 1; // $1 per approved paper
 
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
+    // Get or create payment record
+    let payment = await Payment.findOne({ researcherId });
     
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!payment) {
+      payment = new Payment({
+        researcherId,
+        earnings: {
+          totalEarned: totalEarnings,
+          availableBalance: totalEarnings,
+          totalWithdrawn: 0,
+          currency: 'USD'
+        },
+        paperRewards: [],
+        withdrawals: [],
+        withdrawalSettings: {
+          minimumAmount: 20
+        },
+        status: 'active'
+      });
     }
 
-    await connectDB();
+    // Update paper rewards with REAL data
+    payment.paperRewards = papers.map(paper => ({
+      paperId: paper._id,
+      paperTitle: paper.title,
+      submittedAt: paper.createdAt,
+      approvedAt: paper.status === 'approved' ? paper.updatedAt : undefined,
+      status: paper.status === 'approved' ? 'approved' : 
+              (paper.status === 'pending' ? 'pending' : 'rejected'),
+      rewardAmount: 1.00,
+      rewardPaid: paper.status === 'approved'
+    }));
 
-    // Parse and validate bank details
-    const { bankDetails } = await req.json();
-    
-    if (!bankDetails || !bankDetails.accountHolder || !bankDetails.bankName || 
-        !bankDetails.accountNumber || !bankDetails.routingNumber) {
-      return NextResponse.json(
-        { error: 'All bank details fields are required' },
-        { status: 400 }
-      );
-    }
+    // Calculate total withdrawn from previous withdrawals
+    const totalWithdrawn = payment.withdrawals
+      .filter(w => w.status === 'completed')
+      .reduce((sum, w) => sum + w.amount, 0);
 
-    // Find user and verify
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
+    // Update earnings
+    payment.earnings.totalEarned = totalEarnings;
+    payment.earnings.totalWithdrawn = totalWithdrawn;
+    payment.earnings.availableBalance = totalEarnings - totalWithdrawn;
 
-    // Create or update earnings record with user's actual ID
-    const earnings = await ResearcherEarnings.findOneAndUpdate(
-      { userId: user._id }, // Use actual user._id instead of session.user.id
-      {
-        $set: {
-          userId: user._id,
-          bankAccount: {
-            accountHolder: bankDetails.accountHolder,
-            bankName: bankDetails.bankName,
-            accountNumber: bankDetails.accountNumber,
-            routingNumber: bankDetails.routingNumber
-          },
-          totalEarnings: (user.counts?.uploads || 0) * 1,
-          availableBalance: (user.counts?.uploads || 0) * 1
-        }
-      },
-      { 
-        upsert: true, 
-        new: true,
-        setDefaultsOnInsert: true
-      }
-    );
+    await payment.save();
 
-    if (!earnings) {
-      throw new Error('Failed to save earnings record');
-    }
+    console.log('Updated payment record:', {
+      totalEarned: payment.earnings.totalEarned,
+      availableBalance: payment.earnings.availableBalance,
+      totalWithdrawn: payment.earnings.totalWithdrawn
+    });
 
     return NextResponse.json({
       success: true,
-      data: {
-        bankAccount: earnings.bankAccount,
-        totalEarnings: earnings.totalEarnings,
-        availableBalance: earnings.availableBalance
-      }
+      _id: payment._id,
+      bankDetails: payment.bankDetails || {},
+      earnings: payment.earnings,
+      paperRewards: payment.paperRewards,
+      withdrawals: payment.withdrawals,
+      withdrawalSettings: payment.withdrawalSettings,
+      status: payment.status
     });
 
   } catch (error) {
-    console.error('Save bank details error:', error);
-    return NextResponse.json(
-      { error: 'Failed to save bank details' },
-      { status: 500 }
-    );
+    console.error('[PAYMENTS API ERROR]', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch payment data',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    await connectDB();
+    
+    const body = await request.json();
+    const { action, researcherId, data } = body;
+
+    if (!researcherId) {
+      return NextResponse.json({ error: 'Researcher ID is required' }, { status: 400 });
+    }
+
+    const payment = await Payment.findOne({ researcherId });
+    if (!payment) {
+      return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
+    }
+
+    switch (action) {
+      case 'updateBankDetails':
+        payment.bankDetails = {
+          ...payment.bankDetails,
+          ...data
+        };
+        await payment.save();
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Bank details updated successfully',
+          bankDetails: payment.bankDetails,
+          _id: payment._id,
+          earnings: payment.earnings,
+          paperRewards: payment.paperRewards,
+          withdrawals: payment.withdrawals,
+          withdrawalSettings: payment.withdrawalSettings,
+          status: payment.status
+        });
+
+      case 'withdrawal':
+      case 'requestWithdrawal':
+        const { amount } = data;
+        
+        if (amount < payment.withdrawalSettings.minimumAmount) {
+          return NextResponse.json({ 
+            error: `Minimum withdrawal amount is $${payment.withdrawalSettings.minimumAmount}` 
+          }, { status: 400 });
+        }
+
+        if (amount > payment.earnings.availableBalance) {
+          return NextResponse.json({ 
+            error: 'Insufficient balance' 
+          }, { status: 400 });
+        }
+
+        if (!payment.bankDetails?.accountNumber) {
+          return NextResponse.json({ 
+            error: 'Bank details required for withdrawal' 
+          }, { status: 400 });
+        }
+
+        // Process withdrawal
+        const withdrawalId = `WD${Date.now()}`;
+        
+        payment.earnings.availableBalance -= amount;
+        payment.earnings.totalWithdrawn += amount;
+        
+        payment.withdrawals.push({
+          id: withdrawalId,
+          amount,
+          currency: 'USD',
+          status: 'completed', // In real app, this would be 'pending' initially
+          requestedAt: new Date(),
+          processedAt: new Date(),
+          bankDetails: {
+            accountNumber: payment.bankDetails.accountNumber,
+            bankName: payment.bankDetails.bankName || 'Unknown Bank'
+          }
+        });
+
+        await payment.save();
+
+        return NextResponse.json({
+          success: true,
+          message: 'Withdrawal processed successfully',
+          withdrawalId,
+          newBalance: payment.earnings.availableBalance,
+          _id: payment._id,
+          bankDetails: payment.bankDetails,
+          earnings: payment.earnings,
+          paperRewards: payment.paperRewards,
+          withdrawals: payment.withdrawals,
+          withdrawalSettings: payment.withdrawalSettings,
+          status: payment.status
+        });
+
+      default:
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
+
+  } catch (error) {
+    console.error('[PAYMENTS POST ERROR]', error);
+    return NextResponse.json({ 
+      error: 'Failed to process request',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

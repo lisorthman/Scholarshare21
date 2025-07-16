@@ -2,34 +2,25 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IPaper extends Document {
   title: string;
-  authors: string[];
-  abstract: string;
-  publicationDate: Date;
-  downloadUrl: string;
-  thumbnailUrl?: string;
+  details: string;
+  submittedDate: Date;
+  owner: string;
   status: 'pending' | 'approved' | 'rejected';
-  rating?: number;
-  averageRating?: number;
-  downloadCount: number;
-  // Add any other fields you need
 }
 
-const PaperSchema: Schema = new Schema({
+const paperSchema: Schema = new mongoose.Schema<IPaper>({
   title: { type: String, required: true },
-  authors: { type: [String], required: true },
-  abstract: { type: String, required: true },
-  publicationDate: { type: Date, required: true },
-  downloadUrl: { type: String, required: true },
-  thumbnailUrl: { type: String },
-  status: { 
-    type: String, 
+  details: { type: String, required: true },
+  submittedDate: { type: Date, default: Date.now },
+  owner: { type: String, required: true },
+  status: {
+    type: String,
     enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
+    default: 'pending',
   },
-  rating: { type: Number },
-  averageRating: { type: Number },
-  downloadCount: { type: Number, default: 0 },
-  // Add any other fields you need
 });
 
-export default mongoose.models.Paper || mongoose.model<IPaper>('Paper', PaperSchema);
+// Avoid overwriting the model in development (due to Next.js hot reloading)
+const Paper = mongoose.models.Paper || mongoose.model<IPaper>('Paper', paperSchema);
+
+export default Paper;
