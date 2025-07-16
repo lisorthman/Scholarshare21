@@ -1,471 +1,180 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
-import { User } from '@/types/user';
-import Rating from '@/components/Rating';
-import { toast } from 'react-toastify';
-import { Download } from 'lucide-react';
 
-interface ResearchPaper {
+import Link from "next/link";
+import { Bookmark, BookmarkCheck, Download, Heart } from "lucide-react";
+import { useState } from "react";
+
+interface Paper {
   _id: string;
   title: string;
-  authors: string[];
-  abstract: string;
-  publicationDate: string;
-  downloadUrl: string;
-  thumbnailUrl?: string;
-  rating?: number;
-  averageRating?: number;
-  downloadCount: number;
-  viewCount: number;
+  abstract?: string;
+  category: string;
+  fileUrl: string;
+  status?: "pending" | "approved" | "rejected";
+  createdAt?: Date;
+  author?: {
+    name?: string;
+    email?: string;
+  };
 }
 
-export default function SavedPapersPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [savedPapers, setSavedPapers] = useState<ResearchPaper[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface PaperCardProps {
+  paper: Paper;
+  showStatus?: boolean;
+  initialSaved?: boolean;
+  initialWishlisted?: boolean;
+  onSaveToggle?: (paperId: string, newState: boolean) => Promise<void>;
+  onWishlistToggle?: (paperId: string, newState: boolean) => Promise<void>;
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/signin');
-        return;
-      }
+export default function PaperCard({
+  paper,
+  showStatus = false,
+  initialSaved = false,
+  initialWishlisted = false,
+  onSaveToggle,
+  onWishlistToggle,
+}: PaperCardProps) {
+  const [isSaved, setIsSaved] = useState(initialSaved);
+  const [isWishlisted, setIsWishlisted] = useState(initialWishlisted);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-      try {
-        // Verify token and get user data
-        const verifyResponse = await fetch('/api/auth/verify', {
-          method: 'POST',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-
-        if (!verifyResponse.ok) {
-          localStorage.removeItem('token');
-          router.push('/signin');
-          return;
-        }
-
-        const { user: userData } = await verifyResponse.json();
-        setUser(userData);
-
-        // Fetch saved papers with details
-        const savedPapersResponse = await fetch('/api/user/saved-papers', {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-
-        if (!savedPapersResponse.ok) {
-          throw new Error('Failed to fetch saved papers');
-        }
-
-        const responseData = await savedPapersResponse.json();
-        
-        // Ensure we're working with an array
-        const papersArray = Array.isArray(responseData) 
-          ? responseData 
-          : Array.isArray(responseData?.savedPapers) 
-            ? responseData.savedPapers 
-            : [];
-        
-        // Transform data to match ResearchPaper interface
-        const formattedPapers = papersArray.map((paper: any) => ({
-          _id: paper._id || paper.id,
-          title: paper.title,
-          authors: paper.authors || [],
-          abstract: paper.abstract || '',
-          publicationDate: paper.publicationDate || new Date().toISOString(),
-          downloadUrl: paper.downloadUrl || paper.fileUrl,
-          thumbnailUrl: paper.thumbnailUrl,
-          rating: paper.rating,
-          averageRating: paper.averageRating,
-          downloadCount: paper.downloadCount || 0,
-          viewCount: paper.viewCount || 0
-        }));
-
-        setSavedPapers(formattedPapers);
-        setError(null);
-      } catch (error) {
-        console.error('Error:', error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
-        localStorage.removeItem('token');
-        router.push('/signin');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [router]);
-
-  const markAsReadAndRemove = async (paperId: string) => {
+  const handleSaveClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/signin');
-        return;
-      }
-
-      // First, mark as read in bookshelf
-      const markAsReadResponse = await fetch('/api/bookshelf', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          paperId,
-          action: 'addToRead'
-        }),
-      });
-
-      if (!markAsReadResponse.ok) {
-        throw new Error('Failed to mark as read');
-      }
-
-      // Then remove from saved papers
-      const removeResponse = await fetch('/api/user/saved-papers', {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          paperId,
-          action: 'remove'
-        }),
-      });
-
-      if (removeResponse.ok) {
-        setSavedPapers(prev => prev.filter(item => item._id !== paperId));
-        toast.success('Paper marked as read and removed from saved papers');
-      } else {
-        const errorData = await removeResponse.json();
-        throw new Error(errorData.message || 'Failed to remove from saved papers');
+      const newSavedState = !isSaved;
+      setIsSaved(newSavedState);
+      if (onSaveToggle) {
+        await onSaveToggle(paper._id, newSavedState);
       }
     } catch (error) {
-      console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
-      toast.error(error instanceof Error ? error.message : 'An error occurred');
+      setIsSaved(!isSaved);
+      console.error("Failed to toggle save:", error);
     }
   };
 
-  const handleDownload = async (paperId: string, title: string) => {
+  const handleWishlistClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/signin');
-        return;
+      const newWishlistState = !isWishlisted;
+      setIsWishlisted(newWishlistState);
+      if (onWishlistToggle) {
+        await onWishlistToggle(paper._id, newWishlistState);
       }
+    } catch (error) {
+      setIsWishlisted(!isWishlisted);
+      console.error("Failed to toggle wishlist:", error);
+    }
+  };
 
-      // First increment the download count
-      const incrementResponse = await fetch('/api/papers/increment-download', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          paperId,
-          userId: user?._id
-        }),
-      });
-
-      if (!incrementResponse.ok) {
-        throw new Error('Failed to increment download count');
-      }
-
-      const result = await incrementResponse.json();
-      
-      // Update download count in UI
-      setSavedPapers(prev => 
-        prev.map(paper => 
-          paper._id === paperId 
-            ? { ...paper, downloadCount: result.newCount } 
-            : paper
-        )
-      );
-
-      // Then proceed with download
-      const paperToDownload = savedPapers.find(p => p._id === paperId);
-      if (!paperToDownload) {
-        throw new Error('Paper not found');
-      }
-
-      const response = await fetch(paperToDownload.downloadUrl);
-      if (!response.ok) throw new Error("Download failed");
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDownloading(true);
+    try {
+      const response = await fetch(paper.fileUrl);
+      if (!response.ok) throw new Error("Failed to fetch file");
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${title.replace(/\s+/g, '_')}.pdf`;
+      a.download = `${paper.title.replace(/\s+/g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-
-      toast.success('Download started');
     } catch (error) {
       console.error('Download failed:', error);
-      setError(error instanceof Error ? error.message : 'Download failed');
-      toast.error('Failed to download paper');
+    } finally {
+      setIsDownloading(false);
     }
   };
-
-  const handleView = async (paperId: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/signin');
-        return;
-      }
-
-      // Increment view count
-      const incrementResponse = await fetch('/api/papers/increment-view', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          paperId,
-          userId: user?._id
-        }),
-      });
-
-      if (!incrementResponse.ok) {
-        throw new Error('Failed to increment view count');
-      }
-
-      const result = await incrementResponse.json();
-      
-      // Update view count in UI
-      setSavedPapers(prev => 
-        prev.map(paper => 
-          paper._id === paperId 
-            ? { ...paper, viewCount: result.newCount } 
-            : paper
-        )
-      );
-
-      // Open the paper in a new tab
-      const paperToView = savedPapers.find(p => p._id === paperId);
-      if (paperToView) {
-        window.open(paperToView.downloadUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('View failed:', error);
-      setError(error instanceof Error ? error.message : 'Failed to view paper');
-    }
-  };
-
-  const handleRating = async (paperId: string, rating: number) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/signin');
-        return;
-      }
-
-      const response = await fetch(`/api/papers/${paperId}/rate`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({ rating }),
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-        setSavedPapers(prev => 
-          prev.map(paper => 
-            paper._id === paperId 
-              ? { 
-                  ...paper, 
-                  rating: rating,
-                  averageRating: responseData.averageRating 
-                } 
-              : paper
-          )
-        );
-        toast.success('Rating submitted successfully');
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit rating');
-      }
-    } catch (error) {
-      console.error('Rating failed:', error);
-      setError(error instanceof Error ? error.message : 'Failed to submit rating');
-      toast.error('Failed to submit rating');
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5D4037]"></div>
-      </div>
-    );
-  }
 
   return (
-    <DashboardLayout user={user} defaultPage="Wishlist">
-      <div className="saved-papers-container p-4 md:p-6 max-w-7xl mx-auto">
-        <div className="saved-papers-header flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#3E2723]">Wishlist</h1>
-            <p className="text-[#5D4037] mt-1">
-              {savedPapers.length} {savedPapers.length === 1 ? 'paper' : 'papers'} in your wishlist.
-            </p>
-          </div>
-          <button 
-            className="bg-[#5D4037] hover:bg-[#3E2723] text-white font-medium py-2 px-4 rounded transition whitespace-nowrap"
-            onClick={() => router.push('./papers')}
-          >
-            Browse More Papers
-          </button>
-        </div>
+    <div className="border border-[#D7CCC8] rounded-xl p-6 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md hover:border-[#A1887F]">
+      <div className="flex justify-between items-center mb-4">
+        <span className="px-3 py-1.5 text-sm font-semibold text-[#5D4037] bg-[#EFEBE9] rounded-full capitalize">
+          {paper.category.replace(/-/g, " ")}
+        </span>
 
-        {error && (
-          <div className="bg-[#FFEBEE] border-l-4 border-[#C62828] p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-[#C62828]" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-[#C62828]">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5D4037] mb-4"></div>
-            <p className="text-[#5D4037]">Loading your papers...</p>
-          </div>
-        ) : savedPapers.length === 0 ? (
-          <div className="text-center py-12 bg-[#EFEBE9] rounded-lg">
-            <svg className="mx-auto h-12 w-12 text-[#8D6E63]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            <h3 className="mt-2 text-lg font-medium text-[#3E2723]">No papers</h3>
-            <div className="mt-6">
-              <button
-                type="button"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#5D4037] hover:bg-[#3E2723] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5D4037]"
-                onClick={() => router.push('/papers')}
-              >
-                Browse Papers
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {savedPapers.map((paper) => (
-              <div key={paper._id} className="border border-[#D7CCC8] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
-                <div className="flex flex-col md:flex-row">
-                  <div className="w-full md:w-48 h-48 bg-[#EFEBE9] flex items-center justify-center shrink-0">
-                    {paper.thumbnailUrl ? (
-                      <img 
-                        src={paper.thumbnailUrl} 
-                        alt={paper.title} 
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="text-center p-4 text-[#8D6E63]">
-                        <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 p-4 md:p-6">
-                    <h3 
-                      onClick={() => router.push(`/papers/${paper._id}`)} 
-                      className="text-lg md:text-xl font-semibold text-[#5D4037] hover:underline cursor-pointer mb-2 line-clamp-2"
-                    >
-                      {paper.title}
-                    </h3>
-                    <p className="text-[#8D6E63] text-sm mb-3 line-clamp-1">
-                      {paper.authors?.join(', ') || 'Unknown authors'}
-                    </p>
-                    <p className="text-[#5D4037] mb-4 line-clamp-3 text-sm md:text-base">
-                      {paper.abstract || 'No abstract available'}
-                    </p>
-                    
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm text-[#8D6E63] mb-4">
-                      <span>Published: {new Date(paper.publicationDate).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span>Downloads: {paper.downloadCount}</span>
-                      <span>•</span>
-                      <span>Views: {paper.viewCount}</span>
-                    </div>
-                    
-                    <div className="mb-4">
-                      <Rating 
-                        value={paper.rating} 
-                        average={paper.averageRating} 
-                        onChange={(rating) => handleRating(paper._id, rating)} 
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 md:p-6 flex flex-col gap-3 justify-center border-t md:border-t-0 md:border-l border-[#EFEBE9] md:w-48 shrink-0">
-                    <button 
-                      onClick={() => handleDownload(paper._id, paper.title)}
-                      className="bg-[#5D4037] hover:bg-[#3E2723] text-white py-2 px-4 rounded transition text-sm flex items-center justify-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                    <button 
-                      onClick={() => handleView(paper._id)}
-                      className="bg-[#0288D1] hover:bg-[#0277BD] text-white py-2 px-4 rounded transition text-sm flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      View
-                    </button>
-                    <button 
-                      onClick={() => markAsReadAndRemove(paper._id)}
-                      className="bg-[#388E3C] hover:bg-[#2E7D32] text-white py-2 px-4 rounded transition text-sm flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Mark as Read
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {showStatus && paper.status && (
+          <span className={`px-3 py-1.5 text-sm font-semibold rounded-full capitalize ${
+            paper.status === "approved" ? "text-[#2E7D32] bg-[#E8F5E9]" :
+            paper.status === "rejected" ? "text-[#C62828] bg-[#FFEBEE]" :
+            "text-[#F57F17] bg-[#FFF8E1]"
+          }`}>
+            {paper.status}
+          </span>
         )}
       </div>
-    </DashboardLayout>
+
+      <div className="flex flex-col gap-4">
+        <h3 className="text-xl font-semibold text-[#3E2723] line-clamp-2">
+          {paper.title}
+        </h3>
+
+        {paper.abstract && (
+          <p className="text-[#5D4037] line-clamp-3">{paper.abstract}</p>
+        )}
+
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#EFEBE9]">
+          <div className="flex flex-col gap-1">
+            {paper.author?.name && (
+              <span className="text-sm text-[#5D4037]">By {paper.author.name}</span>
+            )}
+           
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleWishlistClick}
+              disabled={isDownloading}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart className={`w-5 h-5 ${isWishlisted ? "text-[#D32F2F] fill-[#D32F2F]" : "text-[#8D6E63] hover:text-[#D32F2F]"}`} />
+            </button>
+
+            <button
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleSaveClick}
+              disabled={isDownloading}
+              aria-label={isSaved ? "Unsave paper" : "Save paper"}
+            >
+              {isSaved ? (
+                <BookmarkCheck className="w-5 h-5 text-[#F57C00] fill-[#F57C00]" />
+              ) : (
+                <Bookmark className="w-5 h-5 text-[#8D6E63] hover:text-[#F57C00]" />
+              )}
+            </button>
+
+            <button
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              aria-label="Download paper"
+            >
+              <Download className={`w-5 h-5 ${isDownloading ? "text-[#BCAAA4] animate-pulse" : "text-[#8D6E63] hover:text-[#0288D1]"}`} />
+            </button>
+
+            <Link
+              href={paper.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-transparent border border-[#D7CCC8] rounded-md hover:bg-[#EFEBE9] hover:border-[#A1887F]"
+            >
+              View
+            </Link>
+
+            <Link 
+              href={`/papers/${paper._id}`}
+              className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-[#EFEBE9] rounded-md hover:bg-[#D7CCC8]"
+            >
+              Citation
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
