@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Wallet, Building2, Clock, AlertCircle, TrendingUp } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar'; // Add this import
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 
 interface PaymentData {
   totalEarnings: number;
