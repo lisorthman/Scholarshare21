@@ -1,231 +1,201 @@
 'use client';
-import { useState } from 'react';
-import { Heart, MessageCircle, Eye, Share2, MoreVertical, Trash2, Check, X, Quote } from 'lucide-react';
-import CitationModal from '../CitationModal';
+
+import Link from "next/link";
+import { Bookmark, BookmarkCheck, Download, Heart } from "lucide-react";
+import { useState } from "react";
 
 interface Paper {
   _id: string;
   title: string;
-  abstract: string;
-  fileUrl?: string;
-  fileName?: string;
-  authorDetails?: {
-    name: string;
+  abstract?: string;
+  category: string;
+  fileUrl: string;
+  status?: "pending" | "approved" | "rejected";
+  createdAt?: Date;
+  author?: {
+    name?: string;
+    email?: string;
   };
-  createdAt: string;
-  status?: string;
-  category?: string;
-  reviews?: Array<any>;
-  ratings?: Array<any>;
-  views?: number;
-  likes?: Array<any>;
 }
 
 interface PaperCardProps {
   paper: Paper;
-  showAdminActions?: boolean;
-  showResearcherActions?: boolean;
-  onApprove?: (paperId: string) => void;
-  onReject?: (paperId: string) => void;
-  onDelete?: (paperId: string) => void;
+  showStatus?: boolean;
+  initialSaved?: boolean;
+  initialWishlisted?: boolean;
+  onSaveToggle?: (paperId: string, newState: boolean) => Promise<void>;
+  onWishlistToggle?: (paperId: string, newState: boolean) => Promise<void>;
 }
 
-export default function PaperCard({ 
-  paper, 
-  showAdminActions = false, 
-  showResearcherActions = false,
-  onApprove,
-  onReject,
-  onDelete
+export default function PaperCard({
+  paper,
+  showStatus = false,
+  initialSaved = false,
+  initialWishlisted = false,
+  onSaveToggle,
+  onWishlistToggle,
 }: PaperCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
-  const [showMore, setShowMore] = useState(false);
-  const [showCitationModal, setShowCitationModal] = useState(false);
+  const [isSaved, setIsSaved] = useState(initialSaved);
+  const [isWishlisted, setIsWishlisted] = useState(initialWishlisted);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-  };
-
-  const handleApprove = () => {
-    if (onApprove) {
-      onApprove(paper._id);
+  const handleSaveClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const newSavedState = !isSaved;
+      setIsSaved(newSavedState);
+      if (onSaveToggle) {
+        await onSaveToggle(paper._id, newSavedState);
+      }
+    } catch (error) {
+      setIsSaved(!isSaved);
+      console.error("Failed to toggle save:", error);
     }
   };
 
-  const handleReject = () => {
-    if (onReject) {
-      onReject(paper._id);
+  const handleWishlistClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const newWishlistState = !isWishlisted;
+      setIsWishlisted(newWishlistState);
+      if (onWishlistToggle) {
+        await onWishlistToggle(paper._id, newWishlistState);
+      }
+    } catch (error) {
+      setIsWishlisted(!isWishlisted);
+      console.error("Failed to toggle wishlist:", error);
     }
   };
 
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(paper._id);
-    }
-  };
+  const handleDownload = async (e: React.MouseEvent) => {
+  e.preventDefault();
+  setIsDownloading(true);
+  try {
+    // 🔁 Increment download count
+    await fetch("/api/paper/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paperId: paper._id }),
+    });
 
-  const handleCitationClick = () => {
-    setShowCitationModal(true);
-  };
+    // ⬇️ Fetch and download the actual file
+    const response = await fetch(paper.fileUrl);
+    if (!response.ok) throw new Error("Failed to fetch file");
 
-  const averageRating = paper.ratings && paper.ratings.length > 0 
-    ? paper.ratings.reduce((sum: number, rating: any) => sum + rating.rating, 0) / paper.ratings.length 
-    : 0;
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${paper.title.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Download failed:', error);
+  } finally {
+    setIsDownloading(false);
+  }
+};
 
-  const truncatedAbstract = paper.abstract?.length > 120 
-    ? `${paper.abstract.substring(0, 120)}...` 
-    : paper.abstract;
 
   return (
-    <>
-      <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-[#634141] mb-2 line-clamp-2 leading-tight">
-              {paper.title}
-            </h3>
-            <p className="text-sm text-[#634141]/70 mb-2">
-              by {paper.authorDetails?.name || 'Unknown Author'}
-            </p>
-            {paper.category && (
-              <span className="inline-block px-2 py-1 bg-[#634141]/10 text-[#634141] text-xs rounded-full">
-                {paper.category}
-              </span>
-            )}
-          </div>
-          {showResearcherActions && (
-            <button className="p-2 hover:bg-gray-100 rounded-full">
-              <MoreVertical className="w-4 h-4 text-gray-500" />
-            </button>
-          )}
-        </div>
+    <div className="border border-[#D7CCC8] rounded-xl p-6 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md hover:border-[#A1887F]">
+      <div className="flex justify-between items-center mb-4">
+        <span className="px-3 py-1.5 text-sm font-semibold text-[#5D4037] bg-[#EFEBE9] rounded-full capitalize">
+          {paper.category.replace(/-/g, " ")}
+        </span>
 
-        {/* Abstract */}
-        <div className="mb-4">
-          <p className="text-[#634141]/80 text-sm leading-relaxed">
-            {showMore ? paper.abstract : truncatedAbstract}
-          </p>
-          {paper.abstract && paper.abstract.length > 120 && (
-            <button
-              onClick={() => setShowMore(!showMore)}
-              className="text-[#634141] text-sm font-medium mt-2 hover:underline"
-            >
-              {showMore ? 'Show less' : 'Show more'}
-            </button>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="flex items-center gap-4 mb-4 text-sm text-[#634141]/60">
-          {paper.views !== undefined && (
-            <div className="flex items-center gap-1">
-              <Eye className="w-4 h-4" />
-              <span>{paper.views}</span>
-            </div>
-          )}
-          {paper.reviews && (
-            <div className="flex items-center gap-1">
-              <MessageCircle className="w-4 h-4" />
-              <span>{paper.reviews.length}</span>
-            </div>
-          )}
-          {paper.likes && (
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4" />
-              <span>{paper.likes.length}</span>
-            </div>
-          )}
-          {averageRating > 0 && (
-            <div className="flex items-center gap-1">
-              <span className="text-yellow-500">★</span>
-              <span>{averageRating.toFixed(1)}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLike}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors duration-200 ${
-                isLiked 
-                  ? 'bg-red-50 text-red-600' 
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="text-sm">Like</span>
-            </button>
-            
-            <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-              <Share2 className="w-4 h-4" />
-              <span className="text-sm">Share</span>
-            </button>
-
-            {/* Citation Button */}
-            <button
-              onClick={handleCitationClick}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#634141] text-white rounded-lg hover:bg-[#634141]/90 transition-colors duration-200"
-            >
-              <Quote className="w-4 h-4" />
-              <span className="text-sm">Cite</span>
-            </button>
-          </div>
-
-          {/* Admin Actions */}
-          {showAdminActions && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleApprove}
-                className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors duration-200"
-              >
-                <Check className="w-4 h-4" />
-                <span className="text-sm">Approve</span>
-              </button>
-              <button
-                onClick={handleReject}
-                className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200"
-              >
-                <X className="w-4 h-4" />
-                <span className="text-sm">Reject</span>
-              </button>
-            </div>
-          )}
-
-          {/* Researcher Actions */}
-          {showResearcherActions && (
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="text-sm">Delete</span>
-            </button>
-          )}
-        </div>
-
-        {/* Status Badge */}
-        {paper.status && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-              paper.status === 'approved' ? 'bg-green-100 text-green-800' :
-              paper.status === 'rejected' ? 'bg-red-100 text-red-800' :
-              'bg-yellow-100 text-yellow-800'
-            }`}>
-              {paper.status.charAt(0).toUpperCase() + paper.status.slice(1)}
-            </span>
-          </div>
+        {showStatus && paper.status && (
+          <span className={`px-3 py-1.5 text-sm font-semibold rounded-full capitalize ${
+            paper.status === "approved" ? "text-[#2E7D32] bg-[#E8F5E9]" :
+            paper.status === "rejected" ? "text-[#C62828] bg-[#FFEBEE]" :
+            "text-[#F57F17] bg-[#FFF8E1]"
+          }`}>
+            {paper.status}
+          </span>
         )}
       </div>
 
-      {/* Citation Modal */}
-      <CitationModal
-        isOpen={showCitationModal}
-        onClose={() => setShowCitationModal(false)}
-        paper={paper}
-      />
-    </>
+      <div className="flex flex-col gap-4">
+        <h3 className="text-xl font-semibold text-[#3E2723] line-clamp-2">
+          {paper.title}
+        </h3>
+
+        {paper.abstract && (
+          <p className="text-[#5D4037] line-clamp-3">{paper.abstract}</p>
+        )}
+
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#EFEBE9]">
+          <div className="flex flex-col gap-1">
+            {paper.author?.name && (
+              <span className="text-sm text-[#5D4037]">By {paper.author.name}</span>
+            )}
+           
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleWishlistClick}
+              disabled={isDownloading}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart className={`w-5 h-5 ${isWishlisted ? "text-[#D32F2F] fill-[#D32F2F]" : "text-[#8D6E63] hover:text-[#D32F2F]"}`} />
+            </button>
+
+            <button
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleSaveClick}
+              disabled={isDownloading}
+              aria-label={isSaved ? "Unsave paper" : "Save paper"}
+            >
+              {isSaved ? (
+                <BookmarkCheck className="w-5 h-5 text-[#F57C00] fill-[#F57C00]" />
+              ) : (
+                <Bookmark className="w-5 h-5 text-[#8D6E63] hover:text-[#F57C00]" />
+              )}
+            </button>
+
+            <button
+              className="p-2 rounded-md hover:bg-[#EFEBE9] disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              aria-label="Download paper"
+            >
+              <Download className={`w-5 h-5 ${isDownloading ? "text-[#BCAAA4] animate-pulse" : "text-[#8D6E63] hover:text-[#0288D1]"}`} />
+            </button>
+
+            <a
+  href={paper.fileUrl}
+  target="_blank"
+  rel="noopener noreferrer"
+  onClick={async () => {
+    try {
+      await fetch("/api/paper/view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paperId: paper._id }),
+      });
+    } catch (error) {
+      console.error("Failed to track view:", error);
+    }
+  }}
+  className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-transparent border border-[#D7CCC8] rounded-md hover:bg-[#EFEBE9] hover:border-[#A1887F]"
+>
+  View
+</a>
+
+
+            <Link 
+              href={`/papers/${paper._id}`}
+              className="px-4 py-2 text-sm font-medium text-[#5D4037] bg-[#EFEBE9] rounded-md hover:bg-[#D7CCC8]"
+            >
+              Citation
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
