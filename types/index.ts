@@ -4,6 +4,7 @@ export type Paper = {
   title: string;
   abstract: string;
   author: string;
+  authorId?: string;
   keywords: string[];
   category?: string;
   createdAt: Date;

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Paper } from '@/types';
 import styles from './PaperModal.module.scss';
 import { X } from 'lucide-react';
+import SupportPublisher from './SupportPublisher';
 
 interface PaperModalProps {
   paper: Paper | null;
@@ -77,15 +78,29 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
             )}
 
             <div className={styles.buttons}>
-              <a href={paper.fileUrl} target="_blank" rel="noopener" download>
-                <button>Download</button>
-              </a>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(paper.fileUrl);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = paper.title || 'paper';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                  } catch (err) {
+                    alert('Download failed.');
+                  }
+                }}
+              >
+                Download
+              </button>
               <button>Wishlist</button>
               <button>Cite</button>
-              <form action="/api/stripe/checkout" method="POST">
-                <input type="hidden" name="paperId" value={paper.id} />
-                <button type="submit">Support</button>
-              </form>
+              <SupportPublisher paper={{ ...paper, authorId: paper.authorId ?? '' }} />
             </div>
           </div>
         </div>

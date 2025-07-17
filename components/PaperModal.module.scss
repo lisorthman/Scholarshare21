@@ -50,7 +50,7 @@
   flex-direction: column;
   overflow-y: auto;
 
-  .abstract { margin: 1rem 0; font-style: italic; }
+  .abstract { margin: 2rem 0; font-style: italic; }
   .keywords { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .keyword { background: #eee; padding: 0.3rem 0.6rem; border-radius: 0.5rem; }
 
@@ -68,5 +68,15 @@
       border-radius: 6px;
       cursor: pointer;
     }
+  }
+  text-align: justify;
+
+  h2 {
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #352817;
+    margin-bottom: 1rem;
+    letter-spacing: 0.02em;
   }
 }
