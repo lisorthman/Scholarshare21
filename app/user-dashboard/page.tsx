@@ -64,7 +64,6 @@ interface ReadingStats {
   hoursSpent: number;
   mostReadCategory: string;
   papersInCategory: number;
-  allCategories: { category: string; count: number }[];
 }
 
 export default function UserDashboard() {
@@ -78,9 +77,8 @@ export default function UserDashboard() {
   const [bookshelfItems, setBookshelfItems] = useState<BookshelfItem[]>([]);
   const [readingStats, setReadingStats] = useState<ReadingStats>({
     hoursSpent: 0,
-    mostReadCategory: 'None',
-    papersInCategory: 0,
-    allCategories: []
+    mostReadCategory: '',
+    papersInCategory: 0
   });
   const [activities, setActivities] = useState<Activity[]>([]);
 
@@ -158,19 +156,24 @@ export default function UserDashboard() {
         }
       } catch (error) {
         console.error('Error fetching bookshelf data:', error);
+        // No mock data - just leave everything empty
       }
     };
 
     const processChartData = (items: BookshelfItem[]) => {
+      // Filter only read items
       const readItems = items.filter(item => item.status === 'read');
+      
+      // Group by month
       const monthlyCounts = Array(12).fill(0);
       
       readItems.forEach(item => {
         const date = new Date(item.updatedAt);
-        const month = date.getMonth();
+        const month = date.getMonth(); // 0-11
         monthlyCounts[month]++;
       });
       
+      // Update chart data
       setChartData(prev => ({
         ...prev,
         datasets: [{
@@ -181,54 +184,62 @@ export default function UserDashboard() {
     };
 
     const calculateReadingStats = (items: BookshelfItem[]) => {
-      // Filter only read items
-      const readItems = items.filter(item => item.status === 'read');
+      // Filter only read items from this month
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
       
-      // Calculate hours spent reading (all time, not just this month)
-      const totalMinutes = readItems.reduce((total, item) => {
-        const readingTime = item.paperId.estimatedReadingTime || 30;
+      const readThisMonth = items.filter(item => {
+        if (item.status !== 'read') return false;
+        const date = new Date(item.updatedAt);
+        return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      });
+
+      // Calculate hours spent reading
+      // Assuming average reading time is 30 minutes per paper if not specified
+      const totalMinutes = readThisMonth.reduce((total, item) => {
+        const readingTime = item.paperId.estimatedReadingTime || 30; // default to 30 minutes
         return total + readingTime;
       }, 0);
 
       const hoursSpent = Math.round(totalMinutes / 60);
 
-      // Calculate category counts (all time)
+      // Calculate most read category
       const categoryCounts: Record<string, number> = {};
       
-      readItems.forEach(item => {
+      readThisMonth.forEach(item => {
         const category = item.paperId.category || 'Uncategorized';
         categoryCounts[category] = (categoryCounts[category] || 0) + 1;
       });
 
-      // Convert to array and sort
-      const allCategories = Object.entries(categoryCounts)
-        .map(([category, count]) => ({ category, count }))
-        .sort((a, b) => b.count - a.count);
-
-      // Get top category
-      let mostReadCategory = 'None';
+      let mostReadCategory = '';
       let papersInCategory = 0;
 
-      if (allCategories.length > 0) {
-        mostReadCategory = allCategories[0].category;
-        papersInCategory = allCategories[0].count;
+      if (Object.keys(categoryCounts).length > 0) {
+        const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
+        mostReadCategory = sortedCategories[0][0];
+        papersInCategory = sortedCategories[0][1];
+      } else {
+        mostReadCategory = 'None';
+        papersInCategory = 0;
       }
 
       setReadingStats({
         hoursSpent,
         mostReadCategory,
-        papersInCategory,
-        allCategories
+        papersInCategory
       });
     };
 
     const generateRecentActivities = (items: BookshelfItem[]) => {
+      // Sort items by updatedAt (newest first)
       const sortedItems = [...items].sort((a, b) => 
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
 
+      // Take the 3 most recent items
       const recentItems = sortedItems.slice(0, 3);
 
+      // Convert to activities
       const newActivities = recentItems.map(item => {
         const date = new Date(item.updatedAt);
         return {
@@ -266,6 +277,7 @@ export default function UserDashboard() {
 
   return (
     <DashboardLayout user={user}>
+      {/* White full-page container */}
       <div style={{
         width: '100%',
         minHeight: '100vh',
@@ -274,6 +286,7 @@ export default function UserDashboard() {
         fontFamily: 'Space Grotesk, sans-serif',
         boxSizing: 'border-box',
       }}>
+        {/* Content container with max-width */}
         <div style={{
           width: '100%',
           maxWidth: '1800px',
@@ -282,7 +295,7 @@ export default function UserDashboard() {
           flexDirection: 'column',
           gap: '2rem',
         }}>
-          {/* Welcome Banner */}
+          {/* Full-width brown welcome box */}
           <div style={{
             width: '100%',
             borderRadius: "1.5rem",
@@ -315,9 +328,7 @@ export default function UserDashboard() {
               maxWidth: '800px',
             }}>
               You've read {shelves.read} books so far, with {shelves.toRead} waiting to be read. 
-              {readingStats.mostReadCategory !== 'None' && (
-                <> Your favorite category is <strong>{readingStats.mostReadCategory}</strong> with {readingStats.papersInCategory} papers read.</>
-              )}
+              Keep exploring new knowledge and expanding your horizons!
             </p>
             <div style={{
               position: "absolute",
@@ -331,7 +342,7 @@ export default function UserDashboard() {
             }}></div>
           </div>
 
-          {/* Two-column layout */}
+          {/* Two-column layout for shelves and activities */}
           <div style={{
             display: 'flex',
             flexDirection: 'row',
@@ -364,6 +375,7 @@ export default function UserDashboard() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
                 gap: '1.5rem',
               }}>
+                {/* Read Shelf */}
                 <div style={{
                   padding: '1.5rem',
                   borderRadius: '0.75rem',
@@ -385,6 +397,7 @@ export default function UserDashboard() {
                   }}>{shelves.read}</p>
                 </div>
 
+                {/* To Read Shelf */}
                 <div style={{
                   padding: '1.5rem',
                   borderRadius: '0.75rem',
@@ -408,7 +421,7 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            {/* Recent Activities */}
+            {/* Recent Activities Column */}
             <div style={{
               flex: '1',
               minWidth: '300px',
@@ -492,7 +505,7 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          {/* Bottom section */}
+          {/* Bottom section with engagement graph and stats */}
           <div style={{
             display: 'flex',
             flexDirection: 'row',
@@ -598,7 +611,7 @@ export default function UserDashboard() {
                   fontSize: '0.75rem', 
                   color: '#6B7280', 
                   margin: '0.1rem 0 0 0'
-                }}>total reading time</p>
+                }}>hours this month</p>
               </div>
 
               {/* Most Featured Category Card */}
@@ -622,41 +635,13 @@ export default function UserDashboard() {
                   fontWeight: '700', 
                   margin: '0.5rem 0 0 0',
                   color: '#FFFFFF'
-                }}>
-                  {readingStats.mostReadCategory}
-                </p>
+                }}>{readingStats.mostReadCategory}</p>
                 <p style={{ 
                   fontSize: '0.75rem', 
                   color: '#F5F5F5', 
                   margin: '0.1rem 0 0 0',
                   opacity: 0.8
-                }}>
-                  {readingStats.papersInCategory} {readingStats.papersInCategory === 1 ? 'paper' : 'papers'} read
-                </p>
-                {readingStats.allCategories.length > 1 && (
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <p style={{ 
-                      fontSize: '0.65rem', 
-                      color: '#F5F5F5', 
-                      margin: '0.5rem 0 0 0',
-                      opacity: 0.7
-                    }}>
-                      Other categories:
-                    </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
-                      {readingStats.allCategories.slice(1, 4).map((cat, index) => (
-                        <span key={index} style={{
-                          fontSize: '0.6rem',
-                          backgroundColor: 'rgba(255,255,255,0.15)',
-                          padding: '0.2rem 0.4rem',
-                          borderRadius: '4px'
-                        }}>
-                          {cat.category} ({cat.count})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                }}>{readingStats.papersInCategory} papers this month</p>
               </div>
             </div>
           </div>
