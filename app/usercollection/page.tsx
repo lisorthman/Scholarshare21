@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {Button} from "../../components/ui/Button"; // Adjust path as needed
+import {Button} from "../../components/ui/button"; // Adjust path as needed
 import NavBar from "../../components/Navbar"; 
 import Sidebar from "../../components/Sidebar"; 
 
