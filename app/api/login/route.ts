@@ -39,6 +39,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
     }
 
+    // Check if role matches
+    if (role !== user.role) {
+      console.log(`Role mismatch for user: ${email}. Tried: ${role}, Actual: ${user.role}`); // Debugging
+      client.close();
+      return NextResponse.json({ message: 'Role mismatch. Please select the correct role.' }, { status: 400 });
+    }
+
     // Update lastLogin
     const updateResult = await usersCollection.updateOne(
       { _id: user._id },

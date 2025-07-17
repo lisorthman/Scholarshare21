@@ -57,6 +57,13 @@ const SignupPage = () => {
     educationQualification: '', // Added
   });
   const [error, setError] = useState<string>('');
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
   const [passwordFeedback, setPasswordFeedback] = useState({
     strength: 0,
     message: '',
