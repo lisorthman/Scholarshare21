@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { User } from "@/types/user";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FiEdit2, FiSave, FiX, FiUpload } from "react-icons/fi";
 
 export default function ResearcherProfile() {
   const router = useRouter();
@@ -171,435 +172,256 @@ export default function ResearcherProfile() {
       formData.password.length > 0) ||
     (formData.password === "" && formData.confirmPassword === "");
 
-  if (!researcher) return <p>Loading...</p>;
+  if (!researcher) return (
+    <DashboardLayout user={null} defaultPage="Profile">
+      <div className="flex justify-center items-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D8CBB0]"></div>
+      </div>
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout user={researcher} defaultPage="Profile">
-      <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
-        rel="stylesheet"
-      />
-
-      <div
-        style={{
-          backgroundColor: "#D8CBB0",
-          minHeight: "100%",
-          padding: "2rem",
-          borderRadius: "13px",
-          width: "100%",
-          fontFamily: "'Poppins', sans-serif",
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: "#FFFFFF",
-            borderRadius: "10px",
-            padding: "2rem",
-            width: "98%",
-            margin: "0 auto",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          {error && (
-            <p
-              style={{
-                color: "red",
-                fontSize: "14px",
-                marginBottom: "1rem",
-                textAlign: "center",
-              }}
-            >
-              {error}
-            </p>
-          )}
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <h1
-              style={{
-                fontSize: "20px",
-                fontWeight: "600",
-                margin: "0",
-              }}
-            >
-              User Profile
-            </h1>
-            <button
-              onClick={() => (editMode ? handleSave() : setEditMode(true))}
-              style={{
-                backgroundColor: editMode ? "#D8CBB0" : "#D8CBB0",
-                color: editMode ? "black" : "black",
-                borderRadius: "6px",
-                padding: "0.5rem 1.5rem",
-                fontSize: "14px",
-                fontWeight: "600",
-                cursor: passwordsMatch ? "pointer" : "not-allowed",
-                opacity: passwordsMatch ? 1 : 0.5,
-              }}
-              disabled={!passwordsMatch}
-            >
-              {editMode ? "Save Changes" : "Edit Profile"}
-            </button>
-            {editMode && (
-              <button
-                onClick={() => {
-                  setEditMode(false);
-                  setFormData({
-                    ...formData,
-                    password: "",
-                    confirmPassword: "",
-                  });
-                  setError(null);
-                }}
-                style={{
-                  backgroundColor: "#D8CBB0",
-                  color: "black",
-                  borderRadius: "6px",
-                  padding: "0.5rem 1.5rem",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  marginLeft: "10px",
-                }}
-              >
-                Cancel
-              </button>
+      <div className="min-h-full p-6 w-full font-sans">
+        {/* Main Content Container */}
+        <div className="bg-[#D8CBB0] rounded-xl p-6 w-full h-full">
+          {/* Profile Card */}
+          <div className="bg-white rounded-xl p-8 w-full max-w-4xl mx-auto shadow-lg">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+                <p className="text-red-700 text-sm font-medium">{error}</p>
+              </div>
             )}
-          </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "2rem",
-              marginBottom: "2rem",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  width: "100px",
-                  height: "100px",
-                  borderRadius: "50%",
-                  backgroundColor: "#F0F2F5",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "36px",
-                  color: "#555",
-                  marginBottom: "1rem",
-                  overflow: "hidden",
-                  position: "relative",
-                }}
-              >
-                {profilePhoto ? (
-                  <>
-                    <img
-                      src={profilePhoto}
-                      alt="Profile"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                      onError={() => setProfilePhoto(null)}
-                    />
-                    {isUploading && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          backgroundColor: "rgba(0,0,0,0.3)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <div className="spinner"></div>
-                      </div>
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">User Profile</h1>
+                <p className="text-gray-600 mt-1">Manage your account information</p>
+              </div>
+              
+              <div className="flex gap-3">
+                {editMode && (
+                  <button
+                    onClick={() => {
+                      setEditMode(false);
+                      setFormData({
+                        ...formData,
+                        password: "",
+                        confirmPassword: "",
+                      });
+                      setError(null);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <FiX className="w-4 h-4" />
+                    Cancel
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => (editMode ? handleSave() : setEditMode(true))}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    editMode 
+                      ? "bg-[#D8CBB0] hover:bg-[#C5B79B] text-gray-800" 
+                      : "bg-[#D8CBB0] hover:bg-[#C5B79B] text-gray-800"
+                  } ${!passwordsMatch ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={!passwordsMatch}
+                >
+                  {editMode ? (
+                    <>
+                      <FiSave className="w-4 h-4" />
+                      Save Changes
+                    </>
+                  ) : (
+                    <>
+                      <FiEdit2 className="w-4 h-4" />
+                      Edit Profile
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Profile Content */}
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Profile Photo Section */}
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full bg-[#EFEBE9] flex items-center justify-center overflow-hidden border-4 border-[#EFEBE9]">
+                    {profilePhoto ? (
+                      <>
+                        <img
+                          src={profilePhoto}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                          onError={() => setProfilePhoto(null)}
+                        />
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-4xl text-[#5D4037] font-bold">
+                        {researcher.name.charAt(0).toUpperCase()}
+                      </span>
                     )}
-                  </>
+                  </div>
+                </div>
+                
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/jpeg,image/png"
+                  onChange={handlePhotoChange}
+                  disabled={isUploading}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-4 flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-800 bg-[#EFE9DC] rounded-lg hover:bg-[#D7CCC8] transition-colors"
+                  disabled={isUploading}
+                >
+                  <FiUpload className="w-4 h-4" />
+                  {isUploading ? "Uploading..." : "Change Photo"}
+                </button>
+              </div>
+
+              {/* Profile Details Section */}
+              <div className="flex-1">
+                {editMode ? (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Name*
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D8CBB0] focus:border-[#D8CBB0] transition"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email*
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D8CBB0] focus:border-[#D8CBB0] transition"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Password (leave blank to keep unchanged)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={(e) =>
+                            setFormData({ ...formData, password: e.target.value })
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D8CBB0] focus:border-[#D8CBB0] transition pr-10"
+                          placeholder="Enter new password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={formData.confirmPassword}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D8CBB0] focus:border-[#D8CBB0] transition pr-10"
+                          placeholder="Confirm new password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
+                      </div>
+                      {formData.password !== formData.confirmPassword &&
+                        formData.confirmPassword !== "" && (
+                          <p className="text-red-500 text-xs mt-1">
+                            Passwords don't match
+                          </p>
+                        )}
+                    </div>
+                  </div>
                 ) : (
-                  researcher.name.charAt(0).toUpperCase()
+                  <div className="space-y-4">
+                    <div>
+                      <h2 className="text-2xl font-bold text-[#3E2723]">
+                        {researcher.name}
+                      </h2>
+                      <p className="text-gray-600 mt-1">{researcher.email}</p>
+                    </div>
+                  </div>
                 )}
               </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                accept="image/jpeg,image/png"
-                onChange={handlePhotoChange}
-                disabled={isUploading}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  backgroundColor: "#EFE9DC",
-                  color: "black",
-                  borderRadius: "6px",
-                  padding: "0.5rem 1rem",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  cursor: isUploading ? "not-allowed" : "pointer",
-                  opacity: isUploading ? 0.7 : 1,
-                }}
-                disabled={isUploading}
-              >
-                {isUploading ? "Uploading..." : "Change Photo"}
-              </button>
             </div>
 
-            <div style={{ flex: 1 }}>
-              {editMode ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1rem",
-                  }}
-                >
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Name*
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem",
-                        border: "1px solid #DDD",
-                        borderRadius: "6px",
-                        fontSize: "14px",
-                        fontWeight: "400",
-                      }}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Email*
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem",
-                        border: "1px solid #DDD",
-                        borderRadius: "6px",
-                        fontSize: "14px",
-                        fontWeight: "400",
-                      }}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Password (leave blank to keep unchanged)
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={(e) =>
-                          setFormData({ ...formData, password: e.target.value })
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "0.75rem",
-                          border: "1px solid #DDD",
-                          borderRadius: "6px",
-                          fontSize: "14px",
-                          fontWeight: "400",
-                        }}
-                        placeholder="Enter new password"
-                      />
-                      <span
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          cursor: "pointer",
-                          color: "#666",
-                        }}
-                      >
-                        {showPassword ? <FaEyeSlash /> : <FaEye />}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        fontWeight: "600",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Confirm Password
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={formData.confirmPassword}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            confirmPassword: e.target.value,
-                          })
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "0.75rem",
-                          border: "1px solid #DDD",
-                          borderRadius: "6px",
-                          fontSize: "14px",
-                          fontWeight: "400",
-                        }}
-                        placeholder="Confirm new password"
-                      />
-                      <span
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          cursor: "pointer",
-                          color: "#666",
-                        }}
-                      >
-                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                      </span>
-                    </div>
-                    {formData.password !== formData.confirmPassword &&
-                      formData.confirmPassword !== "" && (
-                        <p
-                          style={{
-                            color: "red",
-                            fontSize: "12px",
-                            marginTop: "0.5rem",
-                          }}
-                        >
-                          Passwords don't match
-                        </p>
-                      )}
-                  </div>
+            {/* User Information Section */}
+            <div className="mt-10 bg-[#F9F9F9] rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                User Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Role</p>
+                  <p className="font-medium">User</p>
                 </div>
-              ) : (
-                <div>
-                  <h2
-                    style={{
-                      fontSize: "24px",
-                      fontWeight: "600",
-                      marginBottom: "0.5rem",
-                    }}
-                  >
-                    {researcher.name}
-                  </h2>
-                  <p
-                    style={{
-                      color: "#666",
-                      fontSize: "14px",
-                      fontWeight: "400",
-                      marginBottom: "1rem",
-                    }}
-                  >
-                    {researcher.email}
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Member Since</p>
+                  <p className="font-medium">
+                    {new Date(researcher.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: "#F9F9F9",
-              borderRadius: "6px",
-              padding: "1.5rem",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                marginBottom: "1rem",
-              }}
-            >
-              User Information
-            </h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "1rem",
-                fontSize: "14px",
-                fontWeight: "400",
-              }}
-            >
-              <div>
-                <p style={{ color: "#666", marginBottom: "0.5rem" }}>Role</p>
-                <p>User</p>
-              </div>
-              <div>
-                <p style={{ color: "#666", marginBottom: "0.5rem" }}>
-                  Member Since
-                </p>
-                <p>{new Date(researcher.createdAt).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p style={{ color: "#666", marginBottom: "0.5rem" }}>
-                  Last Login
-                </p>
-                <p>
-                  {researcher.lastLogin
-                    ? new Date(researcher.lastLogin).toLocaleString()
-                    : "Never"}
-                </p>
-              </div>
-              <div>
-                <p style={{ color: "#666", marginBottom: "0.5rem" }}>
-                  Account Status
-                </p>
-                <p style={{ color: "#2E7D32" }}>Active</p>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Last Login</p>
+                  <p className="font-medium">
+                    {researcher.lastLogin
+                      ? new Date(researcher.lastLogin).toLocaleString()
+                      : "Never"}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Account Status</p>
+                  <p className="font-medium text-green-600">Active</p>
+                </div>
               </div>
             </div>
           </div>

@@ -26,6 +26,10 @@ export default async function PaperDetailPage(props: {
           <FiArrowLeft size={18} />
           Back to Papers
         </Link>
+        
+
+
+
 
         {/* Paper Title and Description */}
         <div style={styles.headerSection}>

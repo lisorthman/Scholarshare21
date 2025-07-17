@@ -3,20 +3,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
-import Rating from '@/components/Rating';
 import { toast } from 'react-toastify';
+import { Download, BookmarkCheck, Eye } from 'lucide-react';
 
 interface ResearchPaper {
   _id: string;
   title: string;
   authors: string[];
   abstract: string;
-  publicationDate: string;
   downloadUrl: string;
   thumbnailUrl?: string;
-  rating?: number;
-  averageRating?: number;
   downloadCount: number;
+  views?: number;
+  category?: string;
 }
 
 export default function SavedPapersPage() {
@@ -25,6 +24,7 @@ export default function SavedPapersPage() {
   const [savedPapers, setSavedPapers] = useState<ResearchPaper[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingPaperId, setDownloadingPaperId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,12 +82,11 @@ export default function SavedPapersPage() {
           title: paper.title,
           authors: paper.authors || [],
           abstract: paper.abstract || '',
-          publicationDate: paper.publicationDate || new Date().toISOString(),
-          downloadUrl: paper.downloadUrl,
+          downloadUrl: paper.downloadUrl || paper.fileUrl,
           thumbnailUrl: paper.thumbnailUrl,
-          rating: paper.rating,
-          averageRating: paper.averageRating,
-          downloadCount: paper.downloadCount || 0
+          downloadCount: paper.downloadCount || 0,
+          views: paper.views || 0,
+          category: paper.category || 'uncategorized'
         }));
 
         setSavedPapers(formattedPapers);
@@ -160,6 +159,7 @@ export default function SavedPapersPage() {
   };
 
   const handleDownload = async (paperId: string, title: string) => {
+    setDownloadingPaperId(paperId);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -167,7 +167,9 @@ export default function SavedPapersPage() {
         return;
       }
 
-      const response = await fetch(`/api/papers/${paperId}/download`, {
+      // Track download in the backend
+      const trackResponse = await fetch(`/api/papers/${paperId}/download`, {
+        method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -175,10 +177,17 @@ export default function SavedPapersPage() {
         credentials: 'include'
       });
 
-      if (!response.ok) {
-        throw new Error('Download failed');
+      if (!trackResponse.ok) {
+        throw new Error('Download tracking failed');
       }
 
+      // Get the actual file
+      const paper = savedPapers.find(p => p._id === paperId);
+      if (!paper) return;
+
+      const response = await fetch(paper.downloadUrl);
+      if (!response.ok) throw new Error('Failed to fetch file');
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -201,10 +210,12 @@ export default function SavedPapersPage() {
       console.error('Download failed:', error);
       setError(error instanceof Error ? error.message : 'Download failed');
       toast.error('Failed to download paper');
+    } finally {
+      setDownloadingPaperId(null);
     }
   };
 
-  const handleRating = async (paperId: string, rating: number) => {
+  const handleViewPaper = async (paperId: string) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -212,38 +223,36 @@ export default function SavedPapersPage() {
         return;
       }
 
-      const response = await fetch(`/api/papers/${paperId}/rate`, {
+      // Track view in the backend
+      const trackResponse = await fetch(`/api/papers/${paperId}/view`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        credentials: 'include',
-        body: JSON.stringify({ rating }),
+        credentials: 'include'
       });
 
-      if (response.ok) {
-        const responseData = await response.json();
-        setSavedPapers(prev => 
-          prev.map(paper => 
-            paper._id === paperId 
-              ? { 
-                  ...paper, 
-                  rating: rating,
-                  averageRating: responseData.averageRating 
-                } 
-              : paper
-          )
-        );
-        toast.success('Rating submitted successfully');
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit rating');
+      if (!trackResponse.ok) {
+        console.error('View tracking failed');
+      }
+
+      // Update view count in UI
+      setSavedPapers(prev => 
+        prev.map(paper => 
+          paper._id === paperId 
+            ? { ...paper, views: (paper.views || 0) + 1 } 
+            : paper
+        )
+      );
+
+      // Open the paper in a new tab
+      const paper = savedPapers.find(p => p._id === paperId);
+      if (paper) {
+        window.open(paper.downloadUrl, '_blank');
       }
     } catch (error) {
-      console.error('Rating failed:', error);
-      setError(error instanceof Error ? error.message : 'Failed to submit rating');
-      toast.error('Failed to submit rating');
+      console.error('View tracking failed:', error);
     }
   };
 
@@ -267,7 +276,7 @@ export default function SavedPapersPage() {
           </div>
           <button 
             className="bg-[#5D4037] hover:bg-[#3E2723] text-white font-medium py-2 px-4 rounded transition whitespace-nowrap"
-            onClick={() => router.push('./papers')}
+            onClick={() => router.push('/papers')}
           >
             Browse More Papers
           </button>
@@ -303,7 +312,7 @@ export default function SavedPapersPage() {
               <button
                 type="button"
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#5D4037] hover:bg-[#3E2723] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5D4037]"
-                onClick={() => router.push('/papers')}
+                onClick={() => router.push('@/app/user-dashboard/papers')}
               >
                 Browse Papers
               </button>
@@ -332,51 +341,62 @@ export default function SavedPapersPage() {
                   </div>
                   
                   <div className="flex-1 p-4 md:p-6">
-                    <h3 
-                      onClick={() => router.push(`/papers/${paper._id}`)} 
-                      className="text-lg md:text-xl font-semibold text-[#5D4037] hover:underline cursor-pointer mb-2 line-clamp-2"
-                    >
-                      {paper.title}
-                    </h3>
-                    <p className="text-[#8D6E63] text-sm mb-3 line-clamp-1">
-                      {paper.authors?.join(', ') || 'Unknown authors'}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 
+                          className="text-lg md:text-xl font-semibold text-[#5D4037] mb-2 line-clamp-2"
+                        >
+                          {paper.title}
+                        </h3>
+                      </div>
+                      <span className="px-3 py-1 text-xs font-semibold text-[#5D4037] bg-[#EFEBE9] rounded-full capitalize">
+                        {paper.category?.replace(/-/g, " ") || 'uncategorized'}
+                      </span>
+                    </div>
+                    
                     <p className="text-[#5D4037] mb-4 line-clamp-3 text-sm md:text-base">
                       {paper.abstract || 'No abstract available'}
                     </p>
                     
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm text-[#8D6E63] mb-4">
-                      <span>Published: {new Date(paper.publicationDate).toLocaleDateString()}</span>
-                      <span>•</span>
                       <span>Downloads: {paper.downloadCount}</span>
-                    </div>
-                    
-                    <div className="mb-4">
-                      <Rating 
-                        value={paper.rating} 
-                        average={paper.averageRating} 
-                        onChange={(rating) => handleRating(paper._id, rating)} 
-                      />
+                      <span>•</span>
+                      <span>Views: {paper.views || 0}</span>
                     </div>
                   </div>
                   
                   <div className="p-4 md:p-6 flex flex-col gap-3 justify-center border-t md:border-t-0 md:border-l border-[#EFEBE9] md:w-48 shrink-0">
+                    {/* Download Button - Primary Style */}
                     <button 
                       onClick={() => handleDownload(paper._id, paper.title)}
-                      className="bg-[#5D4037] hover:bg-[#3E2723] text-white py-2 px-4 rounded transition text-sm flex items-center justify-center gap-2"
+                      disabled={downloadingPaperId === paper._id}
+                      className="bg-[#5D4037] hover:bg-[#3E2723] text-white py-2 px-4 rounded-lg transition text-sm flex items-center justify-center gap-2 disabled:opacity-70 shadow-md hover:shadow-lg"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download
+                      {downloadingPaperId === paper._id ? (
+                        <span className="animate-pulse">Downloading...</span>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Download
+                        </>
+                      )}
                     </button>
+                    
+                    {/* View Paper Button - Secondary Style */}
+                    <button
+                      onClick={() => handleViewPaper(paper._id)}
+                      className="bg-white border border-[#0288D1] text-[#0288D1] hover:bg-[#E3F2FD] py-2 px-4 rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Paper
+                    </button>
+                    
+                    {/* Mark as Read Button - Accent Style */}
                     <button 
                       onClick={() => markAsReadAndRemove(paper._id)}
-                      className="bg-[#0288D1] hover:bg-[#0277BD] text-white py-2 px-4 rounded transition text-sm flex items-center justify-center gap-2"
+                      className="bg-[#4CAF50] hover:bg-[#388E3C] text-white py-2 px-4 rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <BookmarkCheck className="w-4 h-4" />
                       Mark as Read
                     </button>
                   </div>
