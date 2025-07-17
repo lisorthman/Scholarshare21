@@ -25,7 +25,6 @@ export interface ResearchPaperDocument extends Document {
   updatedAt: Date;
   blobKey: string;
   plagiarismScore?: number;
-  aiScore?: number;
   rejectionReason?: string;
   reviews: Review[];
   views: number;
@@ -156,9 +155,7 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     },
     plagiarismScore: {
       type: Number,
-    },
-    aiScore: {
-      type: Number,
+      default: 0,
     },
     rejectionReason: {
       type: String,
@@ -173,11 +170,23 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     toJSON: {
       virtuals: true,
       transform: function (doc, ret) {
-        ret._id = ret._id.toString();
+        ret.id = ret._id.toString();
         ret.authorId = ret.authorId.toString();
         ret.categoryId = ret.categoryId?.toString();
         ret.viewedBy = ret.viewedBy?.map((id: any) => id.toString());
         ret.downloadedBy = ret.downloadedBy?.map((id: any) => id.toString());
+
+        
+        // Handle readerStats Map conversion safely
+        if (ret.readerStats instanceof Map) {
+          ret.readerStats = Object.fromEntries(ret.readerStats.entries());
+        } else if (ret.readerStats && typeof ret.readerStats === 'object') {
+          // Already a plain object
+          ret.readerStats = ret.readerStats;
+        } else {
+          ret.readerStats = {};
+        }
+        
         if (ret.reviews) {
           ret.reviews = ret.reviews.map((r: any) => ({
             ...r,
@@ -185,6 +194,17 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
             createdAt: r.createdAt?.toISOString(),
           }));
         }
+        if (ret.authorId) {
+    ret.authorId = ret.authorId.toString();
+  } else {
+    ret.authorId = null; // or ret.authorId = undefined;
+  }
+   ret.categoryId = ret.categoryId?.toString();
+   if (ret.readerStats && ret.readerStats instanceof Map) {
+    ret.readerStats = Object.fromEntries(ret.readerStats);
+  }
+  
+        delete ret._id;
         delete ret.__v;
         return ret;
       },

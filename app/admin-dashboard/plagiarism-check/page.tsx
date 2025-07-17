@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
+import { checkPlagiarism } from '@/app/actions/plagiarismCheck';
 
 interface PlagiarismReport {
   _id: string;
@@ -12,7 +13,7 @@ interface PlagiarismReport {
   status: 'pending' | 'passed_checks' | 'rejected_plagiarism' | 'rejected_ai';
   createdAt: string;
   rejectionReason?: string;
-}
+
 
 export default function PlagiarismCheck() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function PlagiarismCheck() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log('Retrieved token:', token); // Debug token
     if (!token) {
       console.log('No token found in localStorage, redirecting to login');
       router.push('/login');
@@ -40,7 +42,7 @@ export default function PlagiarismCheck() {
         console.log('Verify token response:', data);
         if (data.valid && data.user.role === 'admin') {
           setAdmin(data.user);
-          fetchReports();
+          fetchReports(token);
         } else {
           console.log('Token invalid or user not admin, redirecting to unauthorized');
           router.push('/unauthorized');
@@ -51,12 +53,12 @@ export default function PlagiarismCheck() {
       }
     };
 
-    const fetchReports = async () => {
-      const token = localStorage.getItem('token');
-      console.log('Token for fetchReports:', token);
+    const fetchReports = async (authToken: string) => {
+      console.log('Fetching reports with token:', authToken);
       const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
+        cache: "no-store",
       });
       const data = await response.json();
       console.log('Fetch reports API response:', data);
@@ -80,22 +82,55 @@ export default function PlagiarismCheck() {
     verifyToken();
   }, [router, searchQuery]);
 
-  const checkPlagiarism = async (paperId: string) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch('/api/check-papers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ paperId }),
-    });
-    if (response.ok) {
-      fetchReports();
-      alert('Plagiarism check completed.');
-    } else {
-      const data = await response.json();
-      alert('Error checking plagiarism: ' + data.error);
+  const checkPlagiarismHandler = async (paperId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Plagiarism check token:', token); // Debug token
+      if (!token) {
+        alert('No token found. Please log in again.');
+        router.push('/login');
+        return;
+      }
+
+      const result = await checkPlagiarism(paperId, token);
+      if (result.success) {
+        alert(`Plagiarism check completed. Score: ${result.plagiarismScore}%`);
+        if (result.creditsRemaining && result.creditsRemaining < 500) {
+          alert(`Warning: Low credits remaining (${result.creditsRemaining}). Consider upgrading your Winston AI plan.`);
+        }
+        // Refresh reports
+        const authToken = localStorage.getItem('token');
+        if (!authToken) {
+          alert('No token found. Please log in again.');
+          router.push('/login');
+          return;
+        }
+        const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${authToken}` },
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (response.ok) {
+          const mappedReports = data.papers.map((paper: any) => ({
+            _id: paper._id,
+            paperTitle: paper.title,
+            author: typeof paper.authorId === 'object' ? (paper.authorId?.name || 'Unknown') : (paper.authorId || 'Unknown'),
+            plagiarismScore: paper.plagiarismScore || 0,
+            status: paper.status,
+            createdAt: new Date(paper.createdAt).toLocaleDateString(),
+            rejectionReason: paper.rejectionReason,
+          }));
+          setReports(mappedReports);
+        } else {
+          alert('Error refreshing reports: ' + data.error);
+        }
+      } else {
+        alert('Error checking plagiarism: ' + result.error);
+      }
+    } catch (error: any) {
+      console.error('Plagiarism check client error:', error);
+      alert('Error checking plagiarism: ' + error.message);
     }
   };
 
@@ -145,7 +180,7 @@ export default function PlagiarismCheck() {
                             style={{
                               width: `${report.plagiarismScore}%`,
                               backgroundColor:
-                                report.plagiarismScore > 30
+                                report.plagiarismScore > 20
                                   ? '#d32f2f'
                                   : report.plagiarismScore > 15
                                   ? '#ffa000'
@@ -174,7 +209,7 @@ export default function PlagiarismCheck() {
                           }}
                         >
                           {report.status.charAt(0).toUpperCase() +
-                            report.status.slice(1)}
+                            report.status.slice(1).replace('_', ' ')}
                         </span>
                         {report.rejectionReason && (
                           <p className="rejection-reason">
@@ -186,7 +221,7 @@ export default function PlagiarismCheck() {
                       <td data-label="Actions">
                         <button
                           className="action-button"
-                          onClick={() => checkPlagiarism(report._id)}
+                          onClick={() => checkPlagiarismHandler(report._id)}
                         >
                           Run Plagiarism Check
                         </button>
@@ -331,9 +366,9 @@ export default function PlagiarismCheck() {
         }
 
         .action-button {
-          background-color: #e7f0fd;
-          color: #0070f3;
-          border: 1px solid #c2ddf9;
+          background-color:rgb(149, 141, 122);
+          color:rgb(10, 11, 11);
+          border: 1px solidrgb(241, 241, 241);
           border-radius: 6px;
           padding: 0.5rem 1rem;
           font-size: 14px;
