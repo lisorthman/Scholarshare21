@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import ResearchPaper from '@/models/ResearchPaper';
+import User from '@/models/user';
 
 export async function GET(req: Request) {
   try {
@@ -79,6 +80,13 @@ export async function GET(req: Request) {
       ? ((currentWeekViews - previousWeekViews) / previousWeekViews * 100).toFixed(1)
       : currentWeekViews > 0 ? '100.0' : '0.0';
 
+    // Calculate new users this month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const newUsersThisMonth = await User.countDocuments({
+      role: 'user',
+      createdAt: { $gte: startOfMonth, $lte: now }
+    });
+
     return NextResponse.json({
       totalDownloads,
       totalViews,
@@ -87,7 +95,8 @@ export async function GET(req: Request) {
       mostViewedCategory,
       paperCount: papers.length,
       downloadPercentageChange: parseFloat(downloadPercentageChange),
-      viewPercentageChange: parseFloat(viewPercentageChange)
+      viewPercentageChange: parseFloat(viewPercentageChange),
+      newUsersThisMonth
     });
   } catch (error) {
     console.error('[RESEARCHER STATS ERROR]', error);

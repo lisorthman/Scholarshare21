@@ -22,6 +22,7 @@ export default function ResearcherDashboard() {
     paperCount: number;
     downloadPercentageChange: number;
     viewPercentageChange: number;
+    newUsersThisMonth: number;
   } | null>(null);
 
   // Real data for uploads status
@@ -184,10 +185,7 @@ export default function ResearcherDashboard() {
               zIndex: 2,
               maxWidth: '800px',
             }}>
-              Great job! You've engaged 85% of visitors, welcomed 120 new
-              users this month, and boosted active researchers by 30%. Keep up
-              the amazing work in growing the ScholarShare community and
-              making research more accessible!
+              Great job! You've engaged {stats ? (stats.viewPercentageChange >= 0 ? '+' : '') + stats.viewPercentageChange + '%' : '...'} of visitors, welcomed {stats ? stats.newUsersThisMonth : '...'} new users this month. Keep up the amazing work in growing the ScholarShare community and making research more accessible!
             </p>
             <div style={{
               position: "absolute",
