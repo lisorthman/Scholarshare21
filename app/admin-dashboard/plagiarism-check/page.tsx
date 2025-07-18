@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
+import { checkPlagiarism } from '@/app/actions/plagiarismCheck';
 
 interface PlagiarismReport {
   _id: string;
@@ -12,6 +13,7 @@ interface PlagiarismReport {
   status: 'pending' | 'passed_checks' | 'rejected_plagiarism' | 'rejected_ai';
   createdAt: string;
   rejectionReason?: string;
+  checkMessage?: string;
 }
 
 export default function PlagiarismCheck() {
@@ -19,12 +21,14 @@ export default function PlagiarismCheck() {
   const [admin, setAdmin] = useState<User | null>(null);
   const [reports, setReports] = useState<PlagiarismReport[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log('Retrieved token:', token);
     if (!token) {
-      console.log('No token found in localStorage, redirecting to login');
-      router.push('/login');
+      console.log('No token found in localStorage, redirecting to signin');
+      router.push('/signin');
       return;
     }
 
@@ -40,23 +44,23 @@ export default function PlagiarismCheck() {
         console.log('Verify token response:', data);
         if (data.valid && data.user.role === 'admin') {
           setAdmin(data.user);
-          fetchReports();
+          fetchReports(token);
         } else {
           console.log('Token invalid or user not admin, redirecting to unauthorized');
           router.push('/unauthorized');
         }
       } catch (error) {
         console.error('Error verifying token:', error);
-        router.push('/login');
+        router.push('/signin');
       }
     };
 
-    const fetchReports = async () => {
-      const token = localStorage.getItem('token');
-      console.log('Token for fetchReports:', token);
+    const fetchReports = async (authToken: string) => {
+      console.log('Fetching reports with token:', authToken);
       const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
+        cache: "no-store",
       });
       const data = await response.json();
       console.log('Fetch reports API response:', data);
@@ -69,33 +73,66 @@ export default function PlagiarismCheck() {
           status: paper.status,
           createdAt: new Date(paper.createdAt).toLocaleDateString(),
           rejectionReason: paper.rejectionReason,
+          checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected_plagiarism' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
         }));
         console.log('Mapped reports:', mappedReports);
         setReports(mappedReports);
+        setError("");
       } else {
         console.error('Fetch error:', data.error);
+        setError(data.error || "Failed to load papers");
       }
     };
 
     verifyToken();
   }, [router, searchQuery]);
 
-  const checkPlagiarism = async (paperId: string) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch('/api/check-papers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ paperId }),
-    });
-    if (response.ok) {
-      fetchReports();
-      alert('Plagiarism check completed.');
-    } else {
-      const data = await response.json();
-      alert('Error checking plagiarism: ' + data.error);
+  const checkPlagiarismHandler = async (paperId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Plagiarism check token:', token);
+      if (!token) {
+        router.push('/signin');
+        return;
+      }
+
+      const result = await checkPlagiarism(paperId, token);
+      if (result.success && result.plagiarismScore !== undefined) {
+        const authToken = localStorage.getItem('token');
+        if (!authToken) {
+          router.push('/signin');
+          return;
+        }
+        const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${authToken}` },
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (response.ok) {
+          const mappedReports = data.papers.map((paper: any) => ({
+            _id: paper._id,
+            paperTitle: paper.title,
+            author: typeof paper.authorId === 'object' ? (paper.authorId?.name || 'Unknown') : (paper.authorId || 'Unknown'),
+            plagiarismScore: paper.plagiarismScore || 0,
+            status: paper.status,
+            createdAt: new Date(paper.createdAt).toLocaleDateString(),
+            rejectionReason: paper.rejectionReason,
+            checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected_plagiarism' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
+          }));
+          setReports(mappedReports);
+          setError("");
+        } else {
+          console.error('Error refreshing reports:', data.error);
+          setError(data.error || "Failed to refresh papers");
+        }
+      } else {
+        console.error('Plagiarism check failed:', result.error);
+        setError(result.error || "Plagiarism check failed");
+      }
+    } catch (error: any) {
+      console.error('Plagiarism check client error:', error);
+      setError(error.message || "Plagiarism check failed");
     }
   };
 
@@ -117,6 +154,12 @@ export default function PlagiarismCheck() {
             />
           </div>
 
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
+
           <div className="table-wrapper">
             <h2 className="table-header">Researcher Papers</h2>
             {reports.length === 0 ? (
@@ -129,6 +172,7 @@ export default function PlagiarismCheck() {
                     <th>Author</th>
                     <th>Similarity</th>
                     <th>Status</th>
+                    <th>Result</th>
                     <th>Date</th>
                     <th>Actions</th>
                   </tr>
@@ -145,7 +189,7 @@ export default function PlagiarismCheck() {
                             style={{
                               width: `${report.plagiarismScore}%`,
                               backgroundColor:
-                                report.plagiarismScore > 30
+                                report.plagiarismScore > 20
                                   ? '#d32f2f'
                                   : report.plagiarismScore > 15
                                   ? '#ffa000'
@@ -174,7 +218,7 @@ export default function PlagiarismCheck() {
                           }}
                         >
                           {report.status.charAt(0).toUpperCase() +
-                            report.status.slice(1)}
+                            report.status.slice(1).replace('_', ' ')}
                         </span>
                         {report.rejectionReason && (
                           <p className="rejection-reason">
@@ -182,11 +226,24 @@ export default function PlagiarismCheck() {
                           </p>
                         )}
                       </td>
+                      <td data-label="Result">
+                        {report.checkMessage && (
+                          <span
+                            className="result-label"
+                            style={{
+                              color: report.checkMessage === 'Passed' ? '#2e7d32' : '#c62828',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {report.checkMessage}
+                          </span>
+                        )}
+                      </td>
                       <td data-label="Date">{report.createdAt}</td>
                       <td data-label="Actions">
                         <button
                           className="action-button"
-                          onClick={() => checkPlagiarism(report._id)}
+                          onClick={() => checkPlagiarismHandler(report._id)}
                         >
                           Run Plagiarism Check
                         </button>
@@ -249,6 +306,16 @@ export default function PlagiarismCheck() {
           font-size: 14px;
           background: transparent;
           font-family: "Poppins", sans-serif;
+        }
+
+        .error-message {
+          color: #c62828;
+          font-size: 14px;
+          margin-bottom: 1rem;
+          text-align: center;
+          background-color: #ffebee;
+          padding: 0.75rem;
+          border-radius: 8px;
         }
 
         .table-wrapper {
@@ -324,6 +391,11 @@ export default function PlagiarismCheck() {
           text-align: center;
         }
 
+        .result-label {
+          font-size: 12px;
+          display: inline-block;
+        }
+
         .rejection-reason {
           color: #c62828;
           font-size: 12px;
@@ -368,6 +440,11 @@ export default function PlagiarismCheck() {
             font-size: 13px;
           }
 
+          .error-message {
+            font-size: 13px;
+            padding: 0.5rem;
+          }
+
           .table-header {
             font-size: 18px;
             padding: 0.75rem 1rem;
@@ -388,7 +465,8 @@ export default function PlagiarismCheck() {
             font-size: 13px;
           }
 
-          .status-label {
+          .status-label,
+          .result-label {
             font-size: 11px;
             min-width: 70px;
           }
@@ -418,6 +496,11 @@ export default function PlagiarismCheck() {
 
           .search-input {
             font-size: 12px;
+          }
+
+          .error-message {
+            font-size: 12px;
+            padding: 0.5rem;
           }
 
           .table-header {
@@ -469,7 +552,8 @@ export default function PlagiarismCheck() {
             height: 8px;
           }
 
-          .status-label {
+          .status-label,
+          .result-label {
             font-size: 10px;
             min-width: 60px;
           }
