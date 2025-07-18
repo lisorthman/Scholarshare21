@@ -2,6 +2,7 @@
   "compilerOptions": {
     "strictNullChecks": true,
     "types": ["next/types/global"],
+    "typeRoots": ["./node_modules/@types", "./types"],
     "allowSyntheticDefaultImports": true,
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],

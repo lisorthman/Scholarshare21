@@ -10,7 +10,7 @@ interface PlagiarismReport {
   paperTitle: string;
   author: string;
   plagiarismScore: number;
-  status: 'pending' | 'passed_checks' | 'rejected_plagiarism' | 'rejected_ai';
+  status: 'pending' | 'approved' | 'rejected' | 'rejected_ai' | 'passed_checks';
   createdAt: string;
   rejectionReason?: string;
   checkMessage?: string;
@@ -73,7 +73,7 @@ export default function PlagiarismCheck() {
           status: paper.status,
           createdAt: new Date(paper.createdAt).toLocaleDateString(),
           rejectionReason: paper.rejectionReason,
-          checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected_plagiarism' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
+          checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
         }));
         console.log('Mapped reports:', mappedReports);
         setReports(mappedReports);
@@ -118,7 +118,7 @@ export default function PlagiarismCheck() {
             status: paper.status,
             createdAt: new Date(paper.createdAt).toLocaleDateString(),
             rejectionReason: paper.rejectionReason,
-            checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected_plagiarism' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
+            checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
           }));
           setReports(mappedReports);
           setError("");
@@ -206,13 +206,13 @@ export default function PlagiarismCheck() {
                             backgroundColor:
                               report.status === 'passed_checks'
                                 ? '#e8f5e9'
-                                : report.status.includes('rejected')
+                                : report.status === 'rejected'
                                 ? '#ffebee'
                                 : '#fff8e1',
                             color:
                               report.status === 'passed_checks'
                                 ? '#2e7d32'
-                                : report.status.includes('rejected')
+                                : report.status === 'rejected'
                                 ? '#c62828'
                                 : '#ff8f00',
                           }}

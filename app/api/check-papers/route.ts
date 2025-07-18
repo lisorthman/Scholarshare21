@@ -1,62 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
-import ResearchPaper from '@/models/ResearchPaper';
-import User from '@/models/user';
-import connectDB from '@/lib/mongoose';
-import mongoose from 'mongoose';
+import { NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
+import connectDB from "@/lib/mongoose";
+import ResearchPaper from "@/models/ResearchPaper";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    await connectDB();
-
-    const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const skip = (page - 1) * limit;
-    const admin = searchParams.get('admin') === 'true';
-    const search = searchParams.get('search');
-
-    // Base query
-    const query: any = admin ? {} : { status: 'passed_checks' };
-
-    // Search functionality
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { abstract: { $regex: search, $options: 'i' } },
-      ];
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json({ error: "No token provided" }, { status: 401 });
     }
 
-    // Exclude admin papers
-    const adminUsers = await User.find({ role: 'admin' }, '_id').lean();
-    const adminUserIds = adminUsers.map(user => new mongoose.Types.ObjectId(user._id));
-    query.authorId = { $nin: adminUserIds };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
+    if (decoded.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
+    }
 
-    // Get paginated results
-    const [papers, total] = await Promise.all([
-      ResearchPaper.find(query)
-        .populate('authorId', 'name email')
-        .select('title abstract fileUrl fileName fileSize fileType authorId category categoryId status plagiarismScore rejectionReason createdAt')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      ResearchPaper.countDocuments(query),
-    ]);
+    const { searchParams } = new URL(request.url);
+    const admin = searchParams.get("admin") === "true";
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || "all";
 
-    return NextResponse.json({
-      papers,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    }, { headers: { "Cache-Control": "no-store" } });
-  } catch (error) {
-    console.error('Error fetching papers:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch papers', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 },
-    );
+    await connectDB();
+
+    let query: any = {};
+    if (search) {
+      query.$text = { $search: search };
+    }
+    if (status !== "all") {
+      query.status = status;
+    }
+
+    const papers = await ResearchPaper.find(query)
+      .populate("authorId", "name email")
+      .select("title fileUrl status plagiarismScore rejectionReason createdAt")
+      .lean();
+
+    return NextResponse.json({ papers }, { status: 200 });
+  } catch (error: any) {
+    console.error("Check papers error:", error);
+    return NextResponse.json({ error: "Failed to fetch papers", details: error.message }, { status: 500 });
   }
 }

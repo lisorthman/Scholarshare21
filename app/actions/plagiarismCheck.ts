@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import PDFParser from "pdf2json";
+import mammoth from "mammoth";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import connectDB from "@/lib/mongoose";
@@ -39,41 +40,51 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3, ba
   throw new Error("Max retries reached");
 }
 
-async function extractTextFromPDF(url: string): Promise<string> {
+async function extractTextFromFile(url: string, fileType: string): Promise<string> {
   try {
-    // Validate file extension
-    if (!url.toLowerCase().endsWith('.pdf')) {
-      throw new Error("Invalid file type: Only PDF files are supported");
-    }
-
-    console.log(`Fetching PDF from: ${url}`);
+    console.log(`Fetching file from: ${url}`);
     const response = await fetchWithRetry(url, { cache: "no-store" });
     if (!response.ok) {
-      throw new Error(`Failed to fetch PDF from Vercel Blob: ${response.statusText}`);
+      throw new Error(`Failed to fetch file from Vercel Blob: ${response.statusText}`);
     }
     const buffer = Buffer.from(await response.arrayBuffer());
-    console.log(`PDF buffer size: ${buffer.length} bytes`);
+    console.log(`File buffer size: ${buffer.length} bytes`);
 
-    const pdfParser = new PDFParser(null, 1);
-    return new Promise((resolve, reject) => {
-      pdfParser.on("pdfParser_dataError", (errData) => {
-        console.error("PDF parsing error:", errData.parserError);
-        reject(new Error(`PDF parsing failed: ${errData.parserError}`));
+    if (fileType === 'application/pdf') {
+      const pdfParser = new PDFParser(null, 1);
+      return new Promise((resolve, reject) => {
+        pdfParser.on("pdfParser_dataError", (errData) => {
+          console.error("PDF parsing error:", errData.parserError);
+          reject(new Error(`PDF parsing failed: ${errData.parserError}`));
+        });
+        pdfParser.on("pdfParser_dataReady", () => {
+          const text = pdfParser.getRawTextContent();
+          console.log(`Extracted text length: ${text.length} characters`);
+          if (!text.trim()) {
+            reject(new Error("No text extracted from PDF"));
+          } else {
+            resolve(text);
+          }
+        });
+        pdfParser.parseBuffer(buffer);
       });
-      pdfParser.on("pdfParser_dataReady", () => {
-        const text = pdfParser.getRawTextContent();
-        console.log(`Extracted text length: ${text.length} characters`);
-        if (!text.trim()) {
-          reject(new Error("No text extracted from PDF"));
-        } else {
-          resolve(text);
-        }
-      });
-      pdfParser.parseBuffer(buffer);
-    });
+    } else if (
+      fileType === 'application/msword' ||
+      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      const result = await mammoth.extractRawText({ buffer });
+      const text = result.value;
+      console.log(`Extracted text length from DOCX: ${text.length} characters`);
+      if (!text.trim()) {
+        throw new Error("No text extracted from DOCX");
+      }
+      return text;
+    } else {
+      throw new Error("Unsupported file type: Only PDF and DOCX files are supported");
+    }
   } catch (error: any) {
-    console.error("PDF text extraction failed:", error.message);
-    throw new Error(`PDF text extraction failed: ${error.message}`);
+    console.error("File text extraction failed:", error.message);
+    throw new Error(`File text extraction failed: ${error.message}`);
   }
 }
 
@@ -103,7 +114,7 @@ export async function checkPlagiarism(paperId: string, token: string): Promise<P
     if (!paper) {
       throw new Error("Paper not found");
     }
-    console.log(`Paper found: ${paper.title}, fileUrl: ${paper.fileUrl}`);
+    console.log(`Paper found: ${paper.title}, fileUrl: ${paper.fileUrl}, fileType: ${paper.fileType}`);
 
     const author = paper.authorId as any;
     const authorEmail = author?.email;
@@ -112,8 +123,8 @@ export async function checkPlagiarism(paperId: string, token: string): Promise<P
       throw new Error("Author email not found");
     }
 
-    // Fetch and extract text from Vercel Blob
-    const text = await extractTextFromPDF(paper.fileUrl);
+    // Fetch and extract text from file
+    const text = await extractTextFromFile(paper.fileUrl, paper.fileType);
 
     // Call Winston AI Plagiarism API
     console.log("Sending text to Winston AI API...");
@@ -144,13 +155,8 @@ export async function checkPlagiarism(paperId: string, token: string): Promise<P
 
     // Determine status
     const plagiarismThreshold = 20;
-    const newStatus = result.result.score > plagiarismThreshold ? "rejected_plagiarism" : "passed_checks";
-    const rejectionReason = result.result.score > plagiarismThreshold 
-      ? `Your paper is rejected due to failing in plagiarism test (${result.result.score}%)` 
-      : undefined;
-
-    // Send email if failed
-    if (newStatus === "rejected_plagiarism") {
+    if (result.result.score > plagiarismThreshold) {
+      // Send email for failed paper
       console.log("Configuring email transporter for Gmail");
       const transporter = nodemailer.createTransport({
         service: "gmail",
@@ -164,36 +170,67 @@ export async function checkPlagiarism(paperId: string, token: string): Promise<P
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: authorEmail,
-        subject: `Plagiarism Check Failure for Paper: ${paper.title}`,
-        text: `Dear ${authorName},\n\nThe paper you uploaded titled "${paper.title}" has failed the plagiarism test with a score of ${result.result.score}%. Please immediately recheck your paper and address any issues before resubmitting.\n\nBest regards,\nThe ScholarShare Team`,
+        subject: `Paper Rejected: ${paper.title}`,
+        text: `Dear ${authorName},\n\nYour paper titled "${paper.title}" has been rejected as it failed plagiarism checking with a score of ${result.result.score}%.\n\nBest regards,\nThe ScholarShare Team`,
         html: `
           <p>Dear ${authorName},</p>
-          <p>The paper you uploaded titled "<strong>${paper.title}</strong>" has failed the plagiarism test with a score of <strong>${result.result.score}%</strong>.</p>
-          <p>Please immediately recheck your paper and address any issues before resubmitting.</p>
+          <p>Your paper titled "<strong>${paper.title}</strong>" has been rejected as it failed plagiarism checking with a score of <strong>${result.result.score}%</strong>.</p>
           <p>Best regards,<br>The ScholarShare Team</p>
         `,
       });
-      console.log(`Email sent to ${authorEmail} with subject "Plagiarism Check Failure for Paper: ${paper.title}"`);
+      console.log(`Email sent to ${authorEmail} with subject "Paper Rejected: ${paper.title}"`);
+
+      // Update status to rejected
+      paper.status = "rejected";
+      paper.plagiarismScore = result.result.score;
+      paper.rejectionReason = `Your paper is rejected due to failing in plagiarism test (${result.result.score}%)`;
+      paper.updatedAt = new Date();
+      await paper.save();
+      console.log(`Paper updated: plagiarismScore=${result.result.score}, status=rejected`);
+
+      // Delete file from Vercel Blob
+      if (paper.blobKey || paper.fileUrl) {
+        try {
+          await del(paper.fileUrl, { token: process.env.BLOB_READ_WRITE_TOKEN });
+          console.log(`Deleted file from Vercel Blob: ${paper.fileUrl}`);
+        } catch (blobError: any) {
+          console.error(`Failed to delete file from Vercel Blob: ${blobError.message}`);
+        }
+      }
+
+      // Delete the paper
+      await ResearchPaper.findByIdAndDelete(paperId);
+      console.log(`Paper deleted: ${paperId}`);
+
+      // Revalidate the plagiarism check page
+      revalidatePath("/admin-dashboard/plagiarism-check", "page");
+
+      return {
+        success: true,
+        plagiarismScore: result.result.score,
+        creditsRemaining: result.credits_remaining,
+        status: "failed",
+        rejectionReason: `Your paper is rejected due to failing in plagiarism test (${result.result.score}%)`,
+      };
+    } else {
+      // Update paper for passed checks
+      paper.plagiarismScore = result.result.score;
+      paper.status = "passed_checks";
+      paper.rejectionReason = undefined;
+      paper.updatedAt = new Date();
+      await paper.save();
+      console.log(`Paper updated: plagiarismScore=${result.result.score}, status=passed_checks`);
+
+      // Revalidate the plagiarism check page
+      revalidatePath("/admin-dashboard/plagiarism-check", "page");
+
+      return {
+        success: true,
+        plagiarismScore: result.result.score,
+        creditsRemaining: result.credits_remaining,
+        status: "passed",
+      };
     }
-
-    // Update paper
-    paper.plagiarismScore = result.result.score;
-    paper.status = newStatus;
-    paper.rejectionReason = rejectionReason;
-    paper.updatedAt = new Date();
-    await paper.save();
-    console.log(`Paper updated: plagiarismScore=${result.result.score}, status=${newStatus}`);
-
-    // Revalidate the plagiarism check page
-    revalidatePath("/admin-dashboard/plagiarism-check", "page");
-
-    return {
-      success: true,
-      plagiarismScore: result.result.score,
-      creditsRemaining: result.credits_remaining,
-      status: newStatus === "passed_checks" ? "passed" : "failed",
-      rejectionReason,
-    };
   } catch (error: any) {
     console.error("Plagiarism check error:", {
       message: error.message,
