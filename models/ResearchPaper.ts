@@ -29,6 +29,10 @@ export interface ResearchPaperDocument extends Document {
   aiScore?: number;
   rejectionReason?: string;
   reviews: Review[];
+  views: number;
+  downloads: number;
+  viewedBy: Types.ObjectId[];
+  downloadedBy: Types.ObjectId[];
   downloadCount: number;
   viewCount: number;
   averageRating?: number;
@@ -178,6 +182,9 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
         ret.id = ret._id.toString();
         ret.authorId = ret.authorId.toString();
         ret.categoryId = ret.categoryId?.toString();
+        ret.viewedBy = ret.viewedBy?.map((id: any) => id.toString());
+        ret.downloadedBy = ret.downloadedBy?.map((id: any) => id.toString());
+
         
         // Handle readerStats Map conversion safely
         if (ret.readerStats instanceof Map) {
