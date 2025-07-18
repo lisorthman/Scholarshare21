@@ -4,7 +4,8 @@ import ReviewList from '@/components/papers/ReviewList';
 import ReviewForm from '@/components/papers/ReviewForm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiHeart, FiBookmark } from 'react-icons/fi';
+import WishlistButton from '@/components/papers/WishlistButton';
 
 export default async function PaperDetailPage(props: { 
   params: { id: string },
@@ -25,11 +26,19 @@ export default async function PaperDetailPage(props: {
           <FiArrowLeft size={18} />
           Back to Papers
         </Link>
+        
+
+
+
 
         {/* Paper Title and Description */}
         <div style={styles.headerSection}>
-          <h1 style={styles.title}>{paper.title}</h1>
+          <div style={styles.titleWrapper}>
+            <h1 style={styles.title}>{paper.title}</h1>
+            <WishlistButton paperId={paper._id} style={styles.wishlistButton} />
+          </div>
           <p style={styles.abstract}>{paper.abstract}</p>
+          
         </div>
         
         {/* Rating Display */}
@@ -97,17 +106,55 @@ const styles: Record<string, React.CSSProperties> = {
     paddingBottom: '32px',
     borderBottom: '1px solid #EFEBE9',
   },
+  titleWrapper: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '16px',
+  },
   title: {
     fontSize: '36px',
     fontWeight: '700',
     color: '#3E2723',
     marginBottom: '16px',
     lineHeight: '1.3',
+    flex: 1,
   },
   abstract: {
     fontSize: '18px',
     color: '#5D4037',
     lineHeight: '1.6',
+    marginBottom: '16px',
+  },
+  metaInfo: {
+    display: 'flex',
+    gap: '24px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  metaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '14px',
+    color: '#795548',
+  },
+  metaIcon: {
+    color: '#5D4037',
+  },
+  wishlistButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    ':hover': {
+      backgroundColor: '#EFEBE9',
+    },
   },
   ratingSection: {
     marginBottom: '48px',

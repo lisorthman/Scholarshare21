@@ -1,70 +1,35 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
-// Define the interface for the Paper document
-interface IPaper extends Document {
+export interface IPaper extends Document {
   title: string;
-  authorId: string;
-  authorName?: string;
-  description?: string;
-  content?: string;
-  fileUrl?: string;
+  authors: string[];
+  abstract: string;
+  publicationDate: Date;
+  downloadUrl: string;
+  thumbnailUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
-  views: number;
-  downloads: number;
-  tags?: string[];
-  category?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  rating?: number;
+  averageRating?: number;
+  downloadCount: number;
+  // Add any other fields you need
 }
 
-const paperSchema: Schema = new mongoose.Schema<IPaper>(
-  {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    authorId: {
-      type: String,
-      required: true,
-    },
-    authorName: {
-      type: String,
-    },
-    description: {
-      type: String,
-    },
-    content: {
-      type: String,
-    },
-    fileUrl: {
-      type: String,
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'pending',
-    },
-    views: {
-      type: Number,
-      default: 0,
-    },
-    downloads: {
-      type: Number,
-      default: 0,
-    },
-    tags: [{ type: String }],
-    category: {
-      type: String,
-    },
+const PaperSchema: Schema = new Schema({
+  title: { type: String, required: true },
+  authors: { type: [String], required: true },
+  abstract: { type: String, required: true },
+  publicationDate: { type: Date, required: true },
+  downloadUrl: { type: String, required: true },
+  thumbnailUrl: { type: String },
+  status: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
   },
-  {
-    timestamps: true,
-  }
-);
+  rating: { type: Number },
+  averageRating: { type: Number },
+  downloadCount: { type: Number, default: 0 },
+  // Add any other fields you need
+});
 
-// Avoid overwriting the model in development (due to Next.js hot reloading)
-const Paper =
-  mongoose.models.Paper || mongoose.model<IPaper>('Paper', paperSchema);
-
-export default Paper;
+export default mongoose.models.Paper || mongoose.model<IPaper>('Paper', PaperSchema);
