@@ -1,0 +1,237 @@
+.container {
+  padding: 2rem;
+  background-color: #fef6ee;
+  min-height: calc(100vh - 80px);
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  color: #5a3921;
+  text-align: center;
+}
+
+.donationBox {
+  display: flex;
+  gap: 2rem;
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.left, .right {
+  flex: 1;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-right: 1px solid #eee;
+  padding-right: 2rem;
+}
+
+.right {
+  padding-left: 2rem;
+}
+
+.caption {
+  font-size: 1.1rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #444;
+}
+
+.dropdown, .input, .textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.dropdown:focus, .input:focus, .textarea:focus {
+  border-color: #a0896f;
+  outline: none;
+}
+
+.amountButtons {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.amountButton {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid #ddd;
+  background-color: #f5f5f5;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.amountButton:hover {
+  background-color: #e0d4c0;
+}
+
+.amountButton.selected {
+  background-color: #5a3921;
+  color: white;
+  border-color: #5a3921;
+}
+
+.currencyToggle {
+  background: none;
+  border: none;
+  color: #5a3921;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+  align-self: flex-start;
+}
+
+.cardInput {
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  background: white;
+}
+
+.doubleInputs {
+  display: flex;
+  gap: 1rem;
+}
+
+.doubleInputs > div {
+  flex: 1;
+}
+
+.donateButton {
+  width: 100%;
+  padding: 1rem;
+  background-color: #5a3921;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 1rem;
+}
+
+.donateButton:hover {
+  background-color: #7a5235;
+}
+
+.donateButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Celebration styles */
+.thankYouContainer {
+  text-align: center;
+  padding: 2rem;
+  background-color: #fef6ee;
+  min-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.thankYouContainer h2 {
+  font-size: 2.5rem;
+  color: #5a3921;
+  margin-bottom: 1.5rem;
+}
+
+.thankYouContainer p {
+  font-size: 1.2rem;
+  color: #666;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.celebration {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  margin: 2rem 0;
+}
+
+.flower {
+  position: absolute;
+  font-size: 2rem;
+  animation: float 3s ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Create different animations for each flower */
+.flower:nth-child(1) { left: 10%; animation-delay: 0s; }
+.flower:nth-child(2) { left: 20%; animation-delay: 0.5s; }
+.flower:nth-child(3) { left: 30%; animation-delay: 1s; }
+.flower:nth-child(4) { left: 40%; animation-delay: 1.5s; }
+.flower:nth-child(5) { left: 50%; animation-delay: 2s; }
+.flower:nth-child(6) { left: 60%; animation-delay: 2.5s; }
+.flower:nth-child(7) { left: 70%; animation-delay: 3s; }
+.flower:nth-child(8) { left: 80%; animation-delay: 3.5s; }
+.flower:nth-child(9) { left: 90%; animation-delay: 4s; }
+.flower:nth-child(10) { left: 95%; animation-delay: 4.5s; }
+
+@media (max-width: 768px) {
+  .donationBox {
+    flex-direction: column;
+    padding: 1.5rem;
+  }
+  
+  .left, .right {
+    padding: 0;
+  }
+  
+  .left {
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+}

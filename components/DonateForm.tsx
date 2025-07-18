@@ -1,34 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import React, { useEffect, useState } from "react";
+import {
+  CardCvcElement,
+  CardExpiryElement,
+  CardNumberElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import axios from "axios";
-import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import styles from "./Donate.module.css";
 
 interface Paper {
   _id: string;
   title: string;
+  author: {
+    name: string;
+    _id: string;
+  };
 }
 
-const presetAmounts = [50, 100, 500, 1000];
+const presetAmountsUSD = [0.5, 1, 2, 5];
+const exchangeRate = 250; // 1 USD = 250 LKR
 
-interface DonateFormProps {
-  paperId: string | null;
-}
-
-export default function DonateForm({ paperId }: DonateFormProps) {
+const DonateForm = ({ paperId }: { paperId: string | null }) => {
   const stripe = useStripe();
   const elements = useElements();
-  // Remove useSearchParams from here, use prop instead
-  const initialPaperId = paperId;
-
   const [papers, setPapers] = useState<Paper[]>([]);
-  const [selectedPaper, setSelectedPaper] = useState<string | undefined>(initialPaperId || undefined);
-  const [amount, setAmount] = useState<number>(50);
-  const [customAmount, setCustomAmount] = useState<string>("");
-  const [name, setName] = useState<string>("");
+  const [selectedPaper, setSelectedPaper] = useState<string | null>(paperId);
+  const [authorName, setAuthorName] = useState("");
+  const [currency, setCurrency] = useState<"USD" | "LKR">("USD");
+  const [amount, setAmount] = useState<number>(1);
+  const [customAmount, setCustomAmount] = useState("");
+  const [name, setName] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const fetchPapers = async () => {
@@ -36,22 +44,26 @@ export default function DonateForm({ paperId }: DonateFormProps) {
         const res = await fetch("/api/papers/approved");
         const data = await res.json();
         setPapers(data);
+        
+        // If coming from specific paper, set the author name
+        if (paperId) {
+          const paper = data.find((p: Paper) => p._id === paperId);
+          if (paper) setAuthorName(paper.author.name);
+        }
       } catch (err) {
         toast.error("Failed to load papers");
       }
     };
     fetchPapers();
-  }, []);
+  }, [paperId]);
 
-  const handleAmountClick = (value: number) => {
-    setAmount(value);
-    setCustomAmount("");
-  };
-
-  const handleCustomAmount = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCustomAmount(e.target.value);
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value)) setAmount(value);
+  const handlePaperChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const paperId = e.target.value;
+    setSelectedPaper(paperId);
+    
+    // Set author name when paper is selected
+    const paper = papers.find(p => p._id === paperId);
+    if (paper) setAuthorName(paper.author.name);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,107 +72,198 @@ export default function DonateForm({ paperId }: DonateFormProps) {
 
     setLoading(true);
     try {
+      // Convert amount to LKR if currency is USD
+      const amountInLKR = currency === "USD" ? amount * exchangeRate : amount;
+
       const res = await axios.post("/api/stripe/create-payment-intent", {
-        amount,
+        amount: amountInLKR,
         paperId: selectedPaper,
         name,
+        remarks,
       });
 
-      const clientSecret = res.data.clientSecret;
-
-      const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement)!,
-          billing_details: { name },
-        },
-      });
+      const { error, paymentIntent } = await stripe.confirmCardPayment(
+        res.data.clientSecret,
+        {
+          payment_method: {
+            card: elements.getElement(CardNumberElement)!,
+            billing_details: {
+              name: name,
+            },
+          },
+        }
+      );
 
       if (error) {
         toast.error(error.message || "Payment failed");
       } else if (paymentIntent?.status === "succeeded") {
-        toast.success("Donation successful!");
+        setSuccess(true);
+        toast.success("Thank you for your donation! 💐");
       }
-    } catch (err) {
-      toast.error("Something went wrong");
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
+  if (!stripe || !elements) {
+    return <div>Loading payment gateway...</div>;
+  }
+
+  if (success) {
+    return (
+      <div className={styles.thankYouContainer}>
+        <h2>Thank You for Your Support!</h2>
+        <div className={styles.celebration}>
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className={styles.flower}>&#10048;</div>
+          ))}
+        </div>
+        <p>Your donation helps support important research.</p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="bg-[#f9f9f9] p-6 rounded-xl shadow-md w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-      {/* Left Side */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Support the Publisher</h2>
-        <p className="text-sm mb-3 text-gray-700">
-          Your contribution helps support ongoing research.
-        </p>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Support the Author</h1>
+      <div className={styles.donationBox}>
+        {/* Left Side */}
+        <div className={styles.left}>
+          <p className={styles.caption}>
+            Every contribution you make will directly support the author and their 
+            ongoing research efforts. Your donation helps sustain valuable academic work.
+          </p>
 
-        <label className="block mb-2 text-sm font-medium">Support for:</label>
-        <select
-          value={selectedPaper}
-          onChange={(e) => setSelectedPaper(e.target.value)}
-          className="w-full mb-4 border px-3 py-2 rounded"
-          required
-        >
-          <option value="">Select a Paper</option>
-          {papers.map((paper) => (
-            <option key={paper._id} value={paper._id}>
-              {paper.title}
-            </option>
-          ))}
-        </select>
-
-        <label className="block mb-2 text-sm font-medium">Amount (LKR):</label>
-        <div className="flex gap-2 mb-3">
-          {presetAmounts.map((amt) => (
-            <button
-              type="button"
-              key={amt}
-              onClick={() => handleAmountClick(amt)}
-              className={`px-4 py-2 rounded border ${
-                amount === amt ? "bg-[#8B4513] text-white" : "bg-white"
-              }`}
+          <div className={styles.formGroup}>
+            <label>Support for:</label>
+            <select
+              value={selectedPaper || ""}
+              onChange={handlePaperChange}
+              className={styles.dropdown}
+              required
             >
-              Rs. {amt}
+              <option value="">Select a Paper</option>
+              {papers.map((paper) => (
+                <option key={paper._id} value={paper._id}>
+                  {paper.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedPaper && (
+            <div className={styles.formGroup}>
+              <label>Author:</label>
+              <input
+                type="text"
+                value={authorName}
+                readOnly
+                className={styles.input}
+              />
+            </div>
+          )}
+
+          <div className={styles.formGroup}>
+            <label>Amount ({currency}):</label>
+            <div className={styles.amountButtons}>
+              {(currency === "USD" ? presetAmountsUSD : presetAmountsUSD.map(amt => amt * exchangeRate)).map((amt) => (
+                <button
+                  type="button"
+                  key={amt}
+                  onClick={() => {
+                    setAmount(amt);
+                    setCustomAmount("");
+                  }}
+                  className={`${styles.amountButton} ${
+                    amount === amt ? styles.selected : ""
+                  }`}
+                >
+                  {currency === "USD" ? `$${amt}` : `Rs. ${amt}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <input
+              type="number"
+              placeholder={`Custom Amount (${currency})`}
+              value={customAmount}
+              onChange={(e) => {
+                setCustomAmount(e.target.value);
+                const value = parseFloat(e.target.value);
+                if (!isNaN(value)) setAmount(value);
+              }}
+              className={styles.input}
+              min={currency === "USD" ? 0.5 : 50}
+              step={currency === "USD" ? 0.1 : 10}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setCurrency(currency === "USD" ? "LKR" : "USD")}
+            className={styles.currencyToggle}
+          >
+            Switch to {currency === "USD" ? "LKR" : "USD"}
+          </button>
+        </div>
+
+        {/* Right Side */}
+        <div className={styles.right}>
+          <form onSubmit={handleSubmit}>
+            <div className={styles.formGroup}>
+              <label>Card Number</label>
+              <CardNumberElement className={styles.cardInput} />
+            </div>
+
+            <div className={styles.doubleInputs}>
+              <div className={styles.formGroup}>
+                <label>Expiry Date</label>
+                <CardExpiryElement className={styles.cardInput} />
+              </div>
+              <div className={styles.formGroup}>
+                <label>CVC</label>
+                <CardCvcElement className={styles.cardInput} />
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Your Name</label>
+              <input
+                type="text"
+                placeholder="Full name as on card"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Remarks (optional)</label>
+              <textarea
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="Add a note to the author"
+                className={styles.textarea}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className={styles.donateButton}
+              disabled={loading || !selectedPaper}
+            >
+              {loading ? "Processing..." : "Donate Now"}
             </button>
-          ))}
+          </form>
         </div>
-        <input
-          type="number"
-          placeholder="Custom Amount"
-          value={customAmount}
-          onChange={handleCustomAmount}
-          className="w-full mb-4 border px-3 py-2 rounded"
-        />
       </div>
-
-      {/* Right Side */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Payment Details</h2>
-
-        <label className="block mb-2 text-sm font-medium">Card Information</label>
-        <div className="border p-3 mb-4 rounded">
-          <CardElement />
-        </div>
-
-        <label className="block mb-2 text-sm font-medium">Your Name</label>
-        <input
-          type="text"
-          placeholder="Full name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          className="w-full mb-6 border px-3 py-2 rounded"
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-[#8B4513] text-white py-3 px-4 rounded-xl font-semibold hover:bg-[#A0522D] transition"
-          disabled={loading}
-        >
-          {loading ? "Processing..." : "Donate"}
-        </button>
-      </div>
-    </form>
+    </div>
   );
-}
+};
+
+export default DonateForm;

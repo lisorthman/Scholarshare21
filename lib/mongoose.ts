@@ -14,12 +14,34 @@ const ensureModelsRegistered = () => {
   }
 };
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI!;
+if (!MONGODB_URI) throw new Error('Please define MONGODB_URI in .env');
 
-if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI not defined in environment');
+declare global {
+  var mongooseConnection: Promise<typeof mongoose> | undefined;
 }
 
+let cachedConnection = global.mongooseConnection;
+
+if (!cachedConnection) {
+  cachedConnection = global.mongooseConnection = mongoose.connect(MONGODB_URI, {
+    dbName: 'scholarshare',
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 30000,
+  }).then((mongoose) => {
+    console.log('DB connection established (global cache)');
+    ensureModelsRegistered();
+    console.log('User model registered:', !!mongoose.models.User);
+    console.log('ResearchPaper model registered:', !!mongoose.models.ResearchPaper);
+    console.log('All registered models:', Object.keys(mongoose.models));
+    return mongoose;
+  }).catch((err) => {
+    console.error('DB connection failed (global cache):', err);
+    throw err;
+  });
+}
+
+// Keep the rest of your current connection logic intact
 let cached = global.mongoose || { conn: null, promise: null };
 
 async function connectDB() {
