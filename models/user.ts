@@ -13,11 +13,6 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date | null;
-  isVerified?: boolean;
-  // OAuth fields
-  googleId?: string;
-  facebookId?: string;
-  status: string; // Added for approval workflow
   // Milestone fields
   counts: {
     uploads: number;
@@ -61,19 +56,13 @@ const UserSchema = new Schema<IUser>(
     ],
     username: { type: String, unique: true, sparse: true },
     lastLogin: { type: Date, default: null },
-    isVerified: { type: Boolean, default: false },
-    // OAuth fields
-    googleId: { type: String, sparse: true },
-    facebookId: { type: String, sparse: true },
-    status: { type: String, required: true, enum: ["Pending", "Active", "Suspended"], default: "Pending" }, // Added
     // Milestone tracking
     counts: {
       uploads: { type: Number, default: 0 },
       approvals: { type: Number, default: 0 },
       downloads: { type: Number, default: 0 },
     },
-    badges: { type: [String], default: [] },
-    educationQualification: { type: String, default: null }, // Added for researchers
+    badges: { type: [String], default: [] }
   },
   { timestamps: true }
 );

@@ -17,6 +17,14 @@ const SigninPage = () => {
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
 
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError("") , 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   // Clear any existing tokens on component mount
   useEffect(() => {
     // Clean up any expired or invalid tokens

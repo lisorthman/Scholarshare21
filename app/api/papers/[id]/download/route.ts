@@ -9,7 +9,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     const paper = await ResearchPaper.findByIdAndUpdate(
       id,
-      { $inc: { downloadCount: 1 } },
+      { $inc: { downloads: 1 } },
       { new: true }
     );
 

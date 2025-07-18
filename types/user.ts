@@ -9,6 +9,7 @@ export type RecentlyViewedPaper = {
 
 export type User = {
   _id: string;
+  id?: string; // Alternative identifier for compatibility
   name: string;
   email: string;
   role: UserRole;

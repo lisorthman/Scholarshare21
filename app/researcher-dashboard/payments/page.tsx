@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { 
   DollarSign, 
   TrendingUp, 
@@ -13,7 +12,7 @@ import {
   XCircle,
   RefreshCw
 } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+import DashboardLayout from '@/components/DashboardLayout';
 
 interface PaperReward {
   paperId: string;
@@ -37,14 +36,6 @@ interface Withdrawal {
     bankName: string;
   };
 }
-=======
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Wallet, Building2, Clock, AlertCircle, TrendingUp } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar'; // Add this import
-import { Button } from '@/components/ui/button';
->>>>>>> 450183b (Admin dashboard)
 
 interface PaymentData {
   _id: string;

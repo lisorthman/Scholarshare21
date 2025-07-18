@@ -454,7 +454,7 @@ export default function ResearcherUpload() {
 const styles: Record<string, React.CSSProperties> = {
   container: {
     margin: '24px auto',
-    maxWidth: '100%',
+    maxWidth: '1300px',
     width: '100%',
     backgroundColor: '#ffffff',
     borderRadius: '12px',
@@ -485,7 +485,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   deleteButton: {
     padding: '8px',
-    backgroundColor: '#EFE9DC',
+    backgroundColor: '#ef4444',
     color: 'white',
     border: 'none',
     borderRadius: '6px',

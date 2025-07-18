@@ -47,6 +47,9 @@ async function run() {
           keywords: paper.keywords || [],
           createdAt: paper.createdAt,
           uploadedAt: paper.uploadedAt || new Date(),
+          fileUrl: paper.fileUrl,     
+          fileType: paper.fileType,
+          fileSize: paper.fileSize,
         },
       });
     }

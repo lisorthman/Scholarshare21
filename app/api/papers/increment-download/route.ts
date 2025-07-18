@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     // Update the paper's download count
     const updatedPaper = await ResearchPaper.findByIdAndUpdate(
       paperId,
-      { $inc: { downloadCount: 1 } },
+      { $inc: { downloads: 1 } },
       { new: true }
     );
 
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      newCount: updatedPaper.downloadCount
+      newCount: updatedPaper.downloads
     });
 
   } catch (error: any) {

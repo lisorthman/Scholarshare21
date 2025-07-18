@@ -1,9 +1,6 @@
 'use client';
 
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Mousewheel, FreeMode } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/free-mode';
+// Swiper imports removed
 import { Paper } from '@/types';
 import { PaperCard } from './PaperCard';
 import styles from './PaperCarousel.module.scss';
@@ -12,12 +9,14 @@ interface PaperCarouselProps {
   title: string;
   papers: Paper[];
   variant?: 'category' | 'recent' | 'popular';
+  onCardClick?: (paper: Paper) => void;
 }
 
 export default function PaperCarousel({ 
   title, 
   papers, 
-  variant = 'category' 
+  variant = 'category' ,
+  onCardClick
 }: PaperCarouselProps) {
   if (papers.length < 2) {
     return (
@@ -25,9 +24,16 @@ export default function PaperCarousel({
         <div className={styles.header}>
           <h2>{title}</h2>
         </div>
-        <div className="flex gap-4 flex-wrap">
-          {papers.map((paper) => (
-            <PaperCard key={paper.id} paper={paper} />
+        <div className={styles.flexCarousel}>
+          {papers.map((paper, idx) => (
+            <div
+              key={paper.id}
+              className={styles.flexCard}
+              onClick={() => onCardClick?.(paper)}
+              style={{ zIndex: idx }}
+            >
+              <PaperCard paper={paper} />
+            </div>
           ))}
         </div>
       </div>
@@ -39,22 +45,19 @@ export default function PaperCarousel({
       <div className={styles.header}>
         <h2>{title}</h2>
       </div>
-      
-      <Swiper
-        modules={[Mousewheel, FreeMode]}
-        freeMode={true}
-        mousewheel={{ forceToAxis: true }}
-        slidesPerView={'auto'}
-        spaceBetween={-40}
-        grabCursor={true}
-        className={styles.swiper}
-      >
-        {papers.map((paper) => (
-          <SwiperSlide key={paper.id}>
+      <div className={styles.flexCarousel}>
+        {papers.map((paper, idx) => (
+          <div
+            key={paper.id}
+            className={styles.flexCard}
+            onClick={() => onCardClick?.(paper)}
+            style={{ zIndex: papers.length - idx }}
+          >
             <PaperCard paper={paper} />
-          </SwiperSlide>
+          </div>
         ))}
-      </Swiper>
+      </div>
     </div>
   );
 }
+
