@@ -9,13 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^9.0.3",
-
     "@apollo/client": "^3.13.8",
     "@elastic/elasticsearch": "^9.0.2",
     "@shadcn/ui": "^0.0.4",
     "@smastrom/react-rating": "^1.5.0",
-    "@stripe/stripe-js": "^7.3.0",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.5.0",
     "@types/pdf-parse": "^1.1.5",
     "@types/pdfjs-dist": "^2.10.377",
     "@vercel/blob": "^0.27.3",
@@ -24,12 +23,9 @@
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.9",
     "class-variance-authority": "^0.7.1",
-    "dotenv": "^16.6.1",
-
     "dotenv": "^16.5.0",
     "graphql": "^16.11.0",
     "graphql-ws": "^6.0.5",
-
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.1",
     "jwt-decode": "^4.0.0",
@@ -46,6 +42,7 @@
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.1.0",
     "react-feather": "^2.0.10",
+    "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-leaflet": "^5.0.0",
     "react-pdf": "^9.2.1",
