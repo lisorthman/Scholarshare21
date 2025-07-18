@@ -19,7 +19,7 @@ export async function POST(
 
     const updatedPaper = await ResearchPaper.findByIdAndUpdate(
       id,
-      { $inc: { viewCount: 1 } },
+      { $inc: { views: 1 } },
       { new: true }
     );
 
@@ -32,7 +32,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      viewCount: updatedPaper.viewCount
+      views: updatedPaper.views
     });
   } catch (error) {
     console.error('Error incrementing view count:', error);

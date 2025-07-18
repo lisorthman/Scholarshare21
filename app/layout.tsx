@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import SessionProvider from "@/components/SessionProvider";
+import LottieLoader from '@/components/ui/LottieLoader';
+import ClientLoadingWrapper from '@/components/ClientLoadingWrapper';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -27,7 +30,7 @@ export default function RootLayout({
        >
          <SessionProvider>
            <AuthProvider>
-             {children}
+             <ClientLoadingWrapper>{children}</ClientLoadingWrapper>
            </AuthProvider>
          </SessionProvider>
          <script

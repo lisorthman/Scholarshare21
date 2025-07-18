@@ -45,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
     { href: '/researcher-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/researcher-dashboard/uploads', label: 'Uploads', icon: Upload },
     { href: '/researcher-dashboard/milestones', label: 'Milestones', icon: Trophy },
-    { href: '/researcher-dashboard/payments', label: 'Payments', icon: Wallet },
+    { href: '/researcher-dashboard/payments', label: 'Earnigs', icon: Wallet },
     { href: '/researcher-dashboard/profile', label: 'Profile', icon: UserCircle }
 
   ];
