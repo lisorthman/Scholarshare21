@@ -30,21 +30,7 @@ export default function ResearcherDashboard() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
 
-  // Check authentication and role
-  useEffect(() => {
-    if (!loading) {
-      if (!isAuthenticated) {
-        router.push('/signin');
-        return;
-      }
-      
-      if (!hasRole('researcher')) {
-        router.push('/unauthorized');
-        return;
-      }
-    }
-  }, [loading, isAuthenticated, hasRole, router]);
-
+  
   useEffect(() => {
     if (user && isAuthenticated) {
       const fetchData = async () => {

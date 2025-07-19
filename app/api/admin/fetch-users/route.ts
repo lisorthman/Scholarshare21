@@ -27,7 +27,9 @@ export async function GET(request: Request) {
         role: user.role,
         joined: user.createdAt ? user.createdAt.toISOString().split("T")[0] : "N/A", // Fallback if createdAt is undefined
         status: user.status || "N/A", // Fallback if status is undefined
+
         educationQualification: user.educationQualification || "-", // Add this field
+
       })) },
       { status: 200 }
     );
