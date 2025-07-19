@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode } from "react";
+import React from "react";
 import Image from 'next/image';
 import { useRouter } from "next/navigation"; // 🧭 Import router
 import { Poppins } from 'next/font/google';
@@ -11,10 +11,6 @@ const poppins = Poppins({
   subsets: ['latin'],
   display: 'swap',
 });
-
-interface LayoutProps {
-  children: ReactNode;
-}
 
 const FreeAccessSection = () => {
   const router = useRouter(); // ⬅️ Router hook
@@ -36,6 +32,7 @@ const FreeAccessSection = () => {
         backgroundColor: 'white',
       }}
     >
+      <NavBar />
       <div style={{
         padding: '20px',
         textAlign: 'center',
@@ -148,21 +145,4 @@ const FreeAccessSection = () => {
   );
 };
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  return (
-    <div
-      className={poppins.className}
-      style={{
-        color: "#000",
-        minHeight: "100vh",
-        backgroundColor: "white",
-      }}
-    >
-      <NavBar />
-      <FreeAccessSection />
-      {children}
-    </div>
-  );
-};
-
-export default Layout;
+export default FreeAccessSection;
