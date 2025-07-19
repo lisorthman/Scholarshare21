@@ -211,7 +211,7 @@ export default function MilestonePage() {
   if (!user) return null;
 
   return (
-    <DashboardLayout user={user}>
+    <DashboardLayout user={user} defaultPage="Milestone">
       <div className="space-y-6">
         {/* Header - Clean and minimal */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
