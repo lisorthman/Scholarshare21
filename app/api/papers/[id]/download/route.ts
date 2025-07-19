@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import ResearchPaper from '@/models/ResearchPaper';
 import connectDB from '@/lib/mongoose';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
-    const { id } = params;
+    const { id } = await params;
 
     const paper = await ResearchPaper.findByIdAndUpdate(
       id,
