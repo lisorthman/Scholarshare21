@@ -54,9 +54,9 @@ async function extractTextFromPDF(url: string): Promise<string> {
     const buffer = Buffer.from(await response.arrayBuffer());
     console.log(`PDF buffer size: ${buffer.length} bytes`);
 
-    const pdfParser = new PDFParser(null, 1);
+    const pdfParser = new (PDFParser as any)(null, 1);
     return new Promise((resolve, reject) => {
-      pdfParser.on("pdfParser_dataError", (errData) => {
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
         console.error("PDF parsing error:", errData.parserError);
         reject(new Error(`PDF parsing failed: ${errData.parserError}`));
       });
