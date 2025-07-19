@@ -5,7 +5,8 @@ import { useEffect } from 'react';
 import { Paper } from '@/types';
 import styles from './PaperModal.module.scss';
 import { X } from 'lucide-react';
-import SupportPublisher from './SupportPublisher';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface PaperModalProps {
   paper: Paper | null;
@@ -14,6 +15,9 @@ interface PaperModalProps {
 }
 
 export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
+  const { data: session } = useSession();
+  const router = useRouter();
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -22,9 +26,18 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
+  const handleSupportClick = () => {
+    if (!paper) return;
+    if (!session) {
+      router.push(`/signin?callbackUrl=/donate?paperId=${paper.id}`);
+    } else {
+      router.push(`/donate?paperId=${paper.id}`);
+    }
+  };
+
   if (!paper) return null;
 
-  const isPDF = 
+  const isPDF =
     paper.fileType?.toLowerCase() === 'application/pdf' ||
     paper.fileUrl?.toLowerCase().endsWith('.pdf');
 
@@ -44,14 +57,14 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
         <div className={styles.content}>
           <div className={styles.previewSection}>
             {isPDF ? (
-              <iframe 
-                src={paper.fileUrl} 
-                title="Paper Preview" 
-                width="100%" 
+              <iframe
+                src={paper.fileUrl}
+                title="Paper Preview"
+                width="100%"
                 height="100%"
                 style={{ border: 'none' }}
-                onError={(e) => console.error('PDF preview failed:', e)} 
-                />
+                onError={(e) => console.error('PDF preview failed:', e)}
+              />
             ) : (
               <div className={styles.fallback}>
                 <p>Preview not available for this file type.</p>
@@ -100,7 +113,7 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
               </button>
               <button>Wishlist</button>
               <button>Cite</button>
-              <SupportPublisher paper={{ ...paper, authorId: paper.authorId ?? '' }} />
+              <button onClick={handleSupportClick}>Support Publisher</button>
             </div>
           </div>
         </div>

@@ -116,11 +116,12 @@ const handler = NextAuth({
       return true;
     },
     async redirect({ url, baseUrl }) {
-      // After successful OAuth sign-in, redirect to our callback page
-      if (url.startsWith(baseUrl)) {
-        return `${baseUrl}/oauth-callback`;
+      // Allow specific redirects to donation page
+      if (url.includes('/donate') || url.startsWith(baseUrl + '/donate')) {
+        return url;
       }
-      return baseUrl;
+      // Default behavior for other cases
+      return url.startsWith(baseUrl) ? url : baseUrl;
     },
   },
   pages: {
@@ -132,4 +133,4 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
 });
 
-export { handler as GET, handler as POST }; 
+export { handler as GET, handler as POST };

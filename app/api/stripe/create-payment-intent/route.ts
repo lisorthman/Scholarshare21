@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-06-30.basil', // Use your actual Stripe API version
+  apiVersion: '2025-06-30.basil',
 });
 
 export async function POST(req: NextRequest) {
@@ -10,28 +10,29 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { amount, currency = 'lkr', paperId } = body;
 
-    // Validate amount
-    if (!amount || isNaN(amount) || amount < 50) {
+    // Enhanced validation with currency-specific minimums
+    const minAmount = currency === 'lkr' ? 60 : 0.5; // 60 LKR or $0.50 minimum
+    if (!amount || isNaN(amount) || amount < minAmount) {
       return NextResponse.json(
-        { error: 'Invalid donation amount. Minimum is 50 LKR.' },
+        { error: `Minimum donation is ${minAmount} ${currency.toUpperCase()}` },
         { status: 400 }
       );
     }
 
-    // Stripe expects amount in the smallest currency unit (cents)
-    const convertedAmount = Math.round(amount * 100);
+    const convertedAmount = Math.round(amount * 100); // Convert to cents
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: convertedAmount,
       currency,
-      metadata: {
-        paperId: paperId || 'general-donation',
-      },
+      metadata: { paperId: paperId || 'general-donation' },
     });
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: any) {
-    console.error('Stripe payment intent error:', err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Stripe error:', err.message);
+    return NextResponse.json(
+      { error: err.message || 'Payment processing failed' },
+      { status: 500 }
+    );
   }
 }

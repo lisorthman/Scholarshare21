@@ -10,7 +10,7 @@ import {
 } from "@stripe/react-stripe-js";
 import axios from "axios";
 import toast from "react-hot-toast";
-import styles from "./Donate.module.css";
+import styles from "./Donate.module.scss";
 
 interface Paper {
   _id: string;
@@ -21,7 +21,9 @@ interface Paper {
   };
 }
 
-const presetAmountsUSD = [0.5, 1, 2, 5];
+// Updated preset amounts to avoid minimum threshold issues
+const presetAmountsUSD = [1, 2, 5, 10]; // Now starts at $1 instead of $0.50
+const presetAmountsLKR = [100, 250, 500, 1000]; // Starts at 100 LKR
 const exchangeRate = 250; // 1 USD = 250 LKR
 
 const DonateForm = ({ paperId }: { paperId: string | null }) => {
@@ -44,7 +46,7 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
         const res = await fetch("/api/papers/approved");
         const data = await res.json();
         setPapers(data);
-        
+
         // If coming from specific paper, set the author name
         if (paperId) {
           const paper = data.find((p: Paper) => p._id === paperId);
@@ -60,10 +62,15 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
   const handlePaperChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const paperId = e.target.value;
     setSelectedPaper(paperId);
-    
+
     // Set author name when paper is selected
-    const paper = papers.find(p => p._id === paperId);
+    const paper = papers.find((p) => p._id === paperId);
     if (paper) setAuthorName(paper.author.name);
+  };
+
+  // Updated amount handling
+  const getPresetAmounts = () => {
+    return currency === "USD" ? presetAmountsUSD : presetAmountsLKR;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,14 +120,16 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
 
   if (success) {
     return (
-      <div className={styles.thankYouContainer}>
-        <h2>Thank You for Your Support!</h2>
-        <div className={styles.celebration}>
-          {[...Array(10)].map((_, i) => (
-            <div key={i} className={styles.flower}>&#10048;</div>
-          ))}
+      <div className={styles.container}>
+        <div className={styles.thankYouContainer}>
+          <h2>Thank You for Your Support!</h2>
+          <div className={styles.celebration}>
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className={styles.flower}>&#10048;</div>
+            ))}
+          </div>
+          <p>Your donation helps support important research.</p>
         </div>
-        <p>Your donation helps support important research.</p>
       </div>
     );
   }
@@ -137,7 +146,7 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
           </p>
 
           <div className={styles.formGroup}>
-            <label>Support for:</label>
+            <label className={styles.formLabel}>Support for:</label>
             <select
               value={selectedPaper || ""}
               onChange={handlePaperChange}
@@ -155,7 +164,7 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
 
           {selectedPaper && (
             <div className={styles.formGroup}>
-              <label>Author:</label>
+              <label className={styles.formLabel}>Author:</label>
               <input
                 type="text"
                 value={authorName}
@@ -166,9 +175,9 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
           )}
 
           <div className={styles.formGroup}>
-            <label>Amount ({currency}):</label>
+            <label className={styles.formLabel}>Amount ({currency}):</label>
             <div className={styles.amountButtons}>
-              {(currency === "USD" ? presetAmountsUSD : presetAmountsUSD.map(amt => amt * exchangeRate)).map((amt) => (
+              {getPresetAmounts().map((amt) => (
                 <button
                   type="button"
                   key={amt}
@@ -197,7 +206,7 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
                 if (!isNaN(value)) setAmount(value);
               }}
               className={styles.input}
-              min={currency === "USD" ? 0.5 : 50}
+              min={currency === "USD" ? 0.5 : 60} // Updated minimums
               step={currency === "USD" ? 0.1 : 10}
             />
           </div>
@@ -215,23 +224,23 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
         <div className={styles.right}>
           <form onSubmit={handleSubmit}>
             <div className={styles.formGroup}>
-              <label>Card Number</label>
+              <label className={styles.formLabel}>Card Number</label>
               <CardNumberElement className={styles.cardInput} />
             </div>
 
             <div className={styles.doubleInputs}>
               <div className={styles.formGroup}>
-                <label>Expiry Date</label>
+                <label className={styles.formLabel}>Expiry Date</label>
                 <CardExpiryElement className={styles.cardInput} />
               </div>
               <div className={styles.formGroup}>
-                <label>CVC</label>
+                <label className={styles.formLabel}>CVC</label>
                 <CardCvcElement className={styles.cardInput} />
               </div>
             </div>
 
             <div className={styles.formGroup}>
-              <label>Your Name</label>
+              <label className={styles.formLabel}>Your Name</label>
               <input
                 type="text"
                 placeholder="Full name as on card"
@@ -243,7 +252,7 @@ const DonateForm = ({ paperId }: { paperId: string | null }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Remarks (optional)</label>
+              <label className={styles.formLabel}>Remarks (optional)</label>
               <textarea
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
