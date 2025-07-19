@@ -24,6 +24,10 @@ const AdvancedSearchSection = () => {
     router.push("/signup"); // ⬅️ Navigate to signup page
   };
 
+  const handleBackToHome = () => {
+    router.push("/"); // Navigate back to home page
+  };
+
   return (
     <div
       style={{
@@ -33,8 +37,39 @@ const AdvancedSearchSection = () => {
         maxWidth: "900px",
         margin: "2rem auto",
         textAlign: "center",
+        position: "relative",
       }}
     >
+      {/* Back to Home Button */}
+      <button
+        onClick={handleBackToHome}
+        style={{
+          position: "absolute",
+          top: "1rem",
+          left: "1rem",
+          backgroundColor: "transparent",
+          border: "none",
+          color: "#5b2a3c",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          fontSize: "1rem",
+          fontWeight: "500",
+          padding: "0.5rem",
+          borderRadius: "0.5rem",
+          transition: "background-color 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "rgba(91, 42, 60, 0.1)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "transparent";
+        }}
+      >
+        <span style={{ fontSize: "1.2rem" }}>←</span>
+        Back to Home
+      </button>
       <h1 style={{ color: "#5b2a3c", fontSize: "1.8rem", fontWeight: "bold" }}>
         Advanced search Functionality
       </h1>

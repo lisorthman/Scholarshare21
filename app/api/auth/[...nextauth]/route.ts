@@ -47,6 +47,12 @@ const handler = NextAuth({
             return null;
           }
 
+          // Check if researcher is approved (only for researchers)
+          if (user.role === 'researcher' && user.status !== 'Active') {
+            console.log(`Researcher not approved: ${user.email}. Status: ${user.status}`);
+            return null;
+          }
+
           return {
             id: user._id.toString(),
             email: user.email,
