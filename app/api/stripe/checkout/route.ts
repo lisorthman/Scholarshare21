@@ -45,4 +45,6 @@ export async function POST(req: NextRequest) {
     console.error('Stripe checkout error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
+
 }
+

@@ -107,4 +107,6 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
       </div>
     </div>
   );
+
 }
+
