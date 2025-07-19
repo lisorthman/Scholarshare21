@@ -8,11 +8,11 @@ import { FiArrowLeft, FiHeart, FiBookmark } from 'react-icons/fi';
 import WishlistButton from '@/components/papers/WishlistButton';
 
 export default async function PaperDetailPage(props: { 
-  params: { id: string },
+  params: Promise<{ id: string }>,
   searchParams: any 
 }) {
-  const paperId = props.params.id;
-  const paper = await getPaperById(paperId);
+  const { id } = await props.params;
+  const paper = await getPaperById(id);
 
   if (!paper || paper.status !== 'approved') {
     notFound();
@@ -37,7 +37,7 @@ export default async function PaperDetailPage(props: {
             <h1 style={styles.title}>{paper.title}</h1>
             <WishlistButton paperId={paper._id} style={styles.wishlistButton} />
           </div>
-          <p style={styles.abstract}>{paper.abstract}</p>
+          <p style={styles.abstract}>{paper.abstract || 'No abstract available'}</p>
           
         </div>
         
@@ -63,7 +63,6 @@ export default async function PaperDetailPage(props: {
           <div style={styles.formContainer}>
             <ReviewForm 
               paperId={paper._id} 
-              submitButtonStyle={styles.submitButton}
             />
           </div>
         </div>
@@ -97,9 +96,6 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: 'none',
     fontWeight: '500',
     transition: 'color 0.2s ease',
-    ':hover': {
-      color: '#3E2723',
-    }
   },
   headerSection: {
     marginBottom: '48px',
