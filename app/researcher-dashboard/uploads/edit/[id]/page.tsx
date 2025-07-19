@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { toast } from 'sonner';
 import { UploadCloud, X, Check, FileText, Trash2 } from 'react-feather';
@@ -11,8 +11,11 @@ interface Category {
   name: string;
 }
 
-export default function EditPaperPage({ params }: { params: { id: string } }) {
+export default function EditPaperPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+  
   const [paper, setPaper] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -57,7 +60,7 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
         setCategories(categoriesData);
 
         // Fetch paper data
-        const paperResponse = await fetch(`/api/researcher/uploads/${params.id}`);
+        const paperResponse = await fetch(`/api/researcher/uploads/${id}`);
         if (!paperResponse.ok) throw new Error('Failed to fetch paper');
         
         const paperData = await paperResponse.json();
@@ -78,8 +81,10 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
       }
     };
 
-    verifyTokenAndFetchData();
-  }, [params.id, router]);
+    if (id) {
+      verifyTokenAndFetchData();
+    }
+  }, [id, router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -108,7 +113,7 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
       formPayload.append('abstract', formData.abstract);
       if (formData.file) formPayload.append('file', formData.file);
 
-      const res = await fetch(`/api/researcher/uploads/${params.id}`, {
+      const res = await fetch(`/api/researcher/uploads/${id}`, {
         method: 'PATCH',
         body: formPayload,
         headers: {
@@ -139,7 +144,7 @@ export default function EditPaperPage({ params }: { params: { id: string } }) {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/researcher/uploads/${params.id}`, {
+      const res = await fetch(`/api/researcher/uploads/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -354,7 +359,7 @@ const styles = {
   },
   notFoundText: {
     color: '#ff0000',
-    textAlign: 'center'
+    textAlign: 'center' as const
   },
   header: {
     display: 'flex',
