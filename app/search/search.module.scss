@@ -63,7 +63,7 @@ $card-bg: #ffffff;
       transition: color 0.2s;
       
       &:hover {
-        color: darken($primary-color, 10%);
+        background: rgba($primary-color, 0.8);
       }
     }
   }
@@ -96,7 +96,7 @@ $card-bg: #ffffff;
         transition: color 0.2s;
 
         &:hover {
-          color: darken($accent-color, 15%);
+          background: rgba($primary-color, 0.9);
           text-decoration: underline;
         }
       }

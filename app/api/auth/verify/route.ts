@@ -53,7 +53,8 @@ function successResponse(user: any) {
   return NextResponse.json({
     valid: true,
     user: {
-      id: user._id,
+      _id: user._id,
+      id: user._id, // Include both for compatibility
       name: user.name,
       email: user.email,
       role: user.role,

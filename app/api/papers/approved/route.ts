@@ -1,15 +1,18 @@
 // app/api/papers/approved/route.ts
-import { NextResponse } from 'next/server';
-import Paper from '@/models/paper';
-import {connectDB} from '@/lib/connectDB';
+import { NextResponse } from "next/server";
+import connectDB from "@/lib/mongoose";
+import Paper from "@/models/ResearchPaper";
 
 export async function GET() {
+  await connectDB();
+
   try {
-    await connectDB();
-    const papers = await Paper.find({ status: 'approved' }).select('title _id'); // query model
-    return NextResponse.json({ papers });
-  } catch (error) {
-    console.error('Fetch approved papers error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    const papers = await Paper.find({ status: 'approved' })
+      .sort({ title: 1 })
+      .populate('author', 'name'); // Include author name
+    
+    return NextResponse.json(papers);
+  } catch (err) {
+    return NextResponse.json({ error: "Failed to fetch papers" }, { status: 500 });
   }
 }

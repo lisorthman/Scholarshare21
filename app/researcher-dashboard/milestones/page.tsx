@@ -45,7 +45,8 @@ export default function MilestonePage() {
         setUser(authData.user);
 
         // Fetch milestones - now including downloads
-        const milestonesRes = await fetch(`/api/milestones?userId=${authData.user._id}`);
+        const userId = authData.user._id || authData.user.id;
+        const milestonesRes = await fetch(`/api/milestones?userId=${userId}`);
         
         if (!milestonesRes.ok) {
           const errorData = await milestonesRes.json();
@@ -65,7 +66,7 @@ export default function MilestonePage() {
         if (apiResponse.data.paperDownloads) {
           setPaperDownloads(apiResponse.data.paperDownloads);
         } else {
-          await fetchPaperDownloads(authData.user._id);
+          await fetchPaperDownloads(userId);
         }
 
         // Show notifications for new badges
@@ -109,7 +110,8 @@ export default function MilestonePage() {
   const refreshMilestones = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/milestones?userId=${user?._id}&forceRefresh=true`);
+      const userId = user?._id || user?.id;
+      const res = await fetch(`/api/milestones?userId=${userId}&forceRefresh=true`);
       const data = await res.json();
       
       if (data.success) {
@@ -130,8 +132,9 @@ export default function MilestonePage() {
   const refreshDownloadsOnly = async () => {
     try {
       setRefreshingDownloads(true);
-      await fetchPaperDownloads(user?._id || '');
-      const res = await fetch(`/api/milestones?userId=${user?._id}&downloadsOnly=true`);
+      const userId = user?._id || user?.id;
+      await fetchPaperDownloads(userId || '');
+      const res = await fetch(`/api/milestones?userId=${userId}&downloadsOnly=true`);
       const data = await res.json();
       
       if (data.success) {
@@ -208,7 +211,7 @@ export default function MilestonePage() {
   if (!user) return null;
 
   return (
-    <DashboardLayout user={user} activeTab="milestones">
+    <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header - Clean and minimal */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -222,7 +225,7 @@ export default function MilestonePage() {
         {isLoading ? (
           <div className="bg-white rounded-lg border border-gray-200 p-12">
             <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700" />
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2" style={{ borderColor: '#6D4C4C' }} />
               <p className="text-gray-600">Loading your milestones...</p>
             </div>
           </div>
@@ -235,7 +238,8 @@ export default function MilestonePage() {
                 <p className="text-gray-600 mb-4">{error}</p>
                 <Button
                   onClick={() => window.location.reload()}
-                  className="bg-amber-700 hover:bg-amber-800 text-white"
+                  className="bg-amber-900 hover:bg-amber-950 text-white"
+                  style={{ backgroundColor: '#6D4C4C', borderColor: '#6D4C4C' }}
                 >
                   Try Again
                 </Button>
@@ -254,6 +258,7 @@ export default function MilestonePage() {
                 <Button
                   onClick={() => router.push('/researcher-dashboard/uploads')}
                   className="bg-amber-700 hover:bg-amber-800 text-white"
+                  style={{ backgroundColor: '#6D4C4C', borderColor: '#6D4C4C' }}
                 >
                   Upload Your First Paper
                 </Button>
@@ -382,14 +387,15 @@ export default function MilestonePage() {
                             </p>
                             <Button 
                               size="sm" 
-                              variant="outline"
+                              variant="ghost"
                               onClick={refreshDownloadsOnly}
                               disabled={refreshingDownloads}
-                              className="h-7 text-xs"
+                              className="h-7 text-xs border hover:bg-gray-50"
+                              style={{ borderColor: '#6D4C4C', color: '#6D4C4C' }}
                             >
                               {refreshingDownloads ? (
                                 <span className="flex items-center">
-                                  <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-amber-700 rounded-full mr-2" />
+                                  <div className="animate-spin h-3 w-3 border-t-2 border-b-2 rounded-full mr-2" style={{ borderColor: '#6D4C4C' }} />
                                   Updating
                                 </span>
                               ) : 'Refresh Downloads'}
@@ -459,11 +465,12 @@ export default function MilestonePage() {
                 <div className="flex space-x-3">
                   <Button
                     onClick={refreshMilestones}
-                    className="bg-white hover:bg-gray-100 text-amber-800 border border-amber-700 flex items-center"
+                    className="bg-white hover:bg-gray-100 text-amber-800 border flex items-center"
+                    style={{ borderColor: '#6D4C4C', color: '#6D4C4C' }}
                   >
                     {isLoading ? (
                       <span className="flex items-center">
-                        <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-amber-700 rounded-full mr-2" />
+                        <div className="animate-spin h-3 w-3 border-t-2 border-b-2 rounded-full mr-2" style={{ borderColor: '#6D4C4C' }} />
                         Updating...
                       </span>
                     ) : (
@@ -478,6 +485,7 @@ export default function MilestonePage() {
                   <Button
                     onClick={() => router.push('/researcher-dashboard/uploads')}
                     className="bg-amber-700 hover:bg-amber-800 text-white border-none"
+                    style={{ backgroundColor: '#6D4C4C', borderColor: '#6D4C4C' }}
                   >
                     Upload Paper
                   </Button>

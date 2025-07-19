@@ -1,10 +1,11 @@
 // app/api/middleware.ts
 import { NextResponse, NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { getToken } from 'next-auth/jwt';
 
 // Enhanced authentication middleware
 export async function authenticate(req: NextRequest, allowedRoles?: string[]) {
-  const token = req.headers.get('Authorization')?.split(' ')[1] || 
+  const token = req.headers.get('Authorization')?.split(' ')[1] ||
                 req.cookies.get('auth-token')?.value;
 
   if (!token) {
@@ -54,5 +55,26 @@ export async function protectRoutes(req: NextRequest) {
   }
 
   // For other routes, just continue
+  return NextResponse.next();
+}
+
+// --- Next.js Middleware for route protection ---
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = await getToken({ req: request });
+
+  // Protect /donate route for authenticated users only
+  if (pathname.startsWith('/donate') && !token) {
+    const loginUrl = new URL('/signin', request.url);
+    loginUrl.searchParams.set('callbackUrl', request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Keep your existing researcher/admin checks
+  if (pathname.startsWith('/researcher')) {
+    return await protectRoutes(request);
+  }
+
+  // Default: continue
   return NextResponse.next();
 }
