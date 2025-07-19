@@ -15,12 +15,13 @@ const ALLOWED_FILE_TYPES = [
 // GET: Fetch single paper
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const paper = await ResearchPaper.findById(params.id)
+    const paper = await ResearchPaper.findById(id)
       .select('-__v')
       .lean();
 
@@ -41,10 +42,11 @@ export async function GET(
 // PATCH: Update paper
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
     const formData = await request.formData();
 
     const title = formData.get('title')?.toString() || '';
@@ -66,7 +68,7 @@ export async function PATCH(
       );
     }
 
-    const paper = await ResearchPaper.findById(params.id);
+    const paper = await ResearchPaper.findById(id);
     if (!paper) {
       return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
     }
@@ -146,7 +148,7 @@ export async function PATCH(
     }
 
     const updatedPaper = await ResearchPaper.findByIdAndUpdate(
-      params.id,
+      id,
       updateData,
       { new: true }
     );
@@ -167,12 +169,13 @@ export async function PATCH(
 // DELETE: Remove paper and blob
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const paper = await ResearchPaper.findById(params.id);
+    const paper = await ResearchPaper.findById(id);
     if (!paper) {
       return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
     }
@@ -202,7 +205,7 @@ export async function DELETE(
     }
 
     // Delete from DB
-    await ResearchPaper.findByIdAndDelete(params.id);
+    await ResearchPaper.findByIdAndDelete(id);
 
     return NextResponse.json({
       success: true,
