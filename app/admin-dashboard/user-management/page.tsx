@@ -135,9 +135,6 @@ export default function UserManagement() {
           width: "100%",
           fontFamily: "'Poppins', sans-serif",
           boxSizing: "border-box",
-          "@media (min-width: 768px)": {
-            padding: "2rem"
-          }
         }}
       >
         <link
@@ -150,9 +147,6 @@ export default function UserManagement() {
             fontSize: "1.25rem",
             fontWeight: "600",
             marginBottom: "1rem",
-            "@media (min-width: 768px)": {
-              fontSize: "1.5rem"
-            }
           }}
         >
           User Management
@@ -164,9 +158,6 @@ export default function UserManagement() {
             padding: "1rem",
             minHeight: "calc(100vh - 4rem)",
             boxSizing: "border-box",
-            "@media (min-width: 768px)": {
-              padding: "2rem"
-            }
           }}
         >
           <div
@@ -177,10 +168,6 @@ export default function UserManagement() {
               marginBottom: "1.5rem",
               flexDirection: "column",
               gap: "1rem",
-              "@media (min-width: 768px)": {
-                flexDirection: "row",
-                gap: "0"
-              }
             }}
           >
             <div
@@ -191,9 +178,6 @@ export default function UserManagement() {
                 padding: "0.5rem 1rem",
                 borderRadius: "10px",
                 width: "100%",
-                "@media (min-width: 768px)": {
-                  width: "60%"
-                }
               }}
             >
               <FiSearch
@@ -222,9 +206,6 @@ export default function UserManagement() {
               <div
                 style={{
                   display: "none",
-                  "@media (min-width: 768px)": {
-                    display: "block"
-                  }
                 }}
               >
                 <table
@@ -286,9 +267,6 @@ export default function UserManagement() {
                   display: "flex",
                   flexDirection: "column",
                   gap: "1rem",
-                  "@media (min-width: 768px)": {
-                    display: "none"
-                  }
                 }}
               >
                 {filteredUsers.map((user) => (
