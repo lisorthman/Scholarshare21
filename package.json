@@ -33,6 +33,7 @@
     "leaflet": "^1.9.4",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.483.0",
+    "mammoth": "^1.9.1",
     "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
     "next": "^15.3.3",

@@ -1,7 +1,18 @@
+
 "use client";
 import { JSX, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
+import { checkGrammar } from "@/app/actions/grammarCheck";
+import toast, { Toaster } from 'react-hot-toast';
+
+interface GrammarIssue {
+  message: string;
+  shortMessage: string;
+  replacements: Array<{ value: string }>;
+  context: { text: string; offset: number; length: number };
+  rule: { id: string; description: string; category: { id: string; name: string } };
+}
 
 interface Paper {
   _id: string;
@@ -9,22 +20,33 @@ interface Paper {
   abstract?: string;
   createdAt: string;
   authorId: { _id: string; name: string; email: string };
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "rejected_ai" | "passed_checks";
+  fileUrl: string;
+  fileType: string;
+  plagiarismScore?: number;
+  grammarIssues?: GrammarIssue[];
+  lastGrammarCheck?: string;
 }
 
-export default function AdminDashboard(): JSX.Element {
+export default function PaperManagement(): JSX.Element {
   const router = useRouter();
   const [user, setUser] = useState<{
-    _id: string;
     name: string;
     email: string;
-    role: "user" | "admin" | "researcher";
+    role: string;
   } | null>(null);
   const [papers, setPapers] = useState<Paper[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [grammarResult, setGrammarResult] = useState<GrammarIssue[] | null>(null);
+  const [grammarError, setGrammarError] = useState<string | null>(null);
+  const [grammarLoading, setGrammarLoading] = useState<boolean>(false);
+  const [lastGrammarCheckTime, setLastGrammarCheckTime] = useState<string | null>(null);
+  const limit = 10;
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -58,18 +80,29 @@ export default function AdminDashboard(): JSX.Element {
 
   const fetchPapers = async () => {
     try {
-      const url = `/api/papers?admin=true${
-        searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""
-      }`;
-      const response = await fetch(url);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
+      const url = `/api/papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""}&status=passed_checks,approved&page=${page}&limit=${limit}`;
+      console.log(`Fetching papers from: ${url}`);
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
       if (!response.ok) {
-        throw new Error("Failed to fetch papers");
+        const errorData = await response.json();
+        console.error("Fetch papers error:", errorData);
+        throw new Error(errorData.details || "Failed to fetch papers");
       }
       const data = await response.json();
+      console.log("Fetched papers:", data.papers);
       setPapers(data.papers || []);
-    } catch (err) {
+      setTotalPages(data.pagination?.totalPages || 1);
+      setError(null);
+    } catch (err: any) {
       console.error("Error fetching papers:", err);
-      setError("Failed to load papers");
+      setError(err.message || "Failed to load papers");
     }
   };
 
@@ -77,13 +110,20 @@ export default function AdminDashboard(): JSX.Element {
     if (user) {
       fetchPapers();
     }
-  }, [user, searchQuery]);
+  }, [user, searchQuery, page]);
 
   const handleAction = async (id: string, action: "approve" | "reject") => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
       const response = await fetch(`/api/papers/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ action }),
       });
       if (!response.ok) {
@@ -92,22 +132,87 @@ export default function AdminDashboard(): JSX.Element {
       }
       const result = await response.json();
       if (!result.emailSent) {
-        setError(null);
-      } else {
         setError("Action completed, but failed to send notification email");
+      } else {
+        setError(null);
       }
+      toast.success(`Paper ${action === "approve" ? "approved" : "rejected"} successfully!`);
       setIsModalOpen(false);
       setSelectedPaper(null);
+      setGrammarResult(null);
+      setGrammarError(null);
       await fetchPapers();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating paper:", err);
-      setError(err instanceof Error ? err.message : "Failed to update paper");
+      setError(err.message || "Failed to update paper");
+      toast.error(err.message || "Failed to update paper");
+    }
+  };
+
+  const handleGrammarCheck = async (paperId: string) => {
+    setGrammarLoading(true);
+    setGrammarResult(null);
+    setGrammarError(null);
+    const currentTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    setLastGrammarCheckTime(currentTime); // Update real-time display immediately
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
+      // Update lastGrammarCheck in the database
+      const updateResponse = await fetch(`/api/papers/${paperId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ lastGrammarCheck: currentTime }),
+      });
+      if (!updateResponse.ok) {
+        throw new Error("Failed to update last grammar check time");
+      }
+
+      const result = await checkGrammar(paperId, token);
+      if (result.success && result.grammarResult) {
+        setGrammarResult(result.grammarResult.matches);
+        const hasCriticalIssues = result.grammarResult.matches.some(
+          (match) => match.rule.category.id === 'GRAMMAR' && match.replacements.length > 0
+        );
+        toast.success(`Paper ${hasCriticalIssues ? 'rejected' : 'approved'} after grammar check!`);
+        await fetchPapers();
+      } else {
+        setGrammarError(result.error || "Failed to check grammar");
+        toast.error(result.error || "Failed to check grammar");
+      }
+    } catch (err: any) {
+      console.error("Grammar check error:", err);
+      setGrammarError(err.message || "Failed to check grammar");
+      toast.error(err.message || "Failed to check grammar");
+    } finally {
+      setGrammarLoading(false);
+    }
+  };
+
+  const handleDownload = (fileUrl: string, title: string, fileType: string) => {
+    const extension = fileType === "application/pdf" ? ".pdf" : ".docx";
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = `${title}${extension}`;
+    link.click();
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
     }
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedPaper(null);
+    setGrammarResult(null);
+    setGrammarError(null);
   };
 
   if (!user) return <p>Loading...</p>;
@@ -117,10 +222,13 @@ export default function AdminDashboard(): JSX.Element {
     approved: "#41A446",
     pending: "#F4B740",
     rejected: "#D84727",
+    rejected_ai: "#D84727",
+    passed_checks: "#41A446",
   };
 
   return (
     <DashboardLayout user={user}>
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
         rel="stylesheet"
@@ -128,7 +236,7 @@ export default function AdminDashboard(): JSX.Element {
 
       <div className="dashboard-container">
         <div className="dashboard-content">
-          <h1 className="dashboard-title">Pdf Approval</h1>
+          <h1 className="dashboard-title">Paper Management</h1>
 
           <div className="search-bar">
             <input
@@ -148,6 +256,7 @@ export default function AdminDashboard(): JSX.Element {
                   <th>Details</th>
                   <th>Submitted Date</th>
                   <th>Owner</th>
+                  <th>Similarity</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -164,6 +273,9 @@ export default function AdminDashboard(): JSX.Element {
                       <td data-label="Owner">
                         {item.authorId?.name || "Unknown"}
                       </td>
+                      <td data-label="Similarity">
+                        {item.plagiarismScore !== undefined ? `${item.plagiarismScore}%` : "N/A"}
+                      </td>
                       <td data-label="Status">
                         <span
                           style={{
@@ -177,8 +289,9 @@ export default function AdminDashboard(): JSX.Element {
                             textAlign: "center",
                           }}
                         >
-                          {item.status.charAt(0).toUpperCase() +
-                            item.status.slice(1)}
+                          {item.status === "passed_checks"
+                            ? "Passed Checks"
+                            : item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                         </span>
                       </td>
                       <td data-label="Actions" className="action-buttons">
@@ -191,17 +304,45 @@ export default function AdminDashboard(): JSX.Element {
                         >
                           View
                         </button>
+                        <button
+                          className="download-button"
+                          onClick={() => handleDownload(item.fileUrl, item.title, item.fileType)}
+                        >
+                          Download
+                        </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6}>No papers found</td>
+                    <td colSpan={7}>No papers found with status 'passed_checks' or 'approved'. Please check the database or upload new papers.</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="pagination-button"
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+              <span className="pagination-info">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                className="pagination-button"
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -221,13 +362,25 @@ export default function AdminDashboard(): JSX.Element {
               <span>{selectedPaper.authorId?.email || "N/A"}</span>
             </div>
             <div className="modal-field">
-              <label>PDF:</label>
+              <label>Paper:</label>
               <span>{selectedPaper.title}</span>
             </div>
             <div className="modal-field">
               <label>Submitted date:</label>
               <span>
                 {new Date(selectedPaper.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <div className="modal-field">
+              <label>Similarity:</label>
+              <span>{selectedPaper.plagiarismScore !== undefined ? `${selectedPaper.plagiarismScore}%` : "N/A"}</span>
+            </div>
+            <div className="modal-field">
+              <label>Last Grammar Check:</label>
+              <span>
+                {lastGrammarCheckTime || (selectedPaper.lastGrammarCheck
+                  ? new Date(selectedPaper.lastGrammarCheck).toLocaleDateString()
+                  : "Not checked")}
               </span>
             </div>
             <div className="modal-field description-field">
@@ -276,22 +429,73 @@ export default function AdminDashboard(): JSX.Element {
                 {selectedPaper.abstract || "N/A"}
               </div>
             </div>
-            <div className="modal-actions">
+            <div className="modal-field">
+              <label>File:</label>
               <button
-                className="approve-button"
-                onClick={() => handleAction(selectedPaper._id, "approve")}
-                disabled={selectedPaper.status !== "pending"}
+                className="download-button"
+                onClick={() => handleDownload(selectedPaper.fileUrl, selectedPaper.title, selectedPaper.fileType)}
               >
-                Approve
-              </button>
-              <button
-                className="reject-button"
-                onClick={() => handleAction(selectedPaper._id, "reject")}
-                disabled={selectedPaper.status !== "pending"}
-              >
-                Reject
+                Download {selectedPaper.fileType === "application/pdf" ? "PDF" : "DOCX"}
               </button>
             </div>
+            <div className="modal-field">
+              <label>Grammar Check:</label>
+              <button
+                className="grammar-check-button"
+                onClick={() => handleGrammarCheck(selectedPaper._id)}
+                disabled={grammarLoading}
+              >
+                {grammarLoading ? "Checking..." : "Check Grammar Level"}
+              </button>
+            </div>
+            {grammarError && (
+              <div className="modal-field">
+                <label>Grammar Check Error:</label>
+                <div className="grammar-error">
+                  <p style={{ color: '#D84727' }}>
+                    {grammarError.includes('API limit reached')
+                      ? `${grammarError} Please contact support or try again later.`
+                      : grammarError}
+                  </p>
+                </div>
+              </div>
+            )}
+            {grammarResult && (
+              <div className="modal-field">
+                <label>Grammar Issues:</label>
+                <div className="grammar-results">
+                  {grammarResult.length > 0 ? (
+                    <ul>
+                      {grammarResult.map((issue, index) => (
+                        <li key={index}>
+                          <strong>{issue.shortMessage || issue.message}</strong>
+                          <p>Context: {issue.context.text.slice(0, 50)}...</p>
+                          <p>Suggestions: {issue.replacements.map((r) => r.value).join(', ') || 'None'}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>No grammar issues found.</p>
+                  )}
+                </div>
+              </div>
+            )}
+            {selectedPaper.grammarIssues && selectedPaper.grammarIssues.length > 0 && (
+              <div className="modal-field">
+                <label>Previous Grammar Issues:</label>
+                <div className="grammar-results">
+                  <ul>
+                    {selectedPaper.grammarIssues.map((issue, index) => (
+                      <li key={index}>
+                        <strong>{issue.shortMessage || issue.message}</strong>
+                        <p>Context: {issue.context.text.slice(0, 50)}...</p>
+                        <p>Suggestions: {issue.replacements.map((r) => r.value).join(', ') || 'None'}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -364,10 +568,12 @@ export default function AdminDashboard(): JSX.Element {
           display: flex;
           gap: 0.5rem;
           flex-wrap: wrap;
-          width: 100px;
+          width: 150px;
         }
 
-        .view-button {
+        .view-button,
+        .download-button,
+        .grammar-check-button {
           border-radius: 6px;
           padding: 6px 10px;
           font-size: 13px;
@@ -375,6 +581,51 @@ export default function AdminDashboard(): JSX.Element {
           border: 1px solid #c2ddf9;
           background-color: #e7f0fd;
           color: #0070f3;
+        }
+
+        .download-button {
+          border-color: #b2d8b2;
+          background-color: #e8f5e9;
+          color: #2e7d32;
+        }
+
+        .grammar-check-button {
+          border-color: #f0b2d8;
+          background-color: #fce4ec;
+          color: #c2185b;
+        }
+
+        .grammar-check-button:disabled {
+          background-color: #ccc;
+          cursor: not-allowed;
+        }
+
+        .pagination {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 1rem;
+          margin-top: 1.5rem;
+        }
+
+        .pagination-button {
+          padding: 0.5rem 1rem;
+          border-radius: 6px;
+          font-size: 14px;
+          cursor: pointer;
+          border: 1px solid #c2ddf9;
+          background-color: #e7f0fd;
+          color: #0070f3;
+        }
+
+        .pagination-button:disabled {
+          background-color: #ccc;
+          cursor: not-allowed;
+        }
+
+        .pagination-info {
+          font-size: 14px;
+          color: #333;
         }
 
         .modal-overlay {
@@ -398,6 +649,8 @@ export default function AdminDashboard(): JSX.Element {
           width: 90%;
           max-width: 500px;
           position: relative;
+          max-height: 80vh;
+          overflow-y: auto;
         }
 
         .modal-close-button {
@@ -454,37 +707,23 @@ export default function AdminDashboard(): JSX.Element {
           font-weight: 400;
         }
 
-        .modal-actions {
-          display: flex;
-          justify-content: center;
-          gap: 1rem;
-          margin-top: 1.5rem;
-        }
-
-        .approve-button,
-        .reject-button {
-          padding: 0.5rem 1.5rem;
-          border-radius: 6px;
+        .grammar-results,
+        .grammar-error {
+          background: #f9f9f9;
+          padding: 0.5rem;
+          border-radius: 4px;
           font-size: 14px;
-          cursor: pointer;
-          border: none;
-          font-weight: 600;
+          max-height: 200px;
+          overflow-y: auto;
         }
 
-        .approve-button {
-          background-color: #41a446;
-          color: white;
+        .grammar-results ul {
+          list-style-type: disc;
+          padding-left: 1.5rem;
         }
 
-        .reject-button {
-          background-color: #d84727;
-          color: white;
-        }
-
-        .approve-button:disabled,
-        .reject-button:disabled {
-          background-color: #ccc;
-          cursor: not-allowed;
+        .grammar-results li {
+          margin-bottom: 0.5rem;
         }
 
         @media (max-width: 768px) {
@@ -524,7 +763,10 @@ export default function AdminDashboard(): JSX.Element {
             gap: 0.25rem;
           }
 
-          .view-button {
+          .view-button,
+          .download-button,
+          .grammar-check-button,
+          .pagination-button {
             padding: 4px 8px;
             font-size: 11px;
           }
@@ -579,46 +821,40 @@ export default function AdminDashboard(): JSX.Element {
             font-size: 12px;
           }
 
-          .modal-description {
+          .modal-description,
+          .grammar-results,
+          .grammar-error {
             min-height: 30px;
             font-size: 12px;
           }
 
-          .modal-actions {
-            gap: 0.5rem;
-          }
+          @media (max-width: 480px) {
+            .dashboard-title {
+              font-size: 16px;
+            }
 
-          .approve-button,
-          .reject-button {
-            padding: 0.5rem 1rem;
-            font-size: 12px;
-          }
-        }
+            .search-input {
+              font-size: 10px;
+            }
 
-        @media (max-width: 480px) {
-          .dashboard-title {
-            font-size: 16px;
-          }
+            .dashboard-table {
+              font-size: 10px;
+            }
 
-          .search-input {
-            font-size: 10px;
-          }
+            .dashboard-table tbody td:before {
+              width: 50%;
+            }
 
-          .dashboard-table {
-            font-size: 10px;
-          }
+            .modal-title {
+              font-size: 14px;
+            }
 
-          .dashboard-table tbody td:before {
-            width: 50%;
-          }
-
-          .modal-title {
-            font-size: 14px;
-          }
-
-          .modal-description {
-            min-height: 20px;
-            font-size: 10px;
+            .modal-description,
+            .grammar-results,
+            .grammar-error {
+              min-height: 20px;
+              font-size: 10px;
+            }
           }
         }
       `}</style>

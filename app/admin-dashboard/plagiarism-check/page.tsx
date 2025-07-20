@@ -1,16 +1,17 @@
+
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
-import { checkPlagiarism } from '@/app/actions/plagiarismCheck';
+import { checkPlagiarism } from '@/app/actions/plagiarismCheck'
 
 interface PlagiarismReport {
   _id: string;
   paperTitle: string;
   author: string;
   plagiarismScore: number;
-  status: 'pending' | 'passed_checks' | 'rejected_plagiarism' | 'rejected_ai';
+  status: 'pending' | 'approved' | 'rejected' | 'rejected_ai' | 'passed_checks';
   createdAt: string;
   rejectionReason?: string;
   checkMessage?: string;
@@ -57,7 +58,7 @@ export default function PlagiarismCheck() {
 
     const fetchReports = async (authToken: string) => {
       console.log('Fetching reports with token:', authToken);
-      const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
+      const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '&status=pending'}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${authToken}` },
         cache: "no-store",
@@ -73,7 +74,7 @@ export default function PlagiarismCheck() {
           status: paper.status,
           createdAt: new Date(paper.createdAt).toLocaleDateString(),
           rejectionReason: paper.rejectionReason,
-          checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected_plagiarism' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
+          checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
         }));
         console.log('Mapped reports:', mappedReports);
         setReports(mappedReports);
@@ -103,7 +104,7 @@ export default function PlagiarismCheck() {
           router.push('/signin');
           return;
         }
-        const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
+        const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '&status=pending'}`;
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${authToken}` },
           cache: "no-store",
@@ -118,7 +119,7 @@ export default function PlagiarismCheck() {
             status: paper.status,
             createdAt: new Date(paper.createdAt).toLocaleDateString(),
             rejectionReason: paper.rejectionReason,
-            checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected_plagiarism' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
+            checkMessage: paper.status === 'passed_checks' ? 'Passed' : paper.status === 'rejected' ? `Failed: Plagiarism score ${paper.plagiarismScore}%` : undefined,
           }));
           setReports(mappedReports);
           setError("");
@@ -163,7 +164,7 @@ export default function PlagiarismCheck() {
           <div className="table-wrapper">
             <h2 className="table-header">Researcher Papers</h2>
             {reports.length === 0 ? (
-              <p className="no-papers">No researcher papers available.</p>
+              <p className="no-papers">No pending researcher papers available.</p>
             ) : (
               <table className="plagiarism-table">
                 <thead>
@@ -206,13 +207,13 @@ export default function PlagiarismCheck() {
                             backgroundColor:
                               report.status === 'passed_checks'
                                 ? '#e8f5e9'
-                                : report.status.includes('rejected')
+                                : report.status === 'rejected'
                                 ? '#ffebee'
                                 : '#fff8e1',
                             color:
                               report.status === 'passed_checks'
                                 ? '#2e7d32'
-                                : report.status.includes('rejected')
+                                : report.status === 'rejected'
                                 ? '#c62828'
                                 : '#ff8f00',
                           }}

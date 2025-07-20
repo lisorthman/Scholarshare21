@@ -1,6 +1,5 @@
 import { Schema, model, models, Types, Document } from 'mongoose';
 
-
 export interface Review {
   userId: Types.ObjectId;
   userName: string;
@@ -17,7 +16,7 @@ export interface ResearchPaperDocument extends Document {
   fileSize: number;
   fileType: string;
   authorId: Types.ObjectId;
-  status: 'pending' | 'approved' | 'rejected' | 'rejected_plagiarism' | 'rejected_ai' | 'passed_checks';
+  status: 'pending' | 'approved' | 'rejected' | 'rejected_ai' | 'passed_checks';
   category: string;
   categoryId: Types.ObjectId;
   keywords?: string[];
@@ -36,6 +35,14 @@ export interface ResearchPaperDocument extends Document {
   downloadCount: number;
   viewCount: number;
   averageRating?: number;
+  grammarIssues?: Array<{
+    message: string;
+    shortMessage: string;
+    replacements: Array<{ value: string }>;
+    context: { text: string; offset: number; length: number };
+    rule: { id: string; description: string; category: { id: string; name: string } };
+  }>;
+  lastGrammarCheck?: Date;
 }
 
 const ReviewSchema = new Schema<Review>(
@@ -99,7 +106,7 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'rejected_plagiarism', 'rejected_ai', 'passed_checks'],
+      enum: ['pending', 'approved', 'rejected', 'rejected_ai', 'passed_checks'],
       default: 'pending',
     },
     category: {
@@ -135,14 +142,14 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
         type: Schema.Types.ObjectId,
         ref: 'User',
         default: [],
-      }
+      },
     ],
     downloadedBy: [
       {
         type: Schema.Types.ObjectId,
         ref: 'User',
         default: [],
-      }
+      },
     ],
     blobKey: {
       type: String,
@@ -173,6 +180,18 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
       min: 0,
       max: 5,
     },
+    grammarIssues: [
+      {
+        message: String,
+        shortMessage: String,
+        replacements: [{ value: String }],
+        context: { text: String, offset: Number, length: Number },
+        rule: { id: String, description: String, category: { id: String, name: String } },
+      },
+    ],
+    lastGrammarCheck: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
@@ -180,22 +199,19 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
       virtuals: true,
       transform: function (doc, ret) {
         ret.id = ret._id.toString();
-        ret.authorId = ret.authorId.toString();
+        ret.authorId = ret.authorId ? ret.authorId.toString() : null;
         ret.categoryId = ret.categoryId?.toString();
         ret.viewedBy = ret.viewedBy?.map((id: any) => id.toString());
         ret.downloadedBy = ret.downloadedBy?.map((id: any) => id.toString());
 
-        
-        // Handle readerStats Map conversion safely
         if (ret.readerStats instanceof Map) {
           ret.readerStats = Object.fromEntries(ret.readerStats.entries());
         } else if (ret.readerStats && typeof ret.readerStats === 'object') {
-          // Already a plain object
           ret.readerStats = ret.readerStats;
         } else {
           ret.readerStats = {};
         }
-        
+
         if (ret.reviews) {
           ret.reviews = ret.reviews.map((r: any) => ({
             ...r,
@@ -203,16 +219,7 @@ const ResearchPaperSchema = new Schema<ResearchPaperDocument>(
             createdAt: r.createdAt?.toISOString(),
           }));
         }
-        if (ret.authorId) {
-    ret.authorId = ret.authorId.toString();
-  } else {
-    ret.authorId = null; // or ret.authorId = undefined;
-  }
-   ret.categoryId = ret.categoryId?.toString();
-   if (ret.readerStats && ret.readerStats instanceof Map) {
-    ret.readerStats = Object.fromEntries(ret.readerStats);
-  }
-  
+
         delete ret._id;
         delete ret.__v;
         return ret;
@@ -228,7 +235,7 @@ ResearchPaperSchema.virtual('author', {
   localField: 'authorId',
   foreignField: '_id',
   justOne: true,
-  options: { select: 'name email avatar' }
+  options: { select: 'name email avatar' },
 });
 
 ResearchPaperSchema.virtual('categoryDetails', {
@@ -236,7 +243,7 @@ ResearchPaperSchema.virtual('categoryDetails', {
   localField: 'categoryId',
   foreignField: '_id',
   justOne: true,
-  options: { select: 'name description' }
+  options: { select: 'name description' },
 });
 
 // Indexes
