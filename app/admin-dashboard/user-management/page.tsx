@@ -12,6 +12,7 @@ interface User {
   joined: string;
   status: string;
   educationQualification?: string; // Add this field
+  lastLogin: string; // Add this field to match imported User type
 }
 
 export default function UserManagement() {

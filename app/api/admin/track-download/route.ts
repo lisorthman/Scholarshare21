@@ -7,14 +7,14 @@ export async function POST() {
     await connectToDB();
     const db = mongoose.connection;
 
-    // Update or create a single document with a fixed _id
+    // Update or create a single document with a fixed identifier
     const result = await db.collection('realtimedata').findOneAndUpdate(
-      { _id: 'downloadCounter' },
+      { counterId: 'downloadCounter' },
       { $inc: { totalDownloads: 1 }, $set: { timestamp: new Date() } },
       { upsert: true, returnDocument: 'after' }
     );
 
-    const newTotalDownloads = result.value?.totalDownloads || 1;
+    const newTotalDownloads = result?.value?.totalDownloads || 1;
     return NextResponse.json({ totalDownloads: newTotalDownloads });
   } catch (error) {
     console.error('Failed to track download:', error);

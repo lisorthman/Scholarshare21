@@ -43,7 +43,7 @@ export async function PUT(request: Request) {
 
     // Step 4: Check Initial User Existence
     console.log("Checking if user exists");
-    const initialUser = await User.findById(userId).lean();
+    const initialUser = await User.findById(userId).lean() as any;
     if (!initialUser) {
       console.log("User not found for ID:", userId);
       return NextResponse.json({ message: "User not found" }, { status: 404 });
@@ -84,7 +84,7 @@ export async function PUT(request: Request) {
 
       // Step 8: Verify Update
       console.log("Verifying update in database");
-      const verifiedUser = await User.findById(userId).lean();
+      const verifiedUser = await User.findById(userId).lean() as any;
       console.log("Verified user ID:", verifiedUser?._id?.toString());
       console.log("Verified user status:", verifiedUser?.status);
       if (!verifiedUser || verifiedUser.status !== "Active") {
@@ -130,12 +130,12 @@ export async function PUT(request: Request) {
 
     console.log("Invalid status reached:", status);
     return NextResponse.json({ message: "Invalid status" }, { status: 400 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in user status update:", {
       message: error.message,
       stack: error.stack,
       name: error.name,
-      code: (error as any).code,
+      code: error.code,
     });
     return NextResponse.json({ message: "Failed to update user status", error: error.message }, { status: 500 });
   }

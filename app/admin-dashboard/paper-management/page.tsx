@@ -31,9 +31,11 @@ interface Paper {
 export default function PaperManagement(): JSX.Element {
   const router = useRouter();
   const [user, setUser] = useState<{
+    _id: string;
     name: string;
     email: string;
-    role: string;
+    role: "user" | "admin" | "researcher";
+    lastLogin: string;
   } | null>(null);
   const [papers, setPapers] = useState<Paper[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +67,13 @@ export default function PaperManagement(): JSX.Element {
 
         const data = await response.json();
         if (data.valid && data.user.role === "admin") {
-          setUser(data.user);
+          setUser({
+            _id: data.user._id,
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role as "user" | "admin" | "researcher",
+            lastLogin: data.user.lastLogin ?? "", // Always provide a string
+          });
         } else {
           router.push("/unauthorized");
         }
@@ -84,7 +92,7 @@ export default function PaperManagement(): JSX.Element {
       if (!token) {
         throw new Error("No token found");
       }
-      const url = `/api/papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""}&status=passed_checks,approved&page=${page}&limit=${limit}`;
+      const url = `/api/papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""}&status=pending,passed_checks,approved&page=${page}&limit=${limit}`;
       console.log(`Fetching papers from: ${url}`);
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -315,7 +323,7 @@ export default function PaperManagement(): JSX.Element {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7}>No papers found with status 'passed_checks' or 'approved'. Please check the database or upload new papers.</td>
+                    <td colSpan={7}>No papers found with status 'pending', 'passed_checks', or 'approved'. Please check the database or upload new papers.</td>
                   </tr>
                 )}
               </tbody>

@@ -24,6 +24,7 @@ export default function AdminDashboard() {
     _id: string;
     createdAt: string;
     updatedAt: string;
+    lastLogin: string;
   } | null>(null);
   const [analytics, setAnalytics] = useState({
     views: 0,
@@ -69,6 +70,7 @@ export default function AdminDashboard() {
             _id: data.user._id,
             createdAt: data.user.createdAt,
             updatedAt: data.user.updatedAt,
+            lastLogin: data.user.lastLogin, // Add lastLogin property
           });
         } else {
           router.push("/unauthorized");

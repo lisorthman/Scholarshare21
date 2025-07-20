@@ -28,7 +28,7 @@ export async function GET() {
     const registeredResearchers = users.filter(user => user.role === 'researcher').length;
 
     // Calculate percentage changes
-    const calculateChange = (current, previous) => {
+    const calculateChange = (current: number, previous: number): string => {
       if (previous === 0) return current > 0 ? "+100.00%" : "0.00%";
       const change = ((current - previous) / previous) * 100;
       return `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;

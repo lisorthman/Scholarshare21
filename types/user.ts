@@ -20,6 +20,7 @@ export type User = {
   username?: string;
   createdAt?: string;
   updatedAt?: string;
+  lastLogin?: string;
   institution?: string;
   publications?: number;
 };

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Forbidden: Admin access required" }, { status: 403 });
     }
 
-    const users = await User.find({}).lean(); // Use lean() for performance
+    const users = await User.find({}).lean() as any[]; // Use lean() for performance
     console.log("Fetched users from DB:", users); // Add logging for debugging
     return NextResponse.json(
       { users: users.map((user) => ({

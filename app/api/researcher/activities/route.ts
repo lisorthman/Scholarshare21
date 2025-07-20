@@ -37,8 +37,12 @@ export async function GET(req: Request) {
         message: `New paper "${paper.title}" uploaded`
       });
 
-      // Paper edit activity (if updated after creation)
-      if (paper.updatedAt > paper.createdAt) {
+      // Paper edit activity (only if user actually edited it, not admin actions)
+      // Check if updatedAt is significantly different from createdAt (more than 1 minute)
+      const timeDiff = new Date(paper.updatedAt).getTime() - new Date(paper.createdAt).getTime();
+      const oneMinute = 60 * 1000; // 1 minute in milliseconds
+      
+      if (timeDiff > oneMinute && paper.status === 'pending') {
         activities.push({
           id: `paper_edit_${paper._id}`,
           type: 'edit',
@@ -50,7 +54,7 @@ export async function GET(req: Request) {
         });
       }
 
-      // Admin response activity (if status changed)
+      // Admin response activity (if status changed from pending)
       if (paper.status !== 'pending') {
         activities.push({
           id: `admin_response_${paper._id}`,
@@ -95,19 +99,27 @@ export async function GET(req: Request) {
     // Get user profile changes (last login, profile updates)
     const user = await User.findById(researcherId).lean() as any;
     if (user) {
-      // Profile picture upload (if exists)
+      // Profile picture upload (only if recently updated - within last 24 hours)
       if (user.profilePhoto) {
-        activities.push({
-          id: `profile_photo_${user._id}`,
-          type: 'profile_photo',
-          date: user.updatedAt,
-          time: new Date(user.updatedAt).toLocaleTimeString(),
-          message: 'Profile picture updated'
-        });
+        const profilePhotoUpdateTime = new Date(user.updatedAt).getTime();
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+        
+        if (profilePhotoUpdateTime > oneDayAgo) {
+          activities.push({
+            id: `profile_photo_${user._id}`,
+            type: 'profile_photo',
+            date: user.updatedAt,
+            time: new Date(user.updatedAt).toLocaleTimeString(),
+            message: 'Profile picture updated'
+          });
+        }
       }
 
-      // Profile edits
-      if (user.updatedAt > user.createdAt) {
+      // Profile edits (only if recently updated - within last 24 hours)
+      const profileUpdateTime = new Date(user.updatedAt).getTime();
+      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+      
+      if (profileUpdateTime > oneDayAgo && user.updatedAt > user.createdAt) {
         activities.push({
           id: `profile_edit_${user._id}`,
           type: 'profile_edit',

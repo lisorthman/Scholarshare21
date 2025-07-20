@@ -96,7 +96,7 @@ export default function AdminProfile() {
         throw new Error(data.message || "Failed to update profile");
       }
 
-      setAdmin({ ...admin!, name: formData.name, email: admin.email }); // Preserve original email
+      setAdmin({ ...admin!, name: formData.name, email: admin!.email }); // Preserve original email
       setEditMode(false);
       setError(null);
       alert("Profile updated successfully!");
@@ -595,7 +595,7 @@ export default function AdminProfile() {
                 <p style={{ color: "#666", marginBottom: "0.5rem" }}>
                   Member Since
                 </p>
-                <p>{new Date(admin.createdAt).toLocaleDateString()}</p>
+                <p>{admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : "N/A"}</p>
               </div>
               <div>
                 <p style={{ color: "#666", marginBottom: "0.5rem" }}>
