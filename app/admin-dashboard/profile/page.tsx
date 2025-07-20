@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -42,7 +43,7 @@ export default function AdminProfile() {
           setAdmin(data.user);
           setFormData({
             name: data.user.name,
-            email: data.user.email,
+            email: data.user.email, // Initial email, non-editable
             password: "",
             confirmPassword: "",
           });
@@ -77,8 +78,7 @@ export default function AdminProfile() {
     try {
       const updateData: any = {
         name: formData.name,
-        email: formData.email,
-        token,
+        // Exclude email from update
       };
       if (formData.password) {
         updateData.password = formData.password;
@@ -96,7 +96,7 @@ export default function AdminProfile() {
         throw new Error(data.message || "Failed to update profile");
       }
 
-      setAdmin({ ...admin!, name: formData.name, email: formData.email });
+      setAdmin({ ...admin!, name: formData.name, email: admin.email }); // Preserve original email
       setEditMode(false);
       setError(null);
       alert("Profile updated successfully!");
@@ -429,6 +429,7 @@ export default function AdminProfile() {
                         fontWeight: "400",
                       }}
                       required
+                      disabled // Make email non-editable
                     />
                   </div>
                   <div>
