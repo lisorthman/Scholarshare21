@@ -1,3 +1,4 @@
+
 "use server"; // Mark as Server Action
 
 import { revalidatePath } from "next/cache";
@@ -8,6 +9,7 @@ import nodemailer from "nodemailer";
 import connectDB from "@/lib/mongoose";
 import ResearchPaper from "@/models/ResearchPaper";
 import User from "@/models/user";
+import { Buffer } from "buffer";
 
 interface WinstonAPIResponse {
   result: { score: number };
@@ -50,7 +52,7 @@ async function extractTextFromFile(url: string, fileType: string): Promise<strin
     const buffer = Buffer.from(await response.arrayBuffer());
     console.log(`File buffer size: ${buffer.length} bytes`);
 
-    if (fileType === 'application/pdf') {
+    if (fileType === "application/pdf") {
       const pdfParser = new PDFParser(null, 1);
       return new Promise((resolve, reject) => {
         pdfParser.on("pdfParser_dataError", (errData) => {
@@ -69,8 +71,8 @@ async function extractTextFromFile(url: string, fileType: string): Promise<strin
         pdfParser.parseBuffer(buffer);
       });
     } else if (
-      fileType === 'application/msword' ||
-      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      fileType === "application/msword" ||
+      fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
       const result = await mammoth.extractRawText({ buffer });
       const text = result.value;
@@ -110,7 +112,7 @@ export async function checkPlagiarism(paperId: string, token: string): Promise<P
     console.log(`Connected to MongoDB, fetching paper: ${paperId}`);
 
     // Fetch paper and author
-    const paper = await ResearchPaper.findById(paperId).populate('authorId', 'email name');
+    const paper = await ResearchPaper.findById(paperId).populate("authorId", "email name");
     if (!paper) {
       throw new Error("Paper not found");
     }
@@ -153,84 +155,56 @@ export async function checkPlagiarism(paperId: string, token: string): Promise<P
       throw new Error("Invalid plagiarism check response");
     }
 
-    // Determine status
     const plagiarismThreshold = 20;
-    if (result.result.score > plagiarismThreshold) {
-      // Send email for failed paper
-      console.log("Configuring email transporter for Gmail");
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
+    const plagiarismScore = result.result.score;
 
-      console.log(`Sending plagiarism failure email to: ${authorEmail}`);
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: authorEmail,
-        subject: `Paper Rejected: ${paper.title}`,
-        text: `Dear ${authorName},\n\nYour paper titled "${paper.title}" has been rejected as it failed plagiarism checking with a score of ${result.result.score}%.\n\nBest regards,\nThe ScholarShare Team`,
-        html: `
-          <p>Dear ${authorName},</p>
-          <p>Your paper titled "<strong>${paper.title}</strong>" has been rejected as it failed plagiarism checking with a score of <strong>${result.result.score}%</strong>.</p>
-          <p>Best regards,<br>The ScholarShare Team</p>
-        `,
-      });
-      console.log(`Email sent to ${authorEmail} with subject "Paper Rejected: ${paper.title}"`);
-
-      // Update status to rejected
+    // Update paper
+    paper.plagiarismScore = plagiarismScore;
+    paper.updatedAt = new Date();
+    if (plagiarismScore > plagiarismThreshold) {
       paper.status = "rejected";
-      paper.plagiarismScore = result.result.score;
-      paper.rejectionReason = `Your paper is rejected due to failing in plagiarism test (${result.result.score}%)`;
-      paper.updatedAt = new Date();
-      await paper.save();
-      console.log(`Paper updated: plagiarismScore=${result.result.score}, status=rejected`);
+      paper.rejectionReason = `Your paper is rejected due to failing in plagiarism test (${plagiarismScore}%)`;
 
-      // Delete file from Vercel Blob
-      if (paper.blobKey || paper.fileUrl) {
-        try {
-          await del(paper.fileUrl, { token: process.env.BLOB_READ_WRITE_TOKEN });
-          console.log(`Deleted file from Vercel Blob: ${paper.fileUrl}`);
-        } catch (blobError: any) {
-          console.error(`Failed to delete file from Vercel Blob: ${blobError.message}`);
-        }
+      // Send rejection email
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        });
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: authorEmail,
+          subject: `Paper Rejected: ${paper.title}`,
+          text: `Dear ${authorName},\n\nYour paper titled "${paper.title}" has been rejected as it failed plagiarism checking with a score of ${plagiarismScore}%.\n\nBest regards,\nThe ScholarShare Team`,
+          html: `
+            <p>Dear ${authorName},</p>
+            <p>Your paper titled "<strong>${paper.title}</strong>" has been rejected as it failed plagiarism checking with a score of <strong>${plagiarismScore}%</strong>.</p>
+            <p>Best regards,<br>The ScholarShare Team</p>
+          `,
+        });
+        console.log(`Email sent to ${authorEmail} with subject "Paper Rejected: ${paper.title}"`);
       }
-
-      // Delete the paper
-      await ResearchPaper.findByIdAndDelete(paperId);
-      console.log(`Paper deleted: ${paperId}`);
-
-      // Revalidate the plagiarism check page
-      revalidatePath("/admin-dashboard/plagiarism-check", "page");
-
-      return {
-        success: true,
-        plagiarismScore: result.result.score,
-        creditsRemaining: result.credits_remaining,
-        status: "failed",
-        rejectionReason: `Your paper is rejected due to failing in plagiarism test (${result.result.score}%)`,
-      };
     } else {
-      // Update paper for passed checks
-      paper.plagiarismScore = result.result.score;
       paper.status = "passed_checks";
       paper.rejectionReason = undefined;
-      paper.updatedAt = new Date();
-      await paper.save();
-      console.log(`Paper updated: plagiarismScore=${result.result.score}, status=passed_checks`);
-
-      // Revalidate the plagiarism check page
-      revalidatePath("/admin-dashboard/plagiarism-check", "page");
-
-      return {
-        success: true,
-        plagiarismScore: result.result.score,
-        creditsRemaining: result.credits_remaining,
-        status: "passed",
-      };
     }
+    await paper.save();
+    console.log(`Paper updated: plagiarismScore=${plagiarismScore}, status=${paper.status}`);
+
+    // Revalidate the plagiarism check page
+    revalidatePath("/plagiarism-check", "page"); // Updated to match client route
+
+    return {
+      success: true,
+      plagiarismScore,
+      creditsRemaining: result.credits_remaining,
+      status: plagiarismScore > plagiarismThreshold ? "failed" : "passed",
+      rejectionReason: plagiarismScore > plagiarismThreshold ? paper.rejectionReason : undefined,
+    };
   } catch (error: any) {
     console.error("Plagiarism check error:", {
       message: error.message,

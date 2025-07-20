@@ -1,9 +1,10 @@
+
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
-import { checkPlagiarism } from '@/app/actions/plagiarismCheck';
+import { checkPlagiarism } from '@/app/actions/plagiarismCheck'
 
 interface PlagiarismReport {
   _id: string;
@@ -57,7 +58,7 @@ export default function PlagiarismCheck() {
 
     const fetchReports = async (authToken: string) => {
       console.log('Fetching reports with token:', authToken);
-      const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
+      const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '&status=pending'}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${authToken}` },
         cache: "no-store",
@@ -103,7 +104,7 @@ export default function PlagiarismCheck() {
           router.push('/signin');
           return;
         }
-        const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}${searchQuery ? '' : '&status=all'}`;
+        const url = `/api/check-papers?admin=true${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '&status=pending'}`;
         const response = await fetch(url, {
           headers: { Authorization: `Bearer ${authToken}` },
           cache: "no-store",
@@ -163,7 +164,7 @@ export default function PlagiarismCheck() {
           <div className="table-wrapper">
             <h2 className="table-header">Researcher Papers</h2>
             {reports.length === 0 ? (
-              <p className="no-papers">No researcher papers available.</p>
+              <p className="no-papers">No pending researcher papers available.</p>
             ) : (
               <table className="plagiarism-table">
                 <thead>

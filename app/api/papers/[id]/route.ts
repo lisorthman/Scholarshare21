@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongoose';
 import ResearchPaper from '@/models/ResearchPaper';
@@ -25,23 +26,23 @@ interface PopulatedPaper {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    console.log('Received ID:', params.id);
-    if (!ObjectId.isValid(params.id)) {
+    const paramsResolved = await params;
+    console.log('Received ID:', paramsResolved.id);
+    if (!ObjectId.isValid(paramsResolved.id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid paper ID format' },
         { status: 400 }
       );
     }
 
-    const paper = await ResearchPaper.findById(new ObjectId(params.id))
-  .populate('authorId', 'name email')
-  .lean<PopulatedPaper & { reviews: any[] } | null>();
-
+    const paper = await ResearchPaper.findById(new ObjectId(paramsResolved.id))
+      .populate('authorId', 'name email')
+      .lean<PopulatedPaper & { reviews: any[] } | null>();
 
     if (!paper) {
       return NextResponse.json(
@@ -50,9 +51,8 @@ export async function GET(
       );
     }
 
-    // Increment the views count
     await ResearchPaper.findByIdAndUpdate(
-      params.id,
+      paramsResolved.id,
       { $inc: { views: 1 } }
     );
 
@@ -80,21 +80,42 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    if (!ObjectId.isValid(params.id)) {
+    const paramsResolved = await params;
+    if (!ObjectId.isValid(paramsResolved.id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid paper ID format' },
         { status: 400 }
       );
     }
 
-    const { action, feedback } = await request.json();
+    const body = await request.json();
+    console.log('Received PATCH body:', body); // Debug log for request body
+    const { action, feedback, lastGrammarCheck } = body;
 
-    if (!['approve', 'reject'].includes(action)) {
+    // Handle lastGrammarCheck update without requiring action
+    if (lastGrammarCheck && !action && !feedback) {
+      const paper = await ResearchPaper.findById(new ObjectId(paramsResolved.id)).exec();
+      if (!paper) {
+        return NextResponse.json(
+          { success: false, error: 'Paper not found' },
+          { status: 404 }
+        );
+      }
+      paper.lastGrammarCheck = new Date(lastGrammarCheck);
+      await paper.save();
+      return NextResponse.json({
+        success: true,
+        message: 'Last grammar check updated',
+        data: { paperId: paramsResolved.id, lastGrammarCheck: paper.lastGrammarCheck }
+      });
+    }
+
+    if (action && !['approve', 'reject'].includes(action)) {
       return NextResponse.json(
         {
           success: false,
@@ -104,7 +125,7 @@ export async function PATCH(
       );
     }
 
-    const paper = await ResearchPaper.findById(new ObjectId(params.id))
+    const paper = await ResearchPaper.findById(new ObjectId(paramsResolved.id))
       .populate('authorId', 'name email counts')
       .exec();
 
@@ -115,7 +136,7 @@ export async function PATCH(
       );
     }
 
-    if (paper.status !== 'pending') {
+    if (action && paper.status !== 'pending') {
       return NextResponse.json(
         {
           success: false,
@@ -125,13 +146,12 @@ export async function PATCH(
       );
     }
 
-    // Email configuration
     let emailStatus = {
       sent: false,
       error: null as string | null
     };
 
-    if (paper.authorId?.email && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    if (action && paper.authorId?.email && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       try {
         const transporter = nodemailer.createTransport({
           service: 'gmail',
@@ -175,7 +195,6 @@ export async function PATCH(
       }
     }
 
-    // Process action
     let updatedApprovals = 0;
     if (action === 'approve') {
       paper.status = 'approved';
@@ -191,7 +210,7 @@ export async function PATCH(
 
         updatedApprovals = updatedUser?.counts?.approvals || 0;
       }
-    } else {
+    } else if (action === 'reject') {
       paper.status = 'rejected';
       paper.rejectedAt = new Date();
       await paper.save();
@@ -199,7 +218,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      message: `Paper ${action}d successfully`,
+      message: `Paper ${action ? action + 'd' : 'updated'} successfully`,
       data: {
         paperId: paper._id.toString(),
         newStatus: paper.status,
@@ -207,7 +226,7 @@ export async function PATCH(
         approvalsCount: updatedApprovals,
         emailStatus
       },
-      shouldRefreshMilestones: true
+      shouldRefreshMilestones: !!action
     });
   } catch (error) {
     console.error('Error processing paper action:', error);

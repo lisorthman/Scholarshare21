@@ -27,12 +27,15 @@ export async function GET(request: Request) {
       query.$text = { $search: search };
     }
     if (status !== "all") {
-      query.status = status;
+      query.status = status; // Filter by status (e.g., "passed_checks" for paper-management)
+    } else {
+      // For other pages, allow all statuses except in paper-management
+      query.status = { $in: ['pending', 'approved', 'rejected', 'rejected_ai', 'passed_checks'] };
     }
 
     const papers = await ResearchPaper.find(query)
       .populate("authorId", "name email")
-      .select("title fileUrl status plagiarismScore rejectionReason createdAt")
+      .select("title fileUrl status plagiarismScore rejectionReason createdAt fileType")
       .lean();
 
     return NextResponse.json({ papers }, { status: 200 });
