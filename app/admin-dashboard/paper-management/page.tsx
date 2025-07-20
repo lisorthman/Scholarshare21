@@ -100,7 +100,7 @@ export default function AdminDashboard(): JSX.Element {
       await fetchPapers();
     } catch (err) {
       console.error("Error updating paper:", err);
-      setError(err.message || "Failed to update paper");
+      setError(err instanceof Error ? err.message : "Failed to update paper");
     }
   };
 
