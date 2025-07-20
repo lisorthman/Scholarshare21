@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     };
     
     // Check if user has allowed role
-    if (!['admin', 'researcher'].includes(decoded.role)) {
+    if (!['admin', 'researcher', 'user'].includes(decoded.role)) {
       return NextResponse.json(
         { message: "Unauthorized role" },
         { status: 403 }

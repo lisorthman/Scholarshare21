@@ -75,7 +75,6 @@ export default function ResearcherProfile() {
     try {
       const updateData: any = {
         name: formData.name,
-        email: formData.email,
         token,
       };
       if (formData.password) {
@@ -94,7 +93,7 @@ export default function ResearcherProfile() {
         throw new Error(data.message || "Failed to update profile");
       }
 
-      setResearcher({ ...researcher!, name: formData.name, email: formData.email });
+      setResearcher({ ...researcher!, name: formData.name });
       setEditMode(false);
       setError(null);
       alert("Profile updated successfully!");
@@ -170,6 +169,8 @@ export default function ResearcherProfile() {
     (formData.password === formData.confirmPassword &&
       formData.password.length > 0) ||
     (formData.password === "" && formData.confirmPassword === "");
+  
+  const canSave = passwordsMatch && formData.name.trim().length > 0;
 
   if (!researcher) return <p>Loading...</p>;
 
@@ -239,10 +240,10 @@ export default function ResearcherProfile() {
                 padding: "0.5rem 1.5rem",
                 fontSize: "14px",
                 fontWeight: "600",
-                cursor: passwordsMatch ? "pointer" : "not-allowed",
-                opacity: passwordsMatch ? 1 : 0.5,
+                cursor: canSave ? "pointer" : "not-allowed",
+                opacity: canSave ? 1 : 0.5,
               }}
-              disabled={!passwordsMatch}
+              disabled={!canSave}
             >
               {editMode ? "Save Changes" : "Edit Profile"}
             </button>
@@ -251,7 +252,8 @@ export default function ResearcherProfile() {
                 onClick={() => {
                   setEditMode(false);
                   setFormData({
-                    ...formData,
+                    name: researcher.name,
+                    email: researcher.email,
                     password: "",
                     confirmPassword: "",
                   });
@@ -401,14 +403,12 @@ export default function ResearcherProfile() {
                         fontSize: "14px",
                       }}
                     >
-                      Email*
+                      Email
                     </label>
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
+                      readOnly
                       style={{
                         width: "100%",
                         padding: "0.75rem",
@@ -416,8 +416,9 @@ export default function ResearcherProfile() {
                         borderRadius: "6px",
                         fontSize: "14px",
                         fontWeight: "400",
+                        backgroundColor: "#f5f5f5",
+                        cursor: "not-allowed",
                       }}
-                      required
                     />
                   </div>
                   <div>
