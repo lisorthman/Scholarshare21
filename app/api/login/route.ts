@@ -46,6 +46,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Role mismatch. Please select the correct role.' }, { status: 400 });
     }
 
+    // Check if researcher is approved (only for researchers)
+    if (user.role === 'researcher' && user.status !== 'Active') {
+      console.log(`Researcher not approved: ${email}. Status: ${user.status}`); // Debugging
+      client.close();
+      return NextResponse.json({ 
+        message: 'Your account is pending approval. Please wait for admin approval before logging in.' 
+      }, { status: 403 });
+    }
+
     // Update lastLogin
     const updateResult = await usersCollection.updateOne(
       { _id: user._id },

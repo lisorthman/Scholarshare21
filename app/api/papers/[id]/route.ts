@@ -25,20 +25,21 @@ interface PopulatedPaper {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    console.log('Received ID:', params.id);
-    if (!ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    console.log('Received ID:', id);
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid paper ID format' },
         { status: 400 }
       );
     }
 
-    const paper = await ResearchPaper.findById(new ObjectId(params.id))
+    const paper = await ResearchPaper.findById(new ObjectId(id))
   .populate('authorId', 'name email')
   .lean<PopulatedPaper & { reviews: any[] } | null>();
 
@@ -52,7 +53,7 @@ export async function GET(
 
     // Increment the views count
     await ResearchPaper.findByIdAndUpdate(
-      params.id,
+      id,
       { $inc: { views: 1 } }
     );
 
@@ -80,12 +81,13 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    if (!ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: 'Invalid paper ID format' },
         { status: 400 }
@@ -104,7 +106,7 @@ export async function PATCH(
       );
     }
 
-    const paper = await ResearchPaper.findById(new ObjectId(params.id))
+    const paper = await ResearchPaper.findById(new ObjectId(id))
       .populate('authorId', 'name email counts')
       .exec();
 

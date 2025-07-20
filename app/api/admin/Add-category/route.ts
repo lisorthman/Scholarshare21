@@ -74,15 +74,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Category added successfully', id: newCategory._id }, { status: 201 });
   } catch (error) {
     console.error('AddCategory API: Error adding admin category:', {
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    if (error.name === 'JsonWebTokenError') {
+    if (error instanceof Error && error.name === 'JsonWebTokenError') {
       return NextResponse.json({ message: 'Invalid or expired token' }, { status: 401 });
     }
-    if (error.code === 11000) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
       return NextResponse.json({ message: 'Category name already exists' }, { status: 400 });
     }
-    return NextResponse.json({ message: 'Internal server error', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Internal server error', error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

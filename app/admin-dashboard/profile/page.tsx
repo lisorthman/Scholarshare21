@@ -594,15 +594,15 @@ export default function AdminProfile() {
                 <p style={{ color: "#666", marginBottom: "0.5rem" }}>
                   Member Since
                 </p>
-                <p>{new Date(admin.createdAt).toLocaleDateString()}</p>
+                <p>{admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : 'Unknown'}</p>
               </div>
               <div>
                 <p style={{ color: "#666", marginBottom: "0.5rem" }}>
                   Last Login
                 </p>
                 <p>
-                  {admin.lastLogin
-                    ? new Date(admin.lastLogin).toLocaleString()
+                  {(admin as any).lastLogin
+                    ? new Date((admin as any).lastLogin).toLocaleString()
                     : "Never"}
                 </p>
               </div>

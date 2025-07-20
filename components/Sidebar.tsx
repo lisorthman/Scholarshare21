@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './Sidebar.module.scss';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Upload, 
@@ -28,6 +28,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
   const router = useRouter();
+  const pathname = usePathname();
 
   // Admin menu items
   const adminMenu = [
@@ -73,6 +74,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
     router.push(href);
   };
 
+  // Check if a menu item is currently active
+  const isActive = (href: string) => {
+    if (href === '/admin-dashboard' || href === '/researcher-dashboard' || href === '/user-dashboard') {
+      return pathname === href;
+    }
+    return pathname.startsWith(href);
+  };
+
   return (
     <div className={`${styles.sidebar} ${isVisible ? styles.visible : ''}`}>
       <ul className={styles.menuList}>
@@ -82,8 +91,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
               onClick={() => handleNavigation(item.href)}
               className={styles.menuLink}
               style={{
-                background: 'none',
-                border: 'none',
+                background: isActive(item.href) ? 'rgba(99, 65, 65, 0.1)' : 'none',
+                border: isActive(item.href) ? '1px solid rgba(99, 65, 65, 0.3)' : 'none',
                 padding: '12px 16px',
                 cursor: 'pointer',
                 width: '100%',
@@ -91,11 +100,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                color: '#634141',
+                color: isActive(item.href) ? '#634141' : '#634141',
                 borderRadius: '8px',
                 transition: 'all 0.2s ease',
                 fontSize: '0.95rem',
-                fontWeight: 500
+                fontWeight: isActive(item.href) ? '600' : '500',
+                boxShadow: isActive(item.href) ? '0 2px 4px rgba(99, 65, 65, 0.1)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive(item.href)) {
+                  e.currentTarget.style.backgroundColor = 'rgba(99, 65, 65, 0.05)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive(item.href)) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
               }}
             >
               {item.icon && <item.icon className="w-5 h-5" />}

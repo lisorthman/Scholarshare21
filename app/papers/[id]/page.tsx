@@ -43,8 +43,9 @@ async function getPaper(id: string) {
   }
 }
 
-export default async function PaperDetailPage({ params }: { params: { id: string } }) {
-  const paper: Paper = await getPaper(params.id);
+export default async function PaperDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const paper: Paper = await getPaper(id);
 
   // Debug raw data first
   console.log('Raw paper data:', paper);
@@ -114,10 +115,14 @@ export default async function PaperDetailPage({ params }: { params: { id: string
               Generate Citation of the Research Paper
             </h2>
             <GenerateCitation
-              title={title}
-              authors={[authorName]}
-              year={year} 
-              publisher={publisher}
+              isOpen={false}
+              onClose={() => {}}
+              paper={{
+                _id: paper._id,
+                title: title,
+                authorDetails: { name: authorName },
+                createdAt: paper.createdAt
+              }}
             />
           </div>
           <div style={{

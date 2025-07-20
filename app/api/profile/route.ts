@@ -1,17 +1,15 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextResponse } from 'next/server';
 import User from '@/models/user';
 import connectDB from "@/lib/mongoose";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export async function GET(request: Request) {
   await connectDB();
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  const token = request.headers.get('authorization')?.split(' ')[1] || 
+                new URL(request.url).searchParams.get('token');
 
-  const token = req.headers.authorization?.split(' ')[1] || req.body.token || req.query.token;
   if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
+    return NextResponse.json({ error: 'No token provided' }, { status: 401 });
   }
 
   try {
@@ -26,18 +24,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Allow both admin and researcher roles
     if (!verifyData.valid || !['admin', 'researcher'].includes(verifyData.user.role)) {
-      return res.status(403).json({ error: 'Unauthorized' });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Fetch the user from the database
     const user = await User.findOne({ _id: verifyData.user._id });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    res.status(200).json(user);
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Error fetching profile:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

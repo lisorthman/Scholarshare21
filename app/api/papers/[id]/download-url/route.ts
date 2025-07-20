@@ -4,11 +4,11 @@ import ResearchPaper from '@/models/ResearchPaper';
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDB();
-    const { id } = params; // Destructure after awaiting
+    const { id } = await params; // Await the params
 
     if (!id) {
       return NextResponse.json(

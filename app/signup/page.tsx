@@ -454,12 +454,20 @@ const SignupPage = () => {
             <br />
             {/* Submit Button */}
             <Button
-              name="Login"
+              name="Register"
               type="submit"
               variant="default"
+              disabled={false}
               style={{
                 width: "100%",
-                height: "40px",
+                height: "45px",
+                backgroundColor: "#634141",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: 500,
+                cursor: "pointer",
                 marginBottom: "20px",
               }}
             >

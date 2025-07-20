@@ -5,13 +5,13 @@ import mongoose from 'mongoose'; // Import mongoose
 
 export async function GET(
   request: Request,
-  { params }: { params: { paperId: string } }
+  { params }: { params: Promise<{ paperId: string }> }
 ) {
   try {
     await connectDB();
     
-    // No need to await params - it's available synchronously
-    const { paperId } = params;
+    // Await the params - it's now a Promise
+    const { paperId } = await params;
     
     // Calculate average rating
     const result = await Review.aggregate([

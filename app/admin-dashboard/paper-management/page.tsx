@@ -15,9 +15,10 @@ interface Paper {
 export default function AdminDashboard(): JSX.Element {
   const router = useRouter();
   const [user, setUser] = useState<{
+    _id: string;
     name: string;
     email: string;
-    role: string;
+    role: "user" | "admin" | "researcher";
   } | null>(null);
   const [papers, setPapers] = useState<Paper[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export default function AdminDashboard(): JSX.Element {
       await fetchPapers();
     } catch (err) {
       console.error("Error updating paper:", err);
-      setError(err.message || "Failed to update paper");
+      setError(err instanceof Error ? err.message : "Failed to update paper");
     }
   };
 

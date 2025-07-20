@@ -119,16 +119,12 @@ const ForgotPasswordPage = () => {
             marginBottom: "32px", // Increased from 24px
           }}>
             <InputField
+              name="email"
               type="email"
               placeholder="Enter your registered email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ 
-                width: "100%",
-                padding: "14px 16px", // Added padding
-                fontSize: "16px", // Added font size
-              }}
             />
           </div>
 

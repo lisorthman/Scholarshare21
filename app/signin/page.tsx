@@ -235,7 +235,18 @@ const SigninPage = () => {
               name="Login"
               type="submit"
               variant="default"
-              className="w-full h-10 mb-5"
+              disabled={false}
+              style={{
+                width: "100%",
+                height: "45px",
+                backgroundColor: "#634141",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
             >
               Login
             </Button>

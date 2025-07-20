@@ -101,10 +101,10 @@ export async function DELETE(request: NextRequest) {
     );
   } catch (error) {
     console.error("DeleteCategory API: Error deleting category:", {
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    if (error.name === 'JsonWebTokenError') {
+    if (error instanceof Error && error.name === 'JsonWebTokenError') {
       console.log("DeleteCategory API: Invalid or expired token");
       return NextResponse.json(
         { message: "Invalid or expired token" },
