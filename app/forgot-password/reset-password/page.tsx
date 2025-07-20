@@ -162,15 +162,11 @@ const ResetPasswordPage = () => {
           <form onSubmit={handleSubmit} style={{ width: "100%" }}>
             <div style={{ marginBottom: "28px", width: "100%" }}>
               <InputField
+                name="password"
                 type="password"
                 placeholder="New Password"
                 value={password}
                 onChange={handlePasswordChange}
-                style={{ 
-                  width: "100%",
-                  padding: "16px", // Increased padding
-                  fontSize: "16px",
-                }}
               />
               {password && (
                 <div style={{ 
@@ -255,15 +251,11 @@ const ResetPasswordPage = () => {
 
             <div style={{ marginBottom: "36px", width: "100%" }}>
               <InputField
+                name="confirmPassword"
                 type="password"
                 placeholder="Confirm New Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{ 
-                  width: "100%",
-                  padding: "16px",
-                  fontSize: "16px",
-                }}
               />
             </div>
 

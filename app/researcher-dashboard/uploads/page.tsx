@@ -187,7 +187,7 @@ export default function ResearcherUpload() {
 
       if (!response.ok) throw new Error('Failed to delete paper');
       
-      setPapers(papers.filter(paper => paper._id !== paperToDelete));
+      setPapers(papers.filter(paper => paper._id.toString() !== paperToDelete));
       toast.success('Paper deleted successfully');
     } catch (error) {
       console.error('Delete error:', error);

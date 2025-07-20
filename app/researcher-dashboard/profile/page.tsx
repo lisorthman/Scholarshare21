@@ -608,15 +608,15 @@ export default function ResearcherProfile() {
                 <p style={{ color: "#666", marginBottom: "0.5rem" }}>
                   Member Since
                 </p>
-                <p>{new Date(researcher.createdAt).toLocaleDateString()}</p>
+                <p>{researcher.createdAt ? new Date(researcher.createdAt).toLocaleDateString() : "N/A"}</p>
               </div>
               <div>
                 <p style={{ color: "#666", marginBottom: "0.5rem" }}>
                   Last Login
                 </p>
                 <p>
-                  {researcher.lastLogin
-                    ? new Date(researcher.lastLogin).toLocaleString()
+                  {(researcher as any).lastLogin
+                    ? new Date((researcher as any).lastLogin).toLocaleString()
                     : "Never"}
                 </p>
               </div>

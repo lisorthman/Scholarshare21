@@ -37,7 +37,7 @@ export default async function PaperDetailPage(props: {
             <h1 style={styles.title}>{paper.title}</h1>
             <WishlistButton paperId={paper._id} style={styles.wishlistButton} />
           </div>
-          <p style={styles.abstract}>{paper.abstract || 'No abstract available'}</p>
+          <p style={styles.abstract}>{(paper as any).abstract || 'No abstract available'}</p>
           
         </div>
         
@@ -148,9 +148,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s ease',
-    ':hover': {
-      backgroundColor: '#EFEBE9',
-    },
   },
   ratingSection: {
     marginBottom: '48px',
@@ -198,16 +195,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    ':hover': {
-      backgroundColor: '#3E2723',
-      transform: 'translateY(-1px)',
-    },
-    ':active': {
-      transform: 'translateY(0)',
-    },
-    ':disabled': {
-      backgroundColor: '#BCAAA4',
-      cursor: 'not-allowed',
-    },
   },
 };
