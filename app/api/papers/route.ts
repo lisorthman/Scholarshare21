@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import ResearchPaper from '@/models/ResearchPaper';
@@ -82,84 +81,5 @@ export async function GET(request: Request) {
       { error: 'Failed to fetch papers', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
     );
-  }
-}
-
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-    if (!token) {
-      return NextResponse.json({ error: "No token provided" }, { status: 401 });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
-    if (decoded.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const { action, lastGrammarCheck } = body;
-    if (action && !['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-    }
-
-    await connectDB();
-
-    const paper = await ResearchPaper.findById(params.id).populate("authorId", "name email");
-    if (!paper) {
-      return NextResponse.json({ error: "Paper not found" }, { status: 404 });
-    }
-
-    const author = paper.authorId as any;
-    const authorEmail = author?.email;
-    const authorName = author?.name || "Researcher";
-
-    if (action) {
-      paper.status = action === "approve" ? "approved" : "rejected";
-      paper.updatedAt = new Date();
-    }
-    if (lastGrammarCheck) {
-      paper.lastGrammarCheck = lastGrammarCheck;
-    }
-    await paper.save();
-
-    let emailSent = true;
-    if (action) {
-      try {
-        const nodemailer = (await import('nodemailer')).default;
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
-
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: authorEmail,
-          subject: `Paper ${action === "approve" ? "Approved" : "Rejected"}: ${paper.title}`,
-          text: `Dear ${authorName},\n\nYour paper titled "${paper.title}" has been ${action}d.\n\nBest regards,\nThe ScholarShare Team`,
-          html: `
-            <p>Dear ${authorName},</p>
-            <p>Your paper titled "<strong>${paper.title}</strong>" has been <strong>${action}d</strong>.</p>
-            <p>Best regards,<br>The ScholarShare Team</p>
-          `,
-        });
-        console.log(`Email sent to ${authorEmail} with subject "Paper ${action === "approve" ? "Approved" : "Rejected"}: ${paper.title}"`);
-      } catch (emailError: any) {
-        console.error(`Failed to send email: ${emailError.message}`);
-        emailSent = false;
-      }
-    }
-
-    return NextResponse.json({ success: true, emailSent }, { status: 200 });
-  } catch (error: any) {
-    console.error("Update paper error:", {
-      message: error.message,
-      paperId: params.id,
-      timestamp: new Date().toISOString(),
-    });
-    return NextResponse.json({ error: "Failed to update paper", details: error.message }, { status: 500 });
   }
 }
