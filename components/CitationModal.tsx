@@ -34,7 +34,8 @@ export default function CitationModal({ isOpen, onClose, paper }: CitationModalP
     }
   };
 
-  const copyToClipboard = async (text: string, format: string) => {
+  const copyToClipboard = async (text: string, format: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent event bubbling
     try {
       await navigator.clipboard.writeText(text);
       setCopiedFormat(format);
@@ -48,7 +49,10 @@ export default function CitationModal({ isOpen, onClose, paper }: CitationModalP
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div 
+        className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+      >
         <div className="p-6">
           {/* Modal Header with Back Button */}
           <div className="flex justify-between items-start mb-6">
@@ -97,7 +101,7 @@ export default function CitationModal({ isOpen, onClose, paper }: CitationModalP
                     </div>
                   </div>
                   <button
-                    onClick={() => copyToClipboard(generateCitation(format), format)}
+                    onClick={(e) => copyToClipboard(generateCitation(format), format, e)}
                     className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                       copiedFormat === format 
                         ? 'bg-green-100 text-green-800 border border-green-200' 
