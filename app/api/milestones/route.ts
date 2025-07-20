@@ -27,7 +27,40 @@ export async function GET(request: Request) {
 
     await connectToDB();
 
-    // Calculate milestones and sync badges
+    // Get user to verify they have researcher role
+    const user = await User.findById(userId).select('role').lean() as { role: string } | null;
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get all papers uploaded by this researcher
+    const allUserPapers = await ResearchPaper.find({
+      authorId: userId
+    }).select('status downloads downloadCount createdAt').lean();
+
+    // Calculate accurate counts based on roles:
+    // - Uploads: Papers uploaded by researcher role (all papers by this user)
+    // - Approvals: Papers that have been approved by admin role (status: 'approved')
+    // - Downloads: Sum of downloads from approved papers only
+    
+    const uploadCount = allUserPapers.length; // Total papers uploaded by researcher
+    const approvedPapers = allUserPapers.filter(paper => paper.status === 'approved');
+    const approvalCount = approvedPapers.length; // Papers approved by admin
+    const totalDownloads = approvedPapers.reduce((sum, paper) => 
+      sum + (paper.downloads || paper.downloadCount || 0), 0
+    );
+
+    // Update user's counts in database to ensure accuracy before milestone calculation
+    await User.findByIdAndUpdate(userId, {
+      'counts.uploads': uploadCount,
+      'counts.approvals': approvalCount, 
+      'counts.downloads': totalDownloads
+    });
+
+    // Calculate milestones and sync badges with updated counts
     const result = await calculateAndSyncMilestones(userId);
 
     // Validate the returned data structure
@@ -37,35 +70,12 @@ export async function GET(request: Request) {
       throw new Error('Invalid data structure returned from milestone calculation');
     }
 
-    // Get paper downloads breakdown and calculate total
-    const papers = await ResearchPaper.find({
-      authorId: userId,
-      status: 'approved'
-    })
-    .select('title downloads downloadCount')
-    .sort({ downloads: -1 })
-    .lean();
-
-    const paperDownloads = papers.map((paper: any) => ({
+    // Get paper downloads breakdown for approved papers only
+    const paperDownloads = approvedPapers.map((paper: any) => ({
       paperId: paper._id.toString(),
       title: paper.title,
       count: paper.downloads || paper.downloadCount || 0
-    }));
-
-    // Calculate total downloads from all papers
-    const totalDownloads = paperDownloads.reduce((sum, paper) => sum + paper.count, 0);
-
-    // Update user's download count if it doesn't match the actual total
-    const currentUserDownloads = result.userCounts?.downloads || 0;
-    if (totalDownloads !== currentUserDownloads) {
-      await User.findByIdAndUpdate(userId, {
-        'counts.downloads': totalDownloads
-      });
-      
-      // Recalculate milestones with updated download count
-      const updatedResult = await calculateAndSyncMilestones(userId);
-      result.milestones = updatedResult.milestones;
-    }
+    })).sort((a, b) => b.count - a.count); // Sort by download count descending
 
     // Transform milestones for the client
     const transformedMilestones = result.milestones.map(milestone => ({
@@ -91,6 +101,12 @@ export async function GET(request: Request) {
         milestones: transformedMilestones,
         newBadges: result.newBadges,
         paperDownloads,
+        actualCounts: {
+          uploads: uploadCount,
+          approvals: approvalCount,
+          downloads: totalDownloads
+        },
+        userRole: user.role,
         timestamp: new Date().toISOString()
       }
     }, {

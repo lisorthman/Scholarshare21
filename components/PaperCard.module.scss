@@ -63,7 +63,6 @@ $keyword-text: #6b21a8; // Purple-800
     font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
     margin-bottom: clamp(0.75rem, 3vw, 1rem);
     display: -webkit-box;
-    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.5;

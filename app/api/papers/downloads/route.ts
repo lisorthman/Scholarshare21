@@ -33,9 +33,9 @@ export async function GET(request: Request) {
 
     // Transform data for the frontend
     const paperDownloads = papers.map(paper => ({
-      paperId: paper._id.toString(),
-      title: paper.title,
-      count: paper.downloads || paper.downloadCount || 0
+      paperId: (paper as any)._id.toString(),
+      title: (paper as any).title,
+      count: (paper as any).downloads || (paper as any).downloadCount || 0
     }));
 
     return NextResponse.json({

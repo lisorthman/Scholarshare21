@@ -1,9 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  connectToDB  from '@/lib/mongoose';
-import {Bookshelf} from '@/models/Bookshelf';
+import connectToDB from '@/lib/mongoose';
+import { Bookshelf } from '@/models/Bookshelf';
 import ResearchPaper from '@/models/ResearchPaper';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+
+// Define types for your bookshelf items
+interface Paper {
+  id: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  fileUrl: string;
+  downloadCount: number;
+  viewCount: number;
+  averageRating: number;
+}
+
+interface BookshelfItem {
+  _id: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  paperId: Paper | null;
+  status: 'read' | 'toread';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface TransformedBookshelfItem {
+  id: string;
+  userId: string;
+  paperId: Paper | null;
+  status: 'read' | 'toread';
+  createdAt: string;
+  updatedAt: string;
+}
 
 export async function POST(req: NextRequest) {
   await connectToDB();
@@ -27,7 +57,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate paperId format
     if (!mongoose.Types.ObjectId.isValid(paperId)) {
       return NextResponse.json(
         { error: 'Invalid paperId format' },
@@ -38,7 +67,6 @@ export async function POST(req: NextRequest) {
     const userId = new mongoose.Types.ObjectId(decoded.userId);
     const paperObjectId = new mongoose.Types.ObjectId(paperId);
 
-    // Verify the paper exists
     const paperExists = await ResearchPaper.exists({ _id: paperObjectId });
     if (!paperExists) {
       return NextResponse.json(
@@ -59,7 +87,6 @@ export async function POST(req: NextRequest) {
     let updateResult;
     
     if (action === 'remove') {
-      // Remove the item from bookshelf
       updateResult = await Bookshelf.findOneAndDelete({ 
         userId, 
         paperId: paperObjectId 
@@ -67,7 +94,6 @@ export async function POST(req: NextRequest) {
     } else {
       const status = action === 'addToRead' ? 'read' : 'toread';
       
-      // Upsert operation
       updateResult = await Bookshelf.findOneAndUpdate(
         { userId, paperId: paperObjectId },
         { 
@@ -85,7 +111,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get updated counts and items in parallel
     const [counts, bookshelfItems] = await Promise.all([
       {
         read: await Bookshelf.countDocuments({ userId, status: 'read' }),
@@ -94,7 +119,7 @@ export async function POST(req: NextRequest) {
       Bookshelf.find({ userId })
         .populate({
           path: 'paperId',
-          select: 'title authors abstract fileUrl downloadCount viewCount averageRating',
+          select: 'title authors abstract fileUrl downloadCount viewCount averageRating category categoryId',
           transform: (doc) => {
             if (!doc) return null;
             return {
@@ -105,16 +130,17 @@ export async function POST(req: NextRequest) {
               fileUrl: doc.fileUrl,
               downloadCount: doc.downloadCount,
               viewCount: doc.viewCount,
-              averageRating: doc.averageRating
+              averageRating: doc.averageRating,
+              category: doc.category,
+              categoryId: doc.categoryId?.toString() || null
             };
           }
         })
         .sort({ updatedAt: -1 })
-        .lean()
+        .lean<BookshelfItem[]>() // Add type parameter to lean()
     ]);
 
-    // Transform bookshelf items
-    const transformedItems = bookshelfItems.map(item => ({
+    const transformedItems: TransformedBookshelfItem[] = bookshelfItems.map(item => ({
       ...item,
       id: item._id.toString(),
       userId: item.userId.toString(),
@@ -156,7 +182,6 @@ export async function GET(req: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     const userId = new mongoose.Types.ObjectId(decoded.userId);
 
-    // Get counts and items in parallel with better population
     const [counts, bookshelfItems] = await Promise.all([
       {
         read: await Bookshelf.countDocuments({ userId, status: 'read' }),
@@ -165,7 +190,7 @@ export async function GET(req: NextRequest) {
       Bookshelf.find({ userId })
         .populate({
           path: 'paperId',
-          select: 'title authors abstract fileUrl downloadCount viewCount averageRating',
+          select: 'title authors abstract fileUrl downloadCount viewCount averageRating category categoryId',
           transform: (doc) => {
             if (!doc) return null;
             return {
@@ -176,16 +201,17 @@ export async function GET(req: NextRequest) {
               fileUrl: doc.fileUrl,
               downloadCount: doc.downloadCount,
               viewCount: doc.viewCount,
-              averageRating: doc.averageRating
+              averageRating: doc.averageRating,
+              category: doc.category,
+              categoryId: doc.categoryId?.toString() || null
             };
           }
         })
         .sort({ updatedAt: -1 })
-        .lean()
+        .lean<BookshelfItem[]>() // Add type parameter to lean()
     ]);
 
-    // Transform bookshelf items
-    const transformedItems = bookshelfItems.map(item => ({
+    const transformedItems: TransformedBookshelfItem[] = bookshelfItems.map(item => ({
       ...item,
       id: item._id.toString(),
       userId: item.userId.toString(),

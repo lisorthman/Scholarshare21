@@ -1,12 +1,13 @@
 // components/PaperModal.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Paper } from '@/types';
 import styles from './PaperModal.module.scss';
 import { X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import CitationModal from './CitationModal';
 
 interface PaperModalProps {
   paper: Paper | null;
@@ -17,6 +18,7 @@ interface PaperModalProps {
 export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const [showCitationModal, setShowCitationModal] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -33,6 +35,14 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
     } else {
       router.push(`/donate?paperId=${paper.id}`);
     }
+  };
+
+  const handleCiteClick = () => {
+    setShowCitationModal(true);
+  };
+
+  const handleCloseCitationModal = () => {
+    setShowCitationModal(false);
   };
 
   if (!paper) return null;
@@ -112,14 +122,27 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
                 Download
               </button>
               <button>Wishlist</button>
-              <button>Cite</button>
+              <button onClick={handleCiteClick}>Cite</button>
               <button onClick={handleSupportClick}>Support Publisher</button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Citation Modal */}
+      {paper && (
+        <CitationModal
+          isOpen={showCitationModal}
+          onClose={handleCloseCitationModal}
+          paper={{
+            _id: paper.id,
+            title: paper.title,
+            authorDetails: { name: paper.author || 'Unknown Author' },
+            createdAt: typeof paper.createdAt === 'string' ? paper.createdAt : paper.createdAt?.toISOString?.() || ''
+          }}
+        />
+      )}
     </div>
   );
 
 }
-

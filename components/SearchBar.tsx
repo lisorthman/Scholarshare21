@@ -40,7 +40,6 @@ export default function SearchBar() {
     </form>
   );
 }
-=======
     if (query.trim()) {
       router.push(`/search?q=${encodeURIComponent(query)}`);
     }
@@ -62,4 +61,4 @@ export default function SearchBar() {
   );
 }
   */
->>>>>>> origin/babi
+

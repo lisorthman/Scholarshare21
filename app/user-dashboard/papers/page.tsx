@@ -17,8 +17,7 @@ export default async function UserPapersPage() {
     _id: '1',
     name: 'John Doe',
     email: 'john@example.com',
-    role: 'user',
-    avatar: '/default-avatar.jpg'
+    role: 'user'
   };
 
   return (
@@ -40,17 +39,21 @@ export default async function UserPapersPage() {
                       day: 'numeric'
                     })}
                   </span>
-                  {paper.authorDetails && (
+                  {paper.author && (
                     <span style={styles.paperAuthor}>
-                      by {paper.authorDetails.name}
+                      by {paper.author.name}
                     </span>
                   )}
                 </div>
                 
-                <PaperCard 
-                  paper={paper}
-                  showAdminActions={false}
-                  showResearcherActions={false}
+                <PaperCard
+                  paper={{
+                    ...(paper as any),
+                    category: (paper as any).category || paper.categoryId?.name || 'Uncategorized',
+                    fileUrl: (paper as any).fileUrl || '',
+                    createdAt: new Date(paper.createdAt),
+                    updatedAt: new Date(paper.updatedAt),
+                  }}
                 />
                 
                 <div style={styles.footer}>
@@ -115,11 +118,6 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: '#FFFDF9',
     transition: 'all 0.2s ease',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.03)',
-    ':hover': {
-      transform: 'translateY(-3px)',
-      boxShadow: '0 6px 12px rgba(92, 77, 61, 0.1)',
-      borderColor: '#C4B6A0',
-    },
   },
   paperHeader: {
     display: 'flex',
@@ -145,10 +143,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 12px',
     borderRadius: '6px',
     backgroundColor: 'rgba(140, 106, 61, 0.1)',
-    ':hover': {
-      color: '#6B4F2A',
-      backgroundColor: 'rgba(140, 106, 61, 0.15)',
-    },
   },
   footer: {
     marginTop: 'auto',

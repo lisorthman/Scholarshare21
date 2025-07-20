@@ -16,7 +16,7 @@ interface User {
   _id: string;
   name: string;
   email: string;
-  role: string;
+  role: "user" | "admin" | "researcher"; // <-- fix here
   createdAt: string;
   updatedAt: string;
 }
@@ -66,6 +66,49 @@ interface ReadingStats {
   papersInCategory: number;
 }
 
+// Add a new function to calculate the longest reading streak
+type StreakStats = { longestStreak: number, currentStreak: number };
+
+function calculateReadingStreak(items: BookshelfItem[]): StreakStats {
+  // Filter only read items and get unique days
+  const readDates = Array.from(new Set(
+    items
+      .filter(item => item.status === 'read')
+      .map(item => new Date(item.updatedAt).toISOString().split('T')[0])
+  ));
+  if (readDates.length === 0) return { longestStreak: 0, currentStreak: 0 };
+  // Sort dates ascending
+  readDates.sort();
+  let longest = 1, current = 1;
+  for (let i = 1; i < readDates.length; i++) {
+    const prev = new Date(readDates[i - 1]);
+    const curr = new Date(readDates[i]);
+    const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+    if (diff === 1) {
+      current++;
+    } else {
+      current = 1;
+    }
+    if (current > longest) longest = current;
+  }
+  // Calculate current streak (ending today)
+  let currentStreak = 1;
+  for (let i = readDates.length - 1; i > 0; i--) {
+    const curr = new Date(readDates[i]);
+    const prev = new Date(readDates[i - 1]);
+    const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+    if (diff === 1) {
+      currentStreak++;
+    } else {
+      break;
+    }
+  }
+  // If the last read date is not today, current streak is 0
+  const today = new Date().toISOString().split('T')[0];
+  if (readDates[readDates.length - 1] !== today) currentStreak = 0;
+  return { longestStreak: longest, currentStreak };
+}
+
 export default function UserDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -81,6 +124,9 @@ export default function UserDashboard() {
     papersInCategory: 0
   });
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [streakStats, setStreakStats] = useState<StreakStats>({ longestStreak: 0, currentStreak: 0 });
+  // Calculate number of unique categories explored
+  const [uniqueCategories, setUniqueCategories] = useState<number>(0);
 
   // Initialize chart data with empty datasets
   const [chartData, setChartData] = useState({
@@ -153,6 +199,14 @@ export default function UserDashboard() {
           processChartData(data.bookshelf);
           calculateReadingStats(data.bookshelf);
           generateRecentActivities(data.bookshelf);
+          setStreakStats(calculateReadingStreak(data.bookshelf));
+          // Calculate unique categories explored
+          const categories = new Set(
+            data.bookshelf
+              .filter(item => item.status === 'read' && item.paperId && item.paperId.category)
+              .map(item => item.paperId.category)
+          );
+          setUniqueCategories(categories.size);
         }
       } catch (error) {
         console.error('Error fetching bookshelf data:', error);
@@ -240,7 +294,7 @@ export default function UserDashboard() {
       const recentItems = sortedItems.slice(0, 3);
 
       // Convert to activities
-      const newActivities = recentItems.map(item => {
+      const newActivities: Activity[] = recentItems.map(item => {
         const date = new Date(item.updatedAt);
         return {
           id: item.id,
@@ -250,7 +304,6 @@ export default function UserDashboard() {
           time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
       });
-
       setActivities(newActivities);
     };
 
@@ -586,7 +639,7 @@ export default function UserDashboard() {
               flexDirection: 'column',
               gap: '1.5rem',
             }}>
-              {/* Hours Spent Card */}
+              {/* Reading Streak Card (replaces Hours Spent Reading) */}
               <div style={{
                 borderRadius: "1rem",
                 backgroundColor: "rgba(112, 40, 40, 0.32)",
@@ -600,18 +653,18 @@ export default function UserDashboard() {
                   color: '#111827', 
                   margin: 0,
                   fontWeight: '500'
-                }}>Hours Spent Reading</h3>
+                }}>Reading Streak</h3>
                 <p style={{ 
                   fontSize: '2rem', 
                   fontWeight: '700', 
                   margin: '0.5rem 0 0 0',
                   color: '#111827'
-                }}>{readingStats.hoursSpent}</p>
+                }}>{streakStats.currentStreak} days</p>
                 <p style={{ 
                   fontSize: '0.75rem', 
                   color: '#6B7280', 
                   margin: '0.1rem 0 0 0'
-                }}>hours this month</p>
+                }}>Longest streak: {streakStats.longestStreak} days</p>
               </div>
 
               {/* Most Featured Category Card */}
@@ -642,6 +695,12 @@ export default function UserDashboard() {
                   margin: '0.1rem 0 0 0',
                   opacity: 0.8
                 }}>{readingStats.papersInCategory} papers this month</p>
+                <p style={{
+                  fontSize: '0.7rem',
+                  color: '#F5F5F5',
+                  margin: '0.1rem 0 0 0',
+                  opacity: 0.7
+                }}>Categories explored: {uniqueCategories}</p>
               </div>
             </div>
           </div>

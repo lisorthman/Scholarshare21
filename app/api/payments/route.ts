@@ -85,8 +85,8 @@ export async function GET(request: Request) {
 
     // Calculate total withdrawn from previous withdrawals
     const totalWithdrawn = payment.withdrawals
-      .filter(w => w.status === 'completed')
-      .reduce((sum, w) => sum + w.amount, 0);
+      .filter((w: any) => w.status === 'completed')
+      .reduce((sum: number, w: any) => sum + w.amount, 0);
 
     // Update earnings
     payment.earnings.totalEarned = totalEarnings;
