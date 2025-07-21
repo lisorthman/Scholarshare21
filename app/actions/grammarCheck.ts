@@ -1,7 +1,7 @@
 'use server';
 import jwt from 'jsonwebtoken';
 import { revalidatePath } from 'next/cache';
-import PDFParser from 'pdf2json';
+const PDFParser = require("pdf2json");
 import mammoth from 'mammoth';
 import connectDB from '@/lib/mongoose';
 import ResearchPaper from '@/models/ResearchPaper';
@@ -51,7 +51,7 @@ export async function checkGrammar(paperId: string, token: string): Promise<{
     if (paper.fileType === 'application/pdf') {
       const pdfParser = new PDFParser(null, true);
       text = await new Promise((resolve, reject) => {
-        pdfParser.on('pdfParser_dataError', (errData) => {
+        pdfParser.on('pdfParser_dataError', (errData: { parserError: string | undefined; }) => {
           console.error(`PDF parsing error: ${errData.parserError}`);
           reject(new Error(errData.parserError));
         });

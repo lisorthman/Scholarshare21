@@ -1,8 +1,7 @@
-
 "use server"; // Mark as Server Action
 
 import { revalidatePath } from "next/cache";
-import PDFParser from "pdf2json";
+const PDFParser = require("pdf2json");
 import mammoth from "mammoth";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -55,7 +54,7 @@ async function extractTextFromFile(url: string, fileType: string): Promise<strin
     if (fileType === "application/pdf") {
       const pdfParser = new PDFParser(null, 1);
       return new Promise((resolve, reject) => {
-        pdfParser.on("pdfParser_dataError", (errData) => {
+        pdfParser.on("pdfParser_dataError", (errData: { parserError: any; }) => {
           console.error("PDF parsing error:", errData.parserError);
           reject(new Error(`PDF parsing failed: ${errData.parserError}`));
         });
