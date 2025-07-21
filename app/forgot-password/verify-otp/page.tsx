@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../../components/ui/Button";
 import { Space_Grotesk } from 'next/font/google';
 
+// at the top of app/forgot-password/verify-otp/page.tsx
+export const dynamic = 'force-dynamic';
+
+
 // Load the Space Grotesk font
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
