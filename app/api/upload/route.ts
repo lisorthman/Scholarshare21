@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import connectDB from "@/lib/mongoose";
 import ResearchPaper from "@/models/ResearchPaper";
-import PDFParser from "pdf2json";
+const PDFParser = require("pdf2json");
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   const pdfParser = new PDFParser(null, 1); // Verbosity level 1 for debugging
   return new Promise((resolve, reject) => {
-    pdfParser.on("pdfParser_dataError", (errData) => {
+    pdfParser.on("pdfParser_dataError", (errData: { parserError: any; }) => {
       console.error("PDF parsing error:", errData.parserError);
       reject(new Error(`PDF parsing failed: ${errData.parserError}`));
     });
