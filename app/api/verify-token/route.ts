@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await User.findById(idField).select("-password");
+    const user = await User.findById(new ObjectId(idField)).select("-password");
     if (!user) {
       console.log("User not found for ID:", idField);
       return NextResponse.json(
