@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Paper } from '@/types'; // Adjust import if needed
-import { Button } from '@/components/ui/button'; // or replace with your own <button> if not using shadcn
+import { Button } from '@/components/ui/Button'; // or replace with your own <button> if not using shadcn
 
 type Props = {
   paper?: Paper;
