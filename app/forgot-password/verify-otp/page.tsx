@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "../../../components/ui/button";
+import { Button } from "../../../components/ui/Button";
 import { Space_Grotesk } from 'next/font/google';
 
 // Load the Space Grotesk font

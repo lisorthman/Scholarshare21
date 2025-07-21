@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
 import { MilestoneProgress } from '@/types/milestone';
 import { BadgeCheck, UploadCloud, CheckCircle, Trophy, AlertCircle, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { toast } from 'react-toastify';
 
 export default function MilestonePage() {
