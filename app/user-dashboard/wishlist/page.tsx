@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { User } from '@/types/user';
 import { toast } from 'react-toastify';
-import { Download, BookmarkCheck, Eye } from 'lucide-react';
+import { Download, BookmarkCheck, Eye, Copy, Check, X, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface ResearchPaper {
   _id: string;
@@ -16,6 +17,156 @@ interface ResearchPaper {
   downloadCount: number;
   views?: number;
   category?: string;
+  createdAt?: Date;
+  author?: {
+    name?: string;
+    email?: string;
+  };
+}
+
+function CitationModal({ isOpen, onClose, paper }: { isOpen: boolean, onClose: () => void, paper: ResearchPaper }) {
+  const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
+
+  const getAuthorString = () => {
+    if (paper.authors?.length > 0) {
+      return paper.authors[0];
+    }
+    if (paper.author?.name) {
+      return paper.author.name;
+    }
+    return 'Unknown Author';
+  };
+
+  const generateCitation = (format: string) => {
+    const authorName = getAuthorString();
+    const title = paper.title || 'Untitled';
+    const year = paper.createdAt ? new Date(paper.createdAt).getFullYear() : 'n.d.';
+    const publisher = 'ScholarShare Platform';
+    
+    switch (format) {
+      case 'APA':
+        return `${authorName} (${year}). ${title}. ${publisher}.`;
+      case 'MLA':
+        return `${authorName}. "${title}." ${publisher}, ${year}.`;
+      case 'Chicago':
+        return `${authorName}. "${title}." ${publisher}. ${year}.`;
+      default:
+        return '';
+    }
+  };
+
+  const copyToClipboard = async (text: string, format: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedFormat(format);
+      setTimeout(() => setCopiedFormat(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy citation:', err);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div 
+        className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()} 
+      >
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-start gap-4">
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200 mt-1"
+                title="Back to Papers"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#634141]" />
+              </button>
+              <div>
+                <h2 className="text-2xl font-bold text-[#634141] mb-2">
+                  Citation Formats
+                </h2>
+                <h3 className="text-lg text-[#634141]/80 font-medium">
+                  {paper.title}
+                </h3>
+                <p className="text-[#634141]/60 text-sm">
+                  by {getAuthorString()}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+              title="Close"
+            >
+              <X className="w-5 h-5 text-[#634141]" />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {['APA', 'MLA', 'Chicago'].map((format) => (
+              <div key={format} className="border border-[#634141]/20 rounded-lg p-4 hover:border-[#634141]/40 transition-colors duration-200">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-[#634141] mb-3 text-lg">
+                      {format} Format
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <p className="text-[#634141]/80 text-sm leading-relaxed break-words">
+                        {generateCitation(format)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => copyToClipboard(generateCitation(format), format, e)}
+                    className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                      copiedFormat === format 
+                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                        : 'bg-[#634141] text-white hover:bg-[#634141]/90'
+                    }`}
+                  >
+                    {copiedFormat === format ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-[#634141]/20">
+            <div className="flex justify-between items-center">
+              <button
+                onClick={onClose}
+                className="inline-flex items-center px-4 py-2 text-[#634141] border border-[#634141] rounded-lg hover:bg-[#634141]/10 transition-colors duration-200"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Papers
+              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-[#634141] text-white rounded-lg hover:bg-[#634141]/90 transition-colors duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function SavedPapersPage() {
@@ -25,6 +176,7 @@ export default function SavedPapersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPaperId, setDownloadingPaperId] = useState<string | null>(null);
+  const [citationModalPaper, setCitationModalPaper] = useState<ResearchPaper | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,7 +187,6 @@ export default function SavedPapersPage() {
       }
 
       try {
-        // Verify token and get user data
         const verifyResponse = await fetch('/api/auth/verify', {
           method: 'POST',
           headers: { 
@@ -54,7 +205,6 @@ export default function SavedPapersPage() {
         const { user: userData } = await verifyResponse.json();
         setUser(userData);
 
-        // Fetch saved papers with details
         const savedPapersResponse = await fetch('/api/user/saved-papers', {
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -69,14 +219,12 @@ export default function SavedPapersPage() {
 
         const responseData = await savedPapersResponse.json();
         
-        // Ensure we're working with an array
         const papersArray = Array.isArray(responseData) 
           ? responseData 
           : Array.isArray(responseData?.savedPapers) 
             ? responseData.savedPapers 
             : [];
         
-        // Transform data to match ResearchPaper interface
         const formattedPapers = papersArray.map((paper: any) => ({
           _id: paper._id || paper.id,
           title: paper.title,
@@ -86,7 +234,9 @@ export default function SavedPapersPage() {
           thumbnailUrl: paper.thumbnailUrl,
           downloadCount: paper.downloadCount || 0,
           views: paper.views || 0,
-          category: paper.category || 'uncategorized'
+          category: paper.category || 'uncategorized',
+          createdAt: paper.createdAt ? new Date(paper.createdAt) : undefined,
+          author: paper.author || undefined
         }));
 
         setSavedPapers(formattedPapers);
@@ -112,7 +262,6 @@ export default function SavedPapersPage() {
         return;
       }
 
-      // First, mark as read in bookshelf
       const markAsReadResponse = await fetch('/api/bookshelf', {
         method: 'POST',
         headers: { 
@@ -130,7 +279,6 @@ export default function SavedPapersPage() {
         throw new Error('Failed to mark as read');
       }
 
-      // Then remove from saved papers
       const removeResponse = await fetch('/api/user/saved-papers', {
         method: 'PATCH',
         headers: { 
@@ -167,7 +315,6 @@ export default function SavedPapersPage() {
         return;
       }
 
-      // Track download in the backend
       const trackResponse = await fetch(`/api/papers/${paperId}/download`, {
         method: 'POST',
         headers: { 
@@ -181,7 +328,6 @@ export default function SavedPapersPage() {
         throw new Error('Download tracking failed');
       }
 
-      // Get the actual file
       const paper = savedPapers.find(p => p._id === paperId);
       if (!paper) return;
 
@@ -198,7 +344,6 @@ export default function SavedPapersPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      // Update download count in UI
       setSavedPapers(prev => 
         prev.map(paper => 
           paper._id === paperId 
@@ -223,7 +368,6 @@ export default function SavedPapersPage() {
         return;
       }
 
-      // Track view in the backend
       const trackResponse = await fetch(`/api/papers/${paperId}/view`, {
         method: 'POST',
         headers: { 
@@ -237,7 +381,6 @@ export default function SavedPapersPage() {
         console.error('View tracking failed');
       }
 
-      // Update view count in UI
       setSavedPapers(prev => 
         prev.map(paper => 
           paper._id === paperId 
@@ -246,7 +389,6 @@ export default function SavedPapersPage() {
         )
       );
 
-      // Open the paper in a new tab
       const paper = savedPapers.find(p => p._id === paperId);
       if (paper) {
         window.open(paper.downloadUrl, '_blank');
@@ -254,6 +396,14 @@ export default function SavedPapersPage() {
     } catch (error) {
       console.error('View tracking failed:', error);
     }
+  };
+
+  const openCitationModal = (paper: ResearchPaper) => {
+    setCitationModalPaper(paper);
+  };
+
+  const closeCitationModal = () => {
+    setCitationModalPaper(null);
   };
 
   if (!user) {
@@ -321,7 +471,14 @@ export default function SavedPapersPage() {
         ) : (
           <div className="grid gap-6">
             {savedPapers.map((paper) => (
-              <div key={paper._id} className="border border-[#D7CCC8] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
+              <motion.div 
+                key={paper._id} 
+                className="border border-[#D7CCC8] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white"
+                whileHover={{ scale: 1.01 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 <div className="flex flex-col md:flex-row">
                   <div className="w-full md:w-48 h-48 bg-[#EFEBE9] flex items-center justify-center shrink-0">
                     {paper.thumbnailUrl ? (
@@ -358,15 +515,10 @@ export default function SavedPapersPage() {
                       {paper.abstract || 'No abstract available'}
                     </p>
                     
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm text-[#8D6E63] mb-4">
-                      <span>Downloads: {paper.downloadCount}</span>
-                      <span>•</span>
-                      <span>Views: {paper.views || 0}</span>
-                    </div>
+                    
                   </div>
                   
                   <div className="p-4 md:p-6 flex flex-col gap-3 justify-center border-t md:border-t-0 md:border-l border-[#EFEBE9] md:w-48 shrink-0">
-                    {/* Download Button - Primary Style */}
                     <button 
                       onClick={() => handleDownload(paper._id, paper.title)}
                       disabled={downloadingPaperId === paper._id}
@@ -382,7 +534,6 @@ export default function SavedPapersPage() {
                       )}
                     </button>
                     
-                    {/* View Paper Button - Secondary Style */}
                     <button
                       onClick={() => handleViewPaper(paper._id)}
                       className="bg-white border border-[#0288D1] text-[#0288D1] hover:bg-[#E3F2FD] py-2 px-4 rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
@@ -391,7 +542,6 @@ export default function SavedPapersPage() {
                       View Paper
                     </button>
                     
-                    {/* Mark as Read Button - Accent Style */}
                     <button 
                       onClick={() => markAsReadAndRemove(paper._id)}
                       className="bg-[#4CAF50] hover:bg-[#388E3C] text-white py-2 px-4 rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
@@ -399,13 +549,29 @@ export default function SavedPapersPage() {
                       <BookmarkCheck className="w-4 h-4" />
                       Mark as Read
                     </button>
+
+                    <button 
+                      onClick={() => openCitationModal(paper)}
+                      className="bg-white border border-[#5D4037] text-[#5D4037] hover:bg-[#EFEBE9] py-2 px-4 rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Cite
+                    </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
       </div>
+
+      {citationModalPaper && (
+        <CitationModal 
+          isOpen={!!citationModalPaper} 
+          onClose={closeCitationModal} 
+          paper={citationModalPaper} 
+        />
+      )}
     </DashboardLayout>
   );
 }

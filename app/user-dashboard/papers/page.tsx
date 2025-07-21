@@ -39,11 +39,6 @@ export default async function UserPapersPage() {
                       day: 'numeric'
                     })}
                   </span>
-                  {paper.author && (
-                    <span style={styles.paperAuthor}>
-                      by {paper.author.name}
-                    </span>
-                  )}
                 </div>
                 
                 <PaperCard

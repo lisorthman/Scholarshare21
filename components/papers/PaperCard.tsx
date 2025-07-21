@@ -49,7 +49,8 @@ function CitationModal({ isOpen, onClose, paper }: { isOpen: boolean, onClose: (
     }
   };
 
-  const copyToClipboard = async (text: string, format: string) => {
+  const copyToClipboard = async (text: string, format: string, event: React.MouseEvent) => {
+    event.stopPropagation();
     try {
       await navigator.clipboard.writeText(text);
       setCopiedFormat(format);
@@ -63,7 +64,10 @@ function CitationModal({ isOpen, onClose, paper }: { isOpen: boolean, onClose: (
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div 
+        className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6">
           {/* Modal Header with Back Button */}
           <div className="flex justify-between items-start mb-6">
@@ -112,7 +116,7 @@ function CitationModal({ isOpen, onClose, paper }: { isOpen: boolean, onClose: (
                     </div>
                   </div>
                   <button
-                    onClick={() => copyToClipboard(generateCitation(format), format)}
+                    onClick={(e) => copyToClipboard(generateCitation(format), format, e)}
                     className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                       copiedFormat === format 
                         ? 'bg-green-100 text-green-800 border border-green-200' 
@@ -147,7 +151,6 @@ function CitationModal({ isOpen, onClose, paper }: { isOpen: boolean, onClose: (
                 Back to Papers
               </button>
               <div className="flex items-center gap-4">
-                
                 <button
                   onClick={onClose}
                   className="px-6 py-2 bg-[#634141] text-white rounded-lg hover:bg-[#634141]/90 transition-colors duration-200"
@@ -298,8 +301,9 @@ export default function PaperCard({ paper, showStatus = false }: PaperCardProps)
               <button
                 onClick={() => setShowCitationModal(true)}
                 className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-[#5D4037] rounded-lg hover:bg-[#3E2723] transition-colors"
+                aria-label="Cite this paper"
               >
-                <span>Citation</span>
+                <span>Cite</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
