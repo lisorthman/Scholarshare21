@@ -23,12 +23,17 @@ const VerifyOTPPage = () => {
   const [isResending, setIsResending] = useState<boolean>(false);
   const [expiryTime, setExpiryTime] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
     const storedExpiryTime = localStorage.getItem("resetOtpExpiry");
     if (storedExpiryTime) {
       setExpiryTime(new Date(storedExpiryTime));
     }
+  }, []);
+
+  useEffect(() => {
+    setEmail(localStorage.getItem("resetEmail") || "example@gmail.com");
   }, []);
 
   const handleCodeChange = (index: number, value: string) => {
@@ -53,7 +58,6 @@ const VerifyOTPPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const email = localStorage.getItem("resetEmail");
     const otp = code.join("");
 
     if (!email) {
@@ -80,7 +84,6 @@ const VerifyOTPPage = () => {
   };
 
   const handleResend = async () => {
-    const email = localStorage.getItem("resetEmail");
     if (!email) {
       setError("Email not found. Please try again.");
       return;
@@ -176,7 +179,7 @@ const VerifyOTPPage = () => {
           letterSpacing: "0.5px",
           marginBottom: "40px",
         }}>
-          {maskEmail(localStorage.getItem("resetEmail") || "example@gmail.com")}
+          {maskEmail(email)}
         </p>
 
         <h2 style={{
