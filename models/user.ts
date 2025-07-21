@@ -75,7 +75,7 @@ const UserSchema = new Schema<IUser>(
     badges: { type: [String], default: [] },
     educationQualification: { type: String, default: null }, // Added for researchers
   },
-  { timestamps: true }
+  { timestamps: true, collection: 'users' }
 );
 
 const User = models.User || model<IUser>("User", UserSchema);

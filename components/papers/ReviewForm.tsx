@@ -61,14 +61,13 @@ export default function ReviewForm({ paperId, onReviewSubmitted }: Props) {
         transition={{ duration: 0.2 }}
       >
         <label className="block mb-1.5 text-sm font-medium text-[#5D4037]">
-          Your Name (optional)
+          Your Name
         </label>
         <input
           type="text"
           value={reviewerName}
           onChange={(e) => setReviewerName(e.target.value)}
           className="w-full p-2.5 border border-[#D7CCC8] rounded-lg bg-[#EFEBE9] focus:ring-2 focus:ring-[#A1887F] focus:border-[#A1887F] transition-all"
-          placeholder="How you'd like to be shown"
           maxLength={50}
         />
       </motion.div>

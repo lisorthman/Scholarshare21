@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
     // Generate JWT token
     const token = jwt.sign(
-      { userId: result.insertedId, name, email, role },
+      { userId: result.insertedId.toString(), name, email, role },
       process.env.JWT_SECRET!,
       { expiresIn: '1h' }
     );

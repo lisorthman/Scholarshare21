@@ -1,4 +1,3 @@
-// components/PaperModal.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,6 +8,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import CitationModal from './CitationModal';
 import WishlistButton from './papers/WishlistButton';
+import RatingDisplay from '@/components/papers/RatingDisplay';
+import ReviewList from '@/components/papers/ReviewList';
+import ReviewForm from '@/components/papers/ReviewForm';
 
 interface PaperModalProps {
   paper: Paper | null;
@@ -20,6 +22,7 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [showCitationModal, setShowCitationModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'reviews'>('details');
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -85,47 +88,80 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
           </div>
 
           <div className={styles.detailsSection}>
-            <h2>{paper.title}</h2>
-            <p className={styles.abstract}>{paper.abstract}</p>
-            <p><strong>Author:</strong> {paper.author || 'Anonymous'}</p>
-            <p><strong>Date:</strong> {formattedDate}</p>
-            <p><strong>Category:</strong> {paper.category || 'Uncategorized'}</p>
-            <p><strong>File Size:</strong> {formattedSize}</p>
+            <div className={styles.tabs}>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'details' ? styles.active : ''}`}
+                onClick={() => setActiveTab('details')}
+              >
+                Details
+              </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'reviews' ? styles.active : ''}`}
+                onClick={() => setActiveTab('reviews')}
+              >
+                Reviews & Rating
+              </button>
+            </div>
 
-            {paper.keywords?.length > 0 && (
-              <div className={styles.keywords}>
-                <strong>Keywords:</strong>
-                {paper.keywords.map((kw, idx) => (
-                  <span key={idx} className={styles.keyword}>{kw}</span>
-                ))}
+            {activeTab === 'details' ? (
+              <>
+                <h2>{paper.title}</h2>
+                <p className={styles.abstract}>{paper.abstract}</p>
+                <p><strong>Author:</strong> {paper.author || 'Anonymous'}</p>
+                <p><strong>Date:</strong> {formattedDate}</p>
+                <p><strong>Category:</strong> {paper.category || 'Uncategorized'}</p>
+                <p><strong>File Size:</strong> {formattedSize}</p>
+
+                {paper.keywords?.length > 0 && (
+                  <div className={styles.keywords}>
+                    <strong>Keywords:</strong>
+                    {paper.keywords.map((kw, idx) => (
+                      <span key={idx} className={styles.keyword}>{kw}</span>
+                    ))}
+                  </div>
+                )}
+
+                <div className={styles.buttons}>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(paper.fileUrl);
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = paper.title || 'paper';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                      } catch (err) {
+                        alert('Download failed.');
+                      }
+                    }}
+                  >
+                    Download
+                  </button>
+                  <WishlistButton paperId={paper.id} />
+                  <button onClick={handleCiteClick}>Cite</button>
+                  <button onClick={handleSupportClick}>Support Publisher</button>
+                </div>
+              </>
+            ) : (
+              <div className={styles.reviewsContent}>
+                <div className={styles.ratingSection}>
+                  <RatingDisplay paperId={paper.id} />
+                </div>
+                
+                <div className={styles.reviewsList}>
+                  <ReviewList paperId={paper.id} />
+                </div>
+
+                <div className={styles.reviewFormSection}>
+                  <ReviewForm paperId={paper.id} />
+                </div>
               </div>
             )}
-
-            <div className={styles.buttons}>
-              <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch(paper.fileUrl);
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = paper.title || 'paper';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                  } catch (err) {
-                    alert('Download failed.');
-                  }
-                }}
-              >
-                Download
-              </button>
-              <WishlistButton paperId={paper.id} />
-              <button onClick={handleCiteClick}>Cite</button>
-              <button onClick={handleSupportClick}>Support Publisher</button>
-            </div>
           </div>
         </div>
       </div>
