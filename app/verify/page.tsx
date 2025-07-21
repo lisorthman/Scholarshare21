@@ -14,6 +14,11 @@ const VerifyPage = () => {
   const [expiryTime, setExpiryTime] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [approvalMessage, setApprovalMessage] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+
+  useEffect(() => {
+    setEmail(localStorage.getItem("email") || "example@gmail.com");
+  }, []);
 
   useEffect(() => {
     const storedExpiryTime = localStorage.getItem("otpExpiryTime");
@@ -199,7 +204,7 @@ const VerifyPage = () => {
         </h1>
 
         <p style={{ textAlign: "center", fontSize: "18px", fontWeight: 500, letterSpacing: "0.5px", marginBottom: "40px" }}>
-          {maskEmail(localStorage.getItem("email") || "example@gmail.com")}
+          {maskEmail(email)}
         </p>
 
         <h2 style={{ marginBottom: "20px", fontSize: "18px", fontWeight: 500, letterSpacing: "0.5px", textAlign: "center", color: "#3F2828" }}>
