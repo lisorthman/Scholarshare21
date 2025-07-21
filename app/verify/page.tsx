@@ -162,8 +162,13 @@ const VerifyPage = () => {
   }, [expiryTime]);
 
   const maskEmail = (email: string) => {
+    if (!email || !email.includes("@")) return email;
     const [username, domain] = email.split("@");
-    const maskedUsername = username[0] + "*".repeat(username.length - 1);
+    if (!username) return email;
+    const maskedUsername =
+      username.length > 1
+        ? username[0] + "*".repeat(username.length - 1)
+        : username[0] || "";
     return `${maskedUsername}@${domain}`;
   };
 
