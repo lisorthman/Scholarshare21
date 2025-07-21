@@ -8,6 +8,7 @@ import { X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import CitationModal from './CitationModal';
+import WishlistButton from './papers/WishlistButton';
 
 interface PaperModalProps {
   paper: Paper | null;
@@ -121,7 +122,7 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
               >
                 Download
               </button>
-              <button>Wishlist</button>
+              <WishlistButton paperId={paper.id} />
               <button onClick={handleCiteClick}>Cite</button>
               <button onClick={handleSupportClick}>Support Publisher</button>
             </div>
@@ -144,5 +145,4 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
       )}
     </div>
   );
-
 }
