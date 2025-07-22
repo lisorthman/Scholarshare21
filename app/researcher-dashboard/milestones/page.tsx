@@ -212,6 +212,34 @@ export default function MilestonePage() {
 
   return (
     <DashboardLayout user={user} defaultPage="Milestone">
+      <style jsx global>{`
+        @media (max-width: 1024px) {
+          .milestone-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+          }
+          .milestone-summary {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .milestone-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .milestone-summary {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .milestone-card {
+            padding: 1rem !important;
+          }
+          .milestone-title {
+            font-size: 1.1rem !important;
+          }
+        }
+      `}</style>
       <div className="space-y-6">
         {/* Header - Clean and minimal */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">

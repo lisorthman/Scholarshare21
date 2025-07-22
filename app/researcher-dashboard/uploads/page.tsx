@@ -211,10 +211,44 @@ export default function ResearcherUpload() {
 
   return (
     <DashboardLayout user={user} defaultPage="Uploads">
+      <style jsx global>{`
+        @media (max-width: 1024px) {
+          .uploads-header, .uploads-filter {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+          }
+          .uploads-table-container {
+            overflow-x: auto !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .uploads-header, .uploads-filter {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.5rem !important;
+          }
+          .uploads-table-container {
+            overflow-x: auto !important;
+          }
+          .uploads-title {
+            font-size: 1.1rem !important;
+          }
+          .uploads-upload-btn {
+            padding: 10px 16px !important;
+            font-size: 0.95rem !important;
+          }
+          .uploads-table th, .uploads-table td {
+            padding: 8px 10px !important;
+            font-size: 0.9rem !important;
+          }
+        }
+      `}</style>
       <div style={styles.container}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>Your Research Papers</h1>
+        <div className="uploads-header" style={{...styles.header, display: 'flex'}}>
+          <h1 className="uploads-title" style={styles.title}>Your Research Papers</h1>
           <button
+            className="uploads-upload-btn"
             onClick={() => setShowUploadForm(!showUploadForm)}
             style={styles.uploadButton}
           >
@@ -223,7 +257,7 @@ export default function ResearcherUpload() {
         </div>
 
         {/* Search and Filter Bar */}
-        <div style={styles.filterContainer}>
+        <div className="uploads-filter" style={{...styles.filterContainer, display: 'flex'}}>
           <div style={styles.searchInputContainer}>
             <Search size={18} style={styles.searchIcon} />
             <input
@@ -355,8 +389,8 @@ export default function ResearcherUpload() {
         )}
 
 {filteredPapers.length > 0 ? (
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
+  <div className="uploads-table-container" style={styles.tableContainer}>
+    <table className="uploads-table" style={styles.table}>
               <thead>
                 <tr style={styles.tableHeaderRow}>
                   <th style={styles.tableHeaderCell}>Paper Title</th>

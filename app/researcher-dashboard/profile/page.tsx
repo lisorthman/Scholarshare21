@@ -195,6 +195,36 @@ export default function ResearcherProfile() {
 
   return (
     <DashboardLayout user={researcher} defaultPage="Profile">
+      <style jsx global>{`
+        @media (max-width: 1024px) {
+          .profile-main-row {
+            flex-direction: column !important;
+            gap: 1.5rem !important;
+            align-items: stretch !important;
+          }
+          .profile-info-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .profile-main-row {
+            flex-direction: column !important;
+            gap: 1rem !important;
+            align-items: stretch !important;
+          }
+          .profile-info-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+          }
+          .profile-title {
+            font-size: 1.1rem !important;
+          }
+          .profile-section {
+            padding: 1rem !important;
+          }
+        }
+      `}</style>
       <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
         rel="stylesheet"
@@ -295,6 +325,7 @@ export default function ResearcherProfile() {
           </div>
 
           <div
+            className="profile-main-row"
             style={{
               display: "flex",
               alignItems: "flex-start",
@@ -576,6 +607,7 @@ export default function ResearcherProfile() {
           </div>
 
           <div
+            className="profile-section"
             style={{
               backgroundColor: "#F9F9F9",
               borderRadius: "6px",
@@ -583,6 +615,7 @@ export default function ResearcherProfile() {
             }}
           >
             <h2
+              className="profile-title"
               style={{
                 fontSize: "18px",
                 fontWeight: "600",
@@ -592,6 +625,7 @@ export default function ResearcherProfile() {
               Researcher Information
             </h2>
             <div
+              className="profile-info-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",

@@ -43,12 +43,24 @@ export default function ResearcherDashboard() {
             const categories = Object.keys(readerStatsData);
             const years = Object.keys(readerStatsData[categories[0]] || {});
           
-          const datasets = categories.map(category => ({
+          const brownPalette = [
+            '#8B5E3C', // brown
+            '#A47551', // lighter brown
+            '#6B4226', // dark brown
+            '#C19A6B', // tan
+            '#A0522D', // sienna
+            '#7B3F00', // coffee
+            '#B87333', // copper
+          ];
+          const datasets = categories.map((category, idx) => ({
             label: category,
-              data: years.map(year => readerStatsData[category][year] || 0),
-            backgroundColor: '#4e73df',
-            borderColor: '#4e73df',
-            borderWidth: 1
+            data: years.map(year => readerStatsData[category][year] || 0),
+            backgroundColor: brownPalette[idx % brownPalette.length],
+            borderColor: brownPalette[idx % brownPalette.length],
+            borderWidth: 1,
+            borderRadius: 12, // rounded corners
+            barPercentage: 0.7,
+            categoryPercentage: 0.7,
           }));
 
           setChartData({
@@ -105,20 +117,40 @@ export default function ResearcherDashboard() {
 
   return (
     <DashboardLayout user={user}>
-      <style jsx>{`
-        .scrollable-container::-webkit-scrollbar {
-          width: 6px;
+      <style jsx global>{`
+        @media (max-width: 1024px) {
+          .dashboard-flex-row {
+            flex-direction: column !important;
+            gap: 1.5rem !important;
+          }
+          .dashboard-flex-col {
+            min-width: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          .dashboard-chart-container {
+            min-height: 340px !important;
+            padding: 1rem !important;
+          }
         }
-        .scrollable-container::-webkit-scrollbar-track {
-          background: #F7FAFC;
-          border-radius: 3px;
-        }
-        .scrollable-container::-webkit-scrollbar-thumb {
-          background: #CBD5E0;
-          border-radius: 3px;
-        }
-        .scrollable-container::-webkit-scrollbar-thumb:hover {
-          background: #A0AEC0;
+        @media (max-width: 600px) {
+          .dashboard-flex-row {
+            flex-direction: column !important;
+            gap: 1rem !important;
+          }
+          .dashboard-flex-col {
+            min-width: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0.5rem !important;
+          }
+          .dashboard-chart-container {
+            min-height: 220px !important;
+            padding: 0.5rem !important;
+          }
+          .dashboard-section-title {
+            font-size: 0.95rem !important;
+          }
         }
       `}</style>
       {/* White full-page container */}
@@ -186,7 +218,7 @@ export default function ResearcherDashboard() {
           </div>
 
           {/* Two-column layout for chart and uploads */}
-          <div style={{
+          <div className="dashboard-flex-row" style={{
             display: 'flex',
             flexDirection: 'row',
             gap: '2rem',
@@ -194,7 +226,7 @@ export default function ResearcherDashboard() {
             flexWrap: 'wrap',
           }}>
             {/* Chart Section - takes 2/3 width on large screens */}
-            <div style={{
+            <div className="dashboard-flex-col" style={{
               flex: '2',
               minWidth: '300px',
               borderRadius: "1.5rem",
@@ -204,8 +236,8 @@ export default function ResearcherDashboard() {
               border: "1px solid #E5E7EB",
               height: 'fit-content',
             }}>
-              <h2 style={{
-                fontSize: "1.25rem",
+              <h2 className="dashboard-section-title" style={{
+                fontSize: "1.05rem",
                 fontWeight: "700",
                 marginBottom: "1.5rem",
                 color: "#111827",
@@ -213,10 +245,15 @@ export default function ResearcherDashboard() {
               }}>
                 Reader Stats by Category & Year
               </h2>
-              <div style={{ 
+              <div className="dashboard-chart-container" style={{ 
                 width: '100%',
-                minHeight: '400px',
-                position: 'relative'
+                minHeight: '520px',
+                position: 'relative',
+                background: '#F7F6F3',
+                borderRadius: '1.5rem',
+                boxShadow: '0 4px 16px rgba(139, 94, 60, 0.08)',
+                padding: '2rem',
+                border: '1px solid #E5D3C6',
               }}>
                 {chartData ? (
                   <Bar 
@@ -228,9 +265,39 @@ export default function ResearcherDashboard() {
                         title: {
                           display: true,
                           text: 'Number of Readers per Year by Category',
+                          color: '#5E3023',
+                          font: {
+                            size: 20,
+                            family: 'Space Grotesk, sans-serif',
+                            weight: 'bold',
+                          },
+                          padding: { top: 10, bottom: 20 },
                         },
                         legend: {
-                          position: 'top',
+                          position: 'bottom',
+                          labels: {
+                            color: '#5E3023',
+                            font: {
+                              size: 14,
+                              family: 'Space Grotesk, sans-serif',
+                              weight: 'bold',
+                            },
+                            boxWidth: 18,
+                            boxHeight: 18,
+                            padding: 20,
+                          },
+                          align: 'center',
+                        },
+                        tooltip: {
+                          backgroundColor: '#F3E9E7',
+                          titleColor: '#5E3023',
+                          bodyColor: '#5E3023',
+                          borderColor: '#8B5E3C',
+                          borderWidth: 1,
+                          titleFont: { family: 'Space Grotesk, sans-serif', weight: 'bold', size: 16 },
+                          bodyFont: { family: 'Space Grotesk, sans-serif', size: 14 },
+                          padding: 12,
+                          cornerRadius: 8,
                         },
                       },
                       scales: {
@@ -238,15 +305,37 @@ export default function ResearcherDashboard() {
                           title: {
                             display: true,
                             text: 'Year',
+                            color: '#5E3023',
+                            font: { size: 16, family: 'Space Grotesk, sans-serif', weight: 'bold' },
+                          },
+                          grid: {
+                            color: '#F3E9E7',
+                          },
+                          ticks: {
+                            color: '#5E3023',
+                            font: { size: 13, family: 'Space Grotesk, sans-serif' },
                           },
                         },
                         y: {
                           title: {
                             display: true,
                             text: 'Number of Readers',
+                            color: '#5E3023',
+                            font: { size: 16, family: 'Space Grotesk, sans-serif', weight: 'bold' },
+                          },
+                          grid: {
+                            color: '#F3E9E7',
+                          },
+                          ticks: {
+                            color: '#5E3023',
+                            font: { size: 13, family: 'Space Grotesk, sans-serif' },
                           },
                           beginAtZero: true,
                         },
+                      },
+                      animation: {
+                        duration: 1200,
+                        easing: 'easeOutQuart',
                       },
                     }} 
                   />
@@ -264,7 +353,7 @@ export default function ResearcherDashboard() {
             </div>
 
             {/* Uploads Status Section - takes 1/3 width on large screens */}
-            <div style={{
+            <div className="dashboard-flex-col" style={{
               flex: '1',
               minWidth: '300px',
               borderRadius: "1.5rem",
@@ -272,7 +361,7 @@ export default function ResearcherDashboard() {
               padding: "1.5rem",
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
               border: "1px solid #E5E7EB",
-              maxHeight: '600px',
+              maxHeight: '616px',
               display: 'flex',
               flexDirection: 'column',
               height: 'fit-content',
@@ -710,7 +799,7 @@ export default function ResearcherDashboard() {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    <span style={{ fontSize: '1.125rem' }}>📄</span>
+                    <img src="/upload_file_24dp_434343_FILL0_wght400_GRAD0_opsz24.svg" alt="Upload" style={{ width: 22, height: 22 }} />
                     Upload Paper
                   </button>
 
@@ -742,7 +831,7 @@ export default function ResearcherDashboard() {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    <span style={{ fontSize: '1.125rem' }}>📚</span>
+                    <img src="/find_in_page_24dp_434343_FILL0_wght400_GRAD0_opsz24.svg" alt="View All" style={{ width: 22, height: 22 }} />
                     View All Papers
                   </button>
 
@@ -774,7 +863,7 @@ export default function ResearcherDashboard() {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    <span style={{ fontSize: '1.125rem' }}>👤</span>
+                    <img src="/edit_document_24dp_434343_FILL0_wght400_GRAD0_opsz24.svg" alt="Edit" style={{ width: 22, height: 22 }} />
                     Edit Profile
                   </button>
 
@@ -830,7 +919,7 @@ export default function ResearcherDashboard() {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    <span style={{ fontSize: '1.125rem' }}>📊</span>
+                    <img src="/download_24dp_434343_FILL0_wght400_GRAD0_opsz24.svg" alt="Download" style={{ width: 22, height: 22 }} />
                     Download Report
                   </button>
                 </div>
@@ -846,6 +935,7 @@ export default function ResearcherDashboard() {
               padding: "1.25rem",
               boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               border: "1px solid #E9ECEF",
+              maxHeight: '465px',
               height: 'fit-content',
               display: 'flex',
               flexDirection: 'column',
