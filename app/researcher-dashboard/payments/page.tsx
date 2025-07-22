@@ -449,7 +449,7 @@ export default function ResearcherEarningsPage() {
               <button
                 onClick={refreshData}
                 disabled={refreshing}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex items-center px-4 py-2 bg-[#634141] text-white rounded-lg hover:bg-[#634141]/90 disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? 'Refreshing...' : 'Refresh'}
