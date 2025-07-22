@@ -33,8 +33,6 @@ export async function connectToDB(): Promise<typeof mongoose> {
   try {
     // Create new connection promise
     mongoConnection.promise = mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       maxPoolSize: 10,
     } as ConnectOptions);
