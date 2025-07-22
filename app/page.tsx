@@ -126,210 +126,120 @@ const HomePage: React.FC = () => {
         style={{
           width: '100%',
           display: 'flex',
-          justifyContent: 'center', // Center the box horizontally
+          justifyContent: 'center',
           alignItems: 'center',
-          padding: '60px 20px', // Add padding for spacing
+          padding: '60px 20px',
         }}
       >
-        {/* Small Left-Aligned Curved Box with Dots */}
         <div
           style={{
-            position: 'relative', // Position relative for absolute child
+            position: 'relative',
             width: '100%',
-            maxWidth: '1200px', // Match the max-width of the main box
+            maxWidth: '1200px',
           }}
         >
-          {/* Dots Container */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '-30px', // Position above the main box
-              left: '0px', // Align with the main box
-              backgroundColor: '#E0D8C3',
-              borderRadius: '20px 20px 0 0', // Curved edges at the top
-              padding: '10px 50px', // Padding for the dots
-              display: 'flex',
-              gap: '10px', // Space between dots
-              zIndex: 1, // Ensure it's above the main box
-              width: '150px', // Adjust width of the small box
-              height: '30px', // Adjust height of the small box
-            }}
-          >
-            {slides.map((_, index) => (
-              <div
-                key={index}
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%', // Circular dots
-                  backgroundColor: currentSlide === index ? '#563434' : '#9E8F8F', // Black for active, gray for inactive
-                  transition: 'background-color 0.3s ease', // Smooth transition
-                }}
-              />
-            ))}
-          </div>
-
           {/* Main Ash-Colored Box */}
           <div
             style={{
               width: '100%',
-              backgroundColor: '#F5F5F5', // Ash color
-              borderRadius: '0 40px 40px 40px', // Curved edges at the top
-              padding: '40px', // Inner padding
-              position: 'relative', // For positioning arrows
+              backgroundColor: '#F5F5F5',
+              borderRadius: '0 40px 40px 40px',
+              padding: '40px',
+              position: 'relative',
             }}
           >
-            {/* Container for Slides */}
             <div
               style={{
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between', // Space between text and image
-                flexWrap: 'wrap', // Allow wrapping on smaller screens
-                overflow: 'hidden', // Hide overflow for sliding effect
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                overflow: 'hidden',
               }}
             >
               {/* Text Content */}
               <div
                 style={{
                   flex: '1',
-                  minWidth: '300px', // Minimum width for text content
-                  maxWidth: '600px', // Maximum width for text content
-                  transform: `translateX(-${currentSlide * 100}%)`, // Slide effect
-                  transition: 'transform 0.5s ease', // Smooth transition
+                  minWidth: '300px',
+                  maxWidth: '600px',
                 }}
               >
-                {/* Heading */}
                 <h1
                   style={{
-                    fontSize: 'clamp(2rem, 5vw, 3rem)', // Responsive font size
+                    fontSize: 'clamp(2rem, 5vw, 3rem)',
                     fontWeight: '550',
-                    marginBottom: '10px', // Reduced spacing below the heading
+                    marginBottom: '10px',
                     lineHeight: '1.2',
                   }}
                 >
-                  {slides[currentSlide].heading}
+                  {slides[0].heading}
                 </h1>
-
-                {/* Subheading */}
                 <h2
                   style={{
-                    fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', // Responsive font size
-                    fontWeight: '400', // Semi-bold
-                    marginBottom: '20px', // Spacing below the subheading
-                    color: '#555', // Slightly lighter color for subheading
+                    fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
+                    fontWeight: '400',
+                    marginBottom: '20px',
+                    color: '#555',
                   }}
                 >
-                  {slides[currentSlide].subheading}
+                  {slides[0].subheading}
                 </h2>
-
-                {/* Paragraph */}
                 <p
                   style={{
-                    fontSize: 'clamp(1rem, 2vw, 1.125rem)', // Responsive font size
+                    fontSize: 'clamp(1rem, 2vw, 1.125rem)',
                     lineHeight: '1.6',
-                    marginBottom: '40px', // Spacing below the paragraph
-                    color: '#333', // Slightly lighter color for paragraph
+                    marginBottom: '40px',
+                    color: '#333',
                   }}
                 >
-                  {slides[currentSlide].paragraph}
+                  {slides[0].paragraph}
                 </p>
-
-                {/* Get Started Button */}
                 <button
-                  onClick={handleGetStartedClick} // Add onClick handler
+                  onClick={handleGetStartedClick}
                   style={{
-                    backgroundColor: '#000', // Black background for the button
-                    color: '#FFF', // White text
-                    padding: '16px 32px', // Increased padding for a bigger button
-                    borderRadius: '8px', // Rounded corners
-                    fontSize: 'clamp(0.875rem, 1.5vw, 1rem)', // Smaller responsive font size
-                    fontWeight: '500', // Adjustable font weight (500 is medium)
-                    fontFamily: 'Space Grotesk, sans-serif', // Use Space Grotesk font
-                    letterSpacing: '0.5px', // Adjustable letter spacing
-                    cursor: 'pointer', // Pointer cursor on hover
-                    border: 'none', // Remove default border
-                    outline: 'none', // Remove outline
-                    transition: 'background-color 0.3s ease', // Smooth hover effect
+                    backgroundColor: '#000',
+                    color: '#FFF',
+                    padding: '16px 32px',
+                    borderRadius: '8px',
+                    fontSize: 'clamp(0.875rem, 1.5vw, 1rem)',
+                    fontWeight: '500',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    letterSpacing: '0.5px',
+                    cursor: 'pointer',
+                    border: 'none',
+                    outline: 'none',
+                    transition: 'background-color 0.3s ease',
                   }}
-                  onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#333')} // Darker on hover
-                  onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#000')} // Restore on mouse out
+                  onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#333')}
+                  onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#000')}
                 >
-                  {slides[currentSlide].buttonText}
+                  {slides[0].buttonText}
                 </button>
               </div>
-
               {/* Image */}
               <div
                 style={{
                   flex: '1',
-                  minWidth: '300px', // Minimum width for image
-                  maxWidth: '400px', // Maximum width for image
+                  minWidth: '300px',
+                  maxWidth: '400px',
                   display: 'flex',
-                  justifyContent: 'center', // Center the image
+                  justifyContent: 'center',
                   alignItems: 'center',
-                  transform: `translateX(-${currentSlide * 100}%)`, // Slide effect
-                  transition: 'transform 0.5s ease', // Smooth transition
                 }}
               >
                 <img
-                  src={slides[currentSlide].image} // Dynamic image path
+                  src={slides[0].image}
                   alt="Slide Illustration"
                   style={{
-                    width: '100%', // Responsive width
-                    maxWidth: '400px', // Maximum width for the image
-                    height: 'auto', // Maintain aspect ratio
+                    width: '100%',
+                    maxWidth: '400px',
+                    height: 'auto',
                   }}
                 />
               </div>
             </div>
-
-            {/* Navigation Arrows */}
-            <button
-              onClick={prevSlide}
-              style={{
-                position: 'absolute',
-                left: '20px', // Position left arrow
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent black
-                color: '#FFF', // White arrow
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                fontSize: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              &lt;
-            </button>
-            <button
-              onClick={nextSlide}
-              style={{
-                position: 'absolute',
-                right: '20px', // Position right arrow
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent black
-                color: '#FFF', // White arrow
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                fontSize: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              &gt;
-            </button>
           </div>
         </div>
       </div>

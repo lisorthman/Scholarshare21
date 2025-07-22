@@ -4,16 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-} from "recharts";
+import { Bar } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -29,22 +23,25 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState({
     views: 0,
     newUsers: 0,
-    totalDownloads: 0,
+    totalDownloads: 0, // Will be managed separately
     paperSubmissions: 0,
     reviewCount: 0,
     registeredResearchers: 0,
     changes: {
       viewsChange: "0.00%",
       newUsersChange: "0.00%",
-      totalDownloadsChange: "0.00%",
+      totalDownloadsChange: "0.00%", // Will be managed separately
       paperSubmissionsChange: "0.00%",
       reviewCountChange: "0.00%",
       registeredResearchersChange: "0.00%",
     },
   });
+  const [totalDownloads, setTotalDownloads] = useState(0); // Separate state for totalDownloads
+  const [totalDownloadsChange, setTotalDownloadsChange] = useState("0.00%"); // Separate state for change
   const [notifications, setNotifications] = useState<{ msg: string; time: string; type: string; status?: string }[]>([]);
   const [userGrowth, setUserGrowth] = useState<{ month: string; users: number }[]>([]);
-  const [recentActivities, setRecentActivities] = useState<{ action: string; time: string }[]>([]);
+  const [chartData, setChartData] = useState<any>(null);
+  const [loading, setLoading] = useState(true); // Loading state
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -70,7 +67,7 @@ export default function AdminDashboard() {
             _id: data.user._id,
             createdAt: data.user.createdAt,
             updatedAt: data.user.updatedAt,
-            lastLogin: data.user.lastLogin, // Add lastLogin property
+            lastLogin: data.user.lastLogin,
           });
         } else {
           router.push("/unauthorized");
@@ -97,7 +94,22 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin/analytics');
       const result = await response.json();
-      setAnalytics(result);
+      setAnalytics(prev => ({
+        ...prev,
+        views: result.views || 0,
+        newUsers: result.newUsers || 0,
+        paperSubmissions: result.paperSubmissions || 0,
+        reviewCount: result.reviewCount || 0,
+        registeredResearchers: result.registeredResearchers || 0,
+        changes: {
+          ...prev.changes,
+          viewsChange: result.changes?.viewsChange || "0.00%",
+          newUsersChange: result.changes?.newUsersChange || "0.00%",
+          paperSubmissionsChange: result.changes?.paperSubmissionsChange || "0.00%",
+          reviewCountChange: result.changes?.reviewCountChange || "0.00%",
+          registeredResearchersChange: result.changes?.registeredResearchersChange || "0.00%",
+        },
+      }));
     } catch (error) {
       console.error("Error fetching analytics data:", error);
     }
@@ -118,31 +130,70 @@ export default function AdminDashboard() {
 
   const fetchUserGrowth = async () => {
     try {
-      const response = await fetch('/api/admin/user-growth?role=user', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      const [usersResponse, researchersResponse] = await Promise.all([
+        fetch('/api/admin/user-growth?role=user', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        }),
+        fetch('/api/admin/user-growth?role=researcher', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        }),
+      ]);
+      const usersData = await usersResponse.json();
+      const researchersData = await researchersResponse.json();
+
+      const usersMap = usersData.reduce((acc: { [key: string]: number }, item: { month: string; users: number }) => {
+        acc[item.month] = item.users;
+        return acc;
+      }, {});
+      const researchersMap = researchersData.reduce((acc: { [key: string]: number }, item: { month: string; users: number }) => {
+        acc[item.month] = item.users;
+        return acc;
+      }, {});
+
+      const allMonths = ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"];
+      setChartData({
+        labels: allMonths,
+        datasets: [
+          {
+            label: "General Users",
+            data: allMonths.map(month => usersMap[month] || 0),
+            backgroundColor: "#DCD3D0",
+            borderColor: "#DCD3D0",
+            borderWidth: 1,
+            borderRadius: 5, // Added border radius of 5px
+          },
+          {
+            label: "Registered Researchers",
+            data: allMonths.map(month => researchersMap[month] || 0),
+            backgroundColor: "#704A4A",
+            borderColor: "#704A4A",
+            borderWidth: 1,
+            borderRadius: 5, // Added border radius of 5px
+          },
+        ],
       });
-      const data = await response.json();
-      setUserGrowth(data.map((item: any) => ({ month: item.month, users: item.users })));
     } catch (error) {
       console.error("Error fetching user growth data:", error);
     }
   };
 
-  const fetchRecentActivities = async () => {
+  const fetchTotalDownloads = async () => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/admin/recent-activities', {
+      const response = await fetch('/api/admin/total-downloads', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      const recent = data.filter((activity: { action: string; time: string }) => {
-        const activityTime = new Date(activity.time);
-        return activityTime >= oneWeekAgo;
-      });
-      setRecentActivities(recent);
+      console.log("Fetched total downloads data:", data);
+      setTotalDownloads(data.totalDownloads || 0);
+      setTotalDownloadsChange(`${data.downloadPercentageChange >= 0 ? '+' : ''}${data.downloadPercentageChange.toFixed(2)}%` || "0.00%");
     } catch (error) {
-      console.error("Error fetching recent activities:", error);
+      console.error("Error fetching total downloads:", error);
+      setTotalDownloads(0);
+      setTotalDownloadsChange("0.00%");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -150,16 +201,16 @@ export default function AdminDashboard() {
     fetchAnalyticsData();
     fetchNotifications();
     fetchUserGrowth();
-    fetchRecentActivities();
+    fetchTotalDownloads();
     const analyticsInterval = setInterval(fetchAnalyticsData, 30000);
     const notificationsInterval = setInterval(fetchNotifications, 10000);
     const growthInterval = setInterval(fetchUserGrowth, 30000);
-    const activitiesInterval = setInterval(fetchRecentActivities, 10000); // Update every 10 seconds
+    const downloadsInterval = setInterval(fetchTotalDownloads, 30000);
     return () => {
       clearInterval(analyticsInterval);
       clearInterval(notificationsInterval);
       clearInterval(growthInterval);
-      clearInterval(activitiesInterval);
+      clearInterval(downloadsInterval);
     };
   }, []);
 
@@ -272,7 +323,7 @@ export default function AdminDashboard() {
               {[
                 { label: "Views", value: analytics.views, change: analytics.changes.viewsChange },
                 { label: "New Users", value: analytics.newUsers, change: analytics.changes.newUsersChange },
-                { label: "Total Downloads", value: analytics.totalDownloads, change: analytics.changes.totalDownloadsChange },
+                { label: "Total Downloads", value: totalDownloads, change: totalDownloadsChange },
                 { label: "Paper Submissions", value: analytics.paperSubmissions, change: analytics.changes.paperSubmissionsChange },
                 { label: "Review Count", value: analytics.reviewCount, change: analytics.changes.reviewCountChange },
                 { label: "Registered Researchers", value: analytics.registeredResearchers, change: analytics.changes.registeredResearchersChange },
@@ -287,6 +338,11 @@ export default function AdminDashboard() {
                       color: "white",
                       padding: "1.25rem 1.5rem",
                       boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                      opacity: loading && stat.label === "Total Downloads" ? 0.5 : 1,
+                      minHeight: "120px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
                     }}
                   >
                     <p style={{ fontSize: "0.875rem", fontWeight: 500 }}>
@@ -306,7 +362,7 @@ export default function AdminDashboard() {
                       {isPositive ? (
                         <ArrowUpRight
                           size={16}
-                          style={{ color: "#4ade80", marginRight: "0.25rem" }}
+                          style={{ color: "#DCD3D0", marginRight: "0.25rem" }}
                         />
                       ) : (
                         <ArrowDownRight
@@ -316,13 +372,18 @@ export default function AdminDashboard() {
                       )}
                       <span
                         style={{
-                          color: isPositive ? "#4ade80" : "#f87171",
+                          color: isPositive ? "#DCD3D0" : "#f87171",
                           fontWeight: 500,
                         }}
                       >
                         {stat.change}
                       </span>
                     </div>
+                    {loading && stat.label === "Total Downloads" && (
+                      <p style={{ fontSize: "0.75rem", color: "#fff", marginTop: "0.5rem" }}>
+                        Loading...
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -339,8 +400,8 @@ export default function AdminDashboard() {
               {/* Chart Section */}
               <div
                 style={{
-                  flex: "1 1 50%",
-                  borderRadius: "1rem",
+                  flex: "1 1 70%",
+                  borderRadius: "1.5rem",
                   backgroundColor: "#F9FAFB",
                   padding: "1.5rem",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -354,57 +415,63 @@ export default function AdminDashboard() {
                     marginBottom: "0.75rem",
                   }}
                 >
-                  General User Growth
+                  General User and Researcher Growth
                 </div>
                 <div style={{ fontSize: "0.875rem", color: "#6B7280", marginBottom: "1rem" }}>
-                  January - June 2025
+                  January - July 2025
                 </div>
-                <div style={{ height: "300px" }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={userGrowth}
-                      margin={{
-                        left: 12,
-                        right: 12,
+                <div style={{ width: "100%", minHeight: "400px", position: "relative" }}>
+                  {chartData ? (
+                    <Bar
+                      data={chartData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          title: {
+                            display: true,
+                            text: "Number of General Users and Researchers Registered per Month",
+                          },
+                          legend: {
+                            position: "top",
+                          },
+                        },
+                        scales: {
+                          x: {
+                            title: {
+                              display: true,
+                              text: "Month",
+                            },
+                          },
+                          y: {
+                            title: {
+                              display: true,
+                              text: "Number of Users",
+                            },
+                            beginAtZero: true,
+                          },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "400px",
                       }}
                     >
-                      <CartesianGrid vertical={false} stroke="#D1D5DB" />
-                      <XAxis
-                        dataKey="month"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        tickFormatter={(value) => value.slice(0, 3)}
-                        stroke="#374151"
-                        fontSize="0.875rem"
-                      />
-                      <YAxis
-                        stroke="#374151"
-                        fontSize="0.875rem"
-                        domain={[0, 'auto']}
-                      />
-                      <Tooltip
-                        cursor={false}
-                        contentStyle={{ backgroundColor: "#FFFFFF", border: "1px solid #D1D5DB", borderRadius: "0" }}
-                        itemStyle={{ color: "#374151" }}
-                      />
-                      <Line
-                        type="natural"
-                        dataKey="users"
-                        stroke="#6B7280"
-                        strokeWidth={2}
-                        dot={{ fill: "#6B7280" }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                      <p>Loading chart...</p>
+                    </div>
+                  )}
                 </div>
                 <div style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#6B7280" }}>
                   <div style={{ fontWeight: 500, display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     Trending up by {analytics.changes.newUsersChange} this month <ArrowUpRight size={16} />
                   </div>
                   <div style={{ marginTop: "0.25rem" }}>
-                    Showing total users for the last 6 months
+                    Showing total users and researchers for the last 7 months
                   </div>
                 </div>
               </div>
@@ -412,7 +479,7 @@ export default function AdminDashboard() {
               {/* Notifications Panel */}
               <div
                 style={{
-                  flex: "1 1 25%",
+                  flex: "1 1 30%",
                   borderRadius: "1rem",
                   backgroundColor: "#F3F4F6",
                   padding: "1.5rem",
@@ -450,7 +517,7 @@ export default function AdminDashboard() {
                           width: "1.5rem",
                           height: "1.5rem",
                           borderRadius: "9999px",
-                          backgroundColor: notif.type === 'paper' ? '#E8F5E9' : '#E0F7FA',
+                          backgroundColor: notif.type === 'paper' ? '#DCD3D0' : '#E0F7FA',
                           marginRight: "0.75rem",
                           display: "flex",
                           alignItems: "center",
@@ -474,76 +541,10 @@ export default function AdminDashboard() {
                   </p>
                 )}
               </div>
-
-              {/* Recent Activities Panel */}
-              <div
-                style={{
-                  flex: "1 1 25%",
-                  borderRadius: "1rem",
-                  backgroundColor: "#F3F4F6",
-                  padding: "1.5rem",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  maxHeight: "200px",
-                  overflowY: "auto",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    marginBottom: "1rem",
-                  }}
-                >
-                  Recent Activities
-                </h3>
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((activity, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: "1rem",
-                        fontSize: "0.875rem",
-                        backgroundColor: "#fff",
-                        padding: "0.75rem",
-                        borderRadius: "0.5rem",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "1.5rem",
-                          height: "1.5rem",
-                          borderRadius: "9999px",
-                          backgroundColor: "#E0F7FA",
-                          marginRight: "0.75rem",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        ⚙️
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{activity.action}</div>
-                        <div style={{ fontSize: "0.75rem", color: "#9CA3AF" }}>
-                          {activity.time}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p style={{ color: "#9CA3AF", textAlign: "center" }}>
-                    No recent activities.
-                  </p>
-                )}
-              </div>
             </div>
           </div>
         </div>
       </DashboardLayout>
     </div>
   );
-} 
+}
