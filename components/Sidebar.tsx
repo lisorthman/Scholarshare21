@@ -16,7 +16,8 @@ import {
   Search, 
   HeartHandshake, 
   BookOpen,
-  LogOut 
+  LogOut, 
+  HandCoins
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -57,6 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isVisible, role }) => {
     { href: '/user-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/user-dashboard/wishlist', label: 'Wishlist', icon: HeartHandshake },
     { href: '/user-dashboard/papers', label: 'Research Papers', icon: BookOpen },
+    { href: '/donate', label: 'Support Authors', icon: HandCoins },
     { href: '/user-dashboard/profile', label: 'Profile', icon: UserCircle }
 
   ];

@@ -9,7 +9,8 @@ export async function GET() {
   try {
     const papers = await Paper.find({ status: 'approved' })
       .sort({ title: 1 })
-      .populate('author', 'name'); // Include author name
+      .populate('author', 'name') // Include author name
+      .lean(); // Ensure virtuals are included in the plain object
     
     return NextResponse.json(papers);
   } catch (err) {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import InputField from "../../components/InputField";
 import { Button } from "../../components/ui/Button";
@@ -11,6 +11,8 @@ import { useAuthContext } from "@/components/AuthProvider";
 
 const SigninPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl');
   const { isAuthenticated, user, loading } = useAuthContext();
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -27,7 +29,6 @@ const SigninPage = () => {
 
   // Clear any existing tokens on component mount
   useEffect(() => {
-    // Clean up any expired or invalid tokens
     tokenUtils.cleanupExpiredTokens();
   }, []);
 
@@ -53,36 +54,30 @@ const SigninPage = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     try {
-      console.log('🔐 SigninPage: Attempting login...');
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role: selectedRole }),
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         console.log('✅ SigninPage: Login successful, setting tokens...');
-        
-        // Clear any existing tokens first
         tokenUtils.clearAuthData();
-        
-        // Save token AND role to storage
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.role);
-        
-        // Set cookies (optional, for SSR compatibility)
-        document.cookie = `token=${data.token}; path=/; max-age=3600`; // 1 hour
+        document.cookie = `token=${data.token}; path=/; max-age=3600`;
         document.cookie = `role=${data.role}; path=/; max-age=3600`;
 
-        console.log('🎯 SigninPage: Tokens set, redirecting to dashboard...');
-        
-        // Force a page reload to trigger AuthProvider re-initialization
-        // This ensures the AuthProvider picks up the new token
-        window.location.href = `/${data.role}-dashboard`;
+        // --- NEW LOGIC: handle callbackUrl ---
+        const urlParams = new URLSearchParams(window.location.search);
+        let callbackUrl = urlParams.get('callbackUrl');
+        if (!callbackUrl) {
+          callbackUrl = `/${selectedRole}-dashboard`;
+        }
+        window.location.href = callbackUrl;
       } else {
         console.log('❌ SigninPage: Login failed:', data.message);
         setError(data.message || "Login failed");

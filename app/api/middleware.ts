@@ -1,7 +1,7 @@
 // app/api/middleware.ts
 import { NextResponse, NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { getToken } from 'next-auth/jwt';
+import jwt from 'jsonwebtoken';
 
 // Enhanced authentication middleware
 export async function authenticate(req: NextRequest, allowedRoles?: string[]) {
@@ -20,12 +20,10 @@ export async function authenticate(req: NextRequest, allowedRoles?: string[]) {
       role: string;
     };
 
-    // If specific roles are required, check them
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Return both user and a success response
     return { 
       user,
       success: NextResponse.next()
@@ -37,16 +35,13 @@ export async function authenticate(req: NextRequest, allowedRoles?: string[]) {
 
 // Route protection middleware
 export async function protectRoutes(req: NextRequest) {
-  // Protect researcher routes
   if (req.nextUrl.pathname.startsWith('/researcher')) {
     const authResult = await authenticate(req, ['researcher', 'admin']);
     
     if (authResult instanceof NextResponse) {
-      // If it's a response, there was an error
       return authResult;
     }
     
-    // Add user to request headers for API routes
     const headers = new Headers(req.headers);
     headers.set('x-user-id', authResult.user.id);
     headers.set('x-user-role', authResult.user.role);
@@ -54,7 +49,6 @@ export async function protectRoutes(req: NextRequest) {
     return NextResponse.next({ request: { headers } });
   }
 
-  // For other routes, just continue
   return NextResponse.next();
 }
 
@@ -63,11 +57,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = await getToken({ req: request });
 
-  // Protect /donate route for authenticated users only
+  // Only protect /donate route if unauthenticated
   if (pathname.startsWith('/donate') && !token) {
-    const loginUrl = new URL('/signin', request.url);
-    loginUrl.searchParams.set('callbackUrl', request.url);
-    return NextResponse.redirect(loginUrl);
+    const signinUrl = new URL('/signin', request.url);
+    signinUrl.searchParams.set('callbackUrl', request.url);
+    return NextResponse.redirect(signinUrl);
   }
 
   // Keep your existing researcher/admin checks

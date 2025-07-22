@@ -122,7 +122,7 @@ const handler = NextAuth({
       return true;
     },
     async redirect({ url, baseUrl }) {
-      // Allow specific redirects to donation page
+      // Allow all /donate routes
       if (url.includes('/donate') || url.startsWith(baseUrl + '/donate')) {
         return url;
       }
@@ -132,11 +132,13 @@ const handler = NextAuth({
   },
   pages: {
     signIn: "/signin",
+    error: "/auth/error",
   },
   session: {
     strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 });
 
 export { handler as GET, handler as POST };

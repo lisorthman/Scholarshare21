@@ -34,13 +34,19 @@ export default function PaperModal({ paper, open, onClose }: PaperModalProps) {
 
   const handleSupportClick = () => {
     if (!paper) return;
+    
+    const callbackUrl = `/donate?paperId=${paper.id}`;
+    
+    // Use session.status if available, otherwise fallback to session
+    // If you want to use status, you need to destructure it from useSession
+    // Example: const { data: session, status } = useSession();
+    // For now, fallback to session
     if (!session) {
-      router.push(`/signin?callbackUrl=/donate?paperId=${paper.id}`);
+      router.push(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     } else {
-      router.push(`/donate?paperId=${paper.id}`);
+      router.push(callbackUrl);
     }
   };
-
   const handleCiteClick = () => {
     setShowCitationModal(true);
   };
