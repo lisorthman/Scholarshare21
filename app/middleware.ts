@@ -18,7 +18,6 @@ export async function middleware(request: NextRequest) {
   // ---- 1. Handle API Routes ---- //
   if (path.startsWith('/api')) {
     try {
-      // Verify JWT for API routes
       jwt.verify(token!, process.env.JWT_SECRET!);
       return NextResponse.next();
     } catch (error) {
@@ -30,14 +29,22 @@ export async function middleware(request: NextRequest) {
   }
 
   // ---- 2. Handle Page Routes ---- //
-  // Allow auth/signup pages
   if (['/signin', '/signup', '/verify'].includes(path)) {
     if (token) {
-      // Redirect logged-in users away from auth pages
       const redirectPath = role ? `/${role}-dashboard` : '/';
       return NextResponse.redirect(new URL(redirectPath, request.url));
     }
     return NextResponse.next();
+  }
+
+  // redirect /donate if unauthenticated
+  if (path.startsWith('/donate')) {
+    if (!token) {
+      const signinUrl = new URL('/signin', request.url);
+      signinUrl.searchParams.set('callbackUrl', request.url);
+      return NextResponse.redirect(signinUrl);
+    }
+    // Do NOT check for paperId here
   }
 
   // Check if route is protected
@@ -54,21 +61,13 @@ export async function middleware(request: NextRequest) {
 
   // ---- 4. Verify Role Access ---- //
   let hasAccess = false;
-  
-  // Check admin routes
   if (PROTECTED_ROUTES.admin.some(route => path.startsWith(route))) {
     hasAccess = role === 'admin';
-  } 
-  // Check researcher routes
-  else if (PROTECTED_ROUTES.researcher.some(route => path.startsWith(route))) {
+  } else if (PROTECTED_ROUTES.researcher.some(route => path.startsWith(route))) {
     hasAccess = role === 'researcher';
-  }
-  // Check user routes
-  else if (PROTECTED_ROUTES.user.some(route => path.startsWith(route))) {
+  } else if (PROTECTED_ROUTES.user.some(route => path.startsWith(route))) {
     hasAccess = role === 'user';
-  }
-  // Common authenticated routes
-  else {
+  } else {
     hasAccess = true;
   }
 
@@ -81,12 +80,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
