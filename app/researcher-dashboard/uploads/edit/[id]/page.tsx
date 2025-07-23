@@ -374,9 +374,9 @@ const styles = {
     margin: '0',
   },
   cancelButton: {
-    backgroundColor: 'transparent',
-    color: '#0070f3',
-    border: '1px solid #0070f3',
+    backgroundColor: '#634141',
+    color: '#fff',
+    border: 'none',
     borderRadius: '8px',
     padding: '10px 20px',
     fontSize: '16px',
@@ -425,8 +425,9 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     padding: '12px 24px',
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#8B5E3C',
     color: '#fff',
+    border: 'none',
     borderRadius: '8px',
     cursor: 'pointer',
     marginBottom: '12px',
@@ -466,7 +467,7 @@ const styles = {
     gap: '16px'
   },
   primaryButton: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#634141',
     color: '#fff',
     border: 'none',
     borderRadius: '8px',
@@ -479,9 +480,9 @@ const styles = {
     gap: '8px'
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
-    color: '#4f46e5',
-    border: '1px solid #4f46e5',
+    backgroundColor: '#634141',
+    color: '#fff',
+    border: 'none',
     borderRadius: '8px',
     padding: '12px 24px',
     fontSize: '16px',
@@ -489,7 +490,7 @@ const styles = {
     cursor: 'pointer'
   },
   deleteButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: '#8B3A3A',
     color: '#fff',
     border: 'none',
     borderRadius: '8px',

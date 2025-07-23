@@ -596,7 +596,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: '0',
   },
   uploadButton: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#634141',
     color: '#fff',
     border: 'none',
     borderRadius: '8px',
@@ -607,6 +607,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
+    transition: 'background-color 0.2s ease',
   },
   searchContainer: {
     marginBottom: '24px',
@@ -689,8 +690,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   downloadButton: {
     padding: '8px',
-    backgroundColor: '#4f46e5',
-    color: 'white',
+    backgroundColor: '#8B5E3C', // lighter brown
+    color: '#fff',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
@@ -701,8 +702,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   editButton: {
     padding: '8px',
-    backgroundColor: '#f59e0b',
-    color: 'white',
+    backgroundColor: '#A0522D', // different brown
+    color: '#fff',
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
@@ -740,9 +741,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   emptyButton: {
     padding: '12px 24px',
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#7B3F00',
     color: '#fff',
-    border: 'none',
+    border: '2px solid #7B3F00',
     borderRadius: '8px',
     fontSize: '16px',
     fontWeight: '500',
@@ -801,8 +802,9 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '8px',
     padding: '12px 24px',
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#7B3F00',
     color: '#fff',
+    border: '2px solid #7B3F00',
     borderRadius: '8px',
     cursor: 'pointer',
     marginBottom: '12px',
@@ -861,9 +863,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '16px',
   },
   primaryButton: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#7B3F00',
     color: '#fff',
-    border: 'none',
+    border: '2px solid #7B3F00',
     borderRadius: '8px',
     padding: '12px 24px',
     fontSize: '16px',
@@ -872,9 +874,9 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'background-color 0.2s ease',
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
-    color: '#4f46e5',
-    border: '1px solid #4f46e5',
+    backgroundColor: '#7B3F00',
+    color: '#fff',
+    border: '2px solid #7B3F00',
     borderRadius: '8px',
     padding: '12px 24px',
     fontSize: '16px',

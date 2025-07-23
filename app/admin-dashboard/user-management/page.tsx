@@ -287,10 +287,6 @@ export default function UserManagement() {
                     <p><strong>Status:</strong> {user.status}</p>
                     <p><strong>Education Qualification:</strong> {user.educationQualification || "-"}</p>
                     <div style={{ padding: "1rem 0", display: "flex", gap: "0.75rem" }}>
-                      <FiEdit2
-                        style={{ cursor: "pointer", color: "#4682b4" }}
-                        onClick={() => alert(`Edit user: ${user.name}`)}
-                      />
                       <button
                         onClick={() => setSelectedUser(user)}
                         style={{
@@ -408,8 +404,8 @@ export default function UserManagement() {
                     setRejectionReason("");
                   }}
                   style={{
-                    backgroundColor: "#4682b4",
-                    color: "white",
+                    backgroundColor: "#D8CBB0",
+                    color: "black",
                     border: "none",
                     padding: "0.5rem 1rem",
                     borderRadius: "5px",

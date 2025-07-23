@@ -1,4 +1,3 @@
-
 "use client";
 import { JSX, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -225,11 +224,11 @@ export default function PaperManagement(): JSX.Element {
   if (error) return <p>{error}</p>;
 
   const statusColors: Record<string, string> = {
-    approved: "#41A446",
+    approved: "#87A96B",
     pending: "#F4B740",
     rejected: "#D84727",
     rejected_ai: "#D84727",
-    passed_checks: "#41A446",
+    passed_checks: "#87A96B",
   };
 
   return (
@@ -584,15 +583,15 @@ export default function PaperManagement(): JSX.Element {
           padding: 6px 10px;
           font-size: 13px;
           cursor: pointer;
-          border: 1px solid #c2ddf9;
-          background-color: #e7f0fd;
-          color: #0070f3;
+          border: 1px solid #D8CBB0;
+          background-color: #D8CBB0;
+          color: black;
         }
 
         .download-button {
-          border-color: #b2d8b2;
-          background-color: #e8f5e9;
-          color: #2e7d32;
+          border-color: #704A4A;
+          background-color: #704A4A;
+          color: white;
         }
 
         .grammar-check-button {
@@ -619,9 +618,9 @@ export default function PaperManagement(): JSX.Element {
           border-radius: 6px;
           font-size: 14px;
           cursor: pointer;
-          border: 1px solid #c2ddf9;
-          background-color: #e7f0fd;
-          color: #0070f3;
+          border: 1px solid #D8CBB0;
+          background-color: #D8CBB0;
+          color: black;
         }
 
         .pagination-button:disabled {

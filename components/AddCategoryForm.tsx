@@ -201,30 +201,6 @@ export default function AddCategoryForm({
           />
         </div>
 
-        <div style={{ marginBottom: "30px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "500",
-            }}
-          >
-            Parent Category (Optional)
-          </label>
-          <select
-            value={parentCategory}
-            onChange={(e) => setParentCategory(e.target.value)}
-            style={inputStyle}
-          >
-            <option value="">Select parent category</option>
-            {categories.map((category) => (
-              <option key={category._id} value={category._id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div
           style={{ display: "flex", justifyContent: "flex-end", gap: "15px" }}
         >
@@ -233,7 +209,6 @@ export default function AddCategoryForm({
             onClick={() => {
               setCategoryName("");
               setDescription("");
-              setParentCategory("");
             }}
             style={secondaryButtonStyle}
           >

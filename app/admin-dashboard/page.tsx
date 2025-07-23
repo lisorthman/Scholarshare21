@@ -23,25 +23,25 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState({
     views: 0,
     newUsers: 0,
-    totalDownloads: 0, // Will be managed separately
+    totalDownloads: 0,
     paperSubmissions: 0,
     reviewCount: 0,
     registeredResearchers: 0,
     changes: {
       viewsChange: "0.00%",
       newUsersChange: "0.00%",
-      totalDownloadsChange: "0.00%", // Will be managed separately
+      totalDownloadsChange: "0.00%",
       paperSubmissionsChange: "0.00%",
       reviewCountChange: "0.00%",
       registeredResearchersChange: "0.00%",
     },
   });
-  const [totalDownloads, setTotalDownloads] = useState(0); // Separate state for totalDownloads
-  const [totalDownloadsChange, setTotalDownloadsChange] = useState("0.00%"); // Separate state for change
+  const [totalDownloads, setTotalDownloads] = useState(0);
+  const [totalDownloadsChange, setTotalDownloadsChange] = useState("0.00%");
   const [notifications, setNotifications] = useState<{ msg: string; time: string; type: string; status?: string }[]>([]);
   const [userGrowth, setUserGrowth] = useState<{ month: string; users: number }[]>([]);
   const [chartData, setChartData] = useState<any>(null);
-  const [loading, setLoading] = useState(true); // Loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
           viewsChange: result.changes?.viewsChange || "0.00%",
           newUsersChange: result.changes?.newUsersChange || "0.00%",
           paperSubmissionsChange: result.changes?.paperSubmissionsChange || "0.00%",
-          reviewCountChange: result.changes?.reviewCountChange || "0.00%",
+          reviewCountChange: result.changes?.countChange || "0.00%",
           registeredResearchersChange: result.changes?.registeredResearchersChange || "0.00%",
         },
       }));
@@ -119,9 +119,11 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin/notifications');
       const data = await response.json();
+      console.log("Fetched notifications:", data); // Debug raw API response
       const pendingNotifications = data.filter((notif: { msg: string; time: string; type: string; status?: string }) => 
-        notif.type === 'paper'
+        notif.type === 'paper' || notif.type === 'researcher' // Include both types
       );
+      console.log("Filtered notifications:", pendingNotifications); // Debug filtered result
       setNotifications(pendingNotifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -160,7 +162,7 @@ export default function AdminDashboard() {
             backgroundColor: "#DCD3D0",
             borderColor: "#DCD3D0",
             borderWidth: 1,
-            borderRadius: 5, // Added border radius of 5px
+            borderRadius: 5,
           },
           {
             label: "Registered Researchers",
@@ -168,7 +170,7 @@ export default function AdminDashboard() {
             backgroundColor: "#704A4A",
             borderColor: "#704A4A",
             borderWidth: 1,
-            borderRadius: 5, // Added border radius of 5px
+            borderRadius: 5,
           },
         ],
       });
@@ -525,7 +527,7 @@ export default function AdminDashboard() {
                           fontSize: "0.75rem",
                         }}
                       >
-                        {notif.type === 'paper' ? '📄' : '🔍'}
+                        {notif.type === 'paper' ? '📄' : '👨‍🔬'}
                       </div>
                       <div>
                         <div style={{ fontWeight: 500 }}>{notif.msg}</div>

@@ -7,29 +7,27 @@ export async function GET() {
     await connectToDB();
     const db = mongoose.connection;
 
-    // Fetch pending papers awaiting review
+    console.log("Executing query on collection:", db.collection('users').namespace);
     const pendingPapers = await db.collection('researchpapers')
       .find({ status: 'pending' })
       .toArray();
 
-    // Fetch new researchers with pending status awaiting approval (within last 24 hours)
+    console.log("Query filter for researchers:", { role: 'researcher', status: { $regex: /^pending$/i } });
     const newResearchers = await db.collection('users')
-      .find({ role: 'researcher', status: 'pending', createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } })
+      .find({ role: 'researcher', status: { $regex: /^pending$/i } }) // Case-insensitive match
       .toArray();
+    console.log("New researchers found:", newResearchers);
 
-    // Fetch bug reports with pending status (assuming a status field exists)
     const bugs = await db.collection('bugs')
       .find({ status: 'pending' })
       .sort({ timestamp: -1 })
-      .limit(5) // Limit to recent bugs
+      .limit(5)
       .toArray();
 
-    // Fetch papers needing plagiarism checks with pending status
     const plagiarismChecks = await db.collection('researchpapers')
       .find({ plagiarismCheck: true, status: 'pending' })
       .toArray();
 
-    // Construct notifications
     const notifications = [
       ...pendingPapers.map(paper => ({
         msg: `New paper "${paper.title}" uploaded and awaiting your review.`,
@@ -53,6 +51,7 @@ export async function GET() {
       })),
     ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
+    console.log("All notifications:", notifications);
     return NextResponse.json(notifications);
   } catch (error) {
     console.error('Failed to fetch notifications:', error);
